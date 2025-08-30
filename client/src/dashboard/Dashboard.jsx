@@ -20,12 +20,12 @@ const Dashboard = () => {
           <div className="animate-fadeIn">
             <WelcomeBanner userName="John Doe" />
             <StatsCards />
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-              <div className="space-y-6">
+            <div className="grid-2 mb-6">
+              <div>
                 <QuickActions />
                 <ActivityFeed />
               </div>
-              <div className="space-y-6">
+              <div>
                 <BlockchainPanel />
                 <ResponderWidget />
               </div>
