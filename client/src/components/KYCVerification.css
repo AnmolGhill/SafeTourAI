@@ -1,0 +1,340 @@
+.kyc-container {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 20px;
+  background: #f8f9fa;
+  min-height: 100vh;
+}
+
+.kyc-header {
+  text-align: center;
+  margin-bottom: 30px;
+  padding: 20px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border-radius: 12px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+}
+
+.kyc-header h1 {
+  margin: 0 0 10px 0;
+  font-size: 2.2rem;
+  font-weight: 600;
+}
+
+.kyc-header p {
+  margin: 0;
+  font-size: 1.1rem;
+  opacity: 0.9;
+}
+
+.kyc-form {
+  background: white;
+  border-radius: 12px;
+  padding: 30px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+}
+
+.form-section {
+  margin-bottom: 35px;
+  padding-bottom: 25px;
+  border-bottom: 1px solid #e9ecef;
+}
+
+.form-section:last-child {
+  border-bottom: none;
+  margin-bottom: 0;
+}
+
+.form-section h3 {
+  color: #495057;
+  margin-bottom: 20px;
+  font-size: 1.3rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.form-group {
+  margin-bottom: 20px;
+}
+
+.form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 8px;
+  font-weight: 500;
+  color: #495057;
+  font-size: 0.95rem;
+}
+
+.form-group input,
+.form-group select {
+  width: 100%;
+  padding: 12px 15px;
+  border: 2px solid #e9ecef;
+  border-radius: 8px;
+  font-size: 1rem;
+  transition: all 0.3s ease;
+  background: #fff;
+}
+
+.form-group input:focus,
+.form-group select:focus {
+  outline: none;
+  border-color: #667eea;
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+.form-group input.error,
+.form-group select.error {
+  border-color: #dc3545;
+  box-shadow: 0 0 0 3px rgba(220, 53, 69, 0.1);
+}
+
+.error-text {
+  color: #dc3545;
+  font-size: 0.85rem;
+  margin-top: 5px;
+  display: block;
+}
+
+.file-input {
+  padding: 8px 12px !important;
+  background: #f8f9fa !important;
+  border: 2px dashed #dee2e6 !important;
+  cursor: pointer;
+}
+
+.file-input:hover {
+  border-color: #667eea !important;
+  background: #f0f2ff !important;
+}
+
+.blockchain-section {
+  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+  padding: 25px;
+  border-radius: 10px;
+  border: 2px solid #dee2e6;
+}
+
+.blockchain-info-preview {
+  background: white;
+  padding: 20px;
+  border-radius: 8px;
+  border-left: 4px solid #667eea;
+}
+
+.blockchain-info-preview p {
+  margin-bottom: 15px;
+  color: #6c757d;
+  font-style: italic;
+}
+
+.info-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+  padding: 8px 0;
+}
+
+.info-item label {
+  font-weight: 600;
+  color: #495057;
+  margin-bottom: 0;
+}
+
+.auto-generated {
+  color: #6c757d;
+  font-style: italic;
+  background: #f8f9fa;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 0.9rem;
+}
+
+.blockchain-id,
+.wallet-address {
+  font-family: 'Courier New', monospace;
+  background: #f8f9fa;
+  padding: 6px 10px;
+  border-radius: 4px;
+  font-size: 0.9rem;
+  color: #495057;
+  border: 1px solid #dee2e6;
+}
+
+.status.verified {
+  color: #28a745;
+  font-weight: 600;
+  background: #d4edda;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 0.9rem;
+}
+
+.consent-section {
+  background: #fff3cd;
+  padding: 20px;
+  border-radius: 8px;
+  border-left: 4px solid #ffc107;
+}
+
+.consent-checkbox {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.consent-checkbox input[type="checkbox"] {
+  width: auto;
+  margin-top: 4px;
+  transform: scale(1.2);
+}
+
+.consent-checkbox label {
+  margin-bottom: 0;
+  cursor: pointer;
+  line-height: 1.5;
+}
+
+.form-actions {
+  text-align: center;
+  margin-top: 30px;
+  padding-top: 25px;
+  border-top: 1px solid #e9ecef;
+}
+
+.submit-btn {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+  padding: 15px 40px;
+  font-size: 1.1rem;
+  font-weight: 600;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+}
+
+.submit-btn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+}
+
+.submit-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* Status Pages */
+.kyc-success,
+.kyc-pending,
+.kyc-rejected {
+  text-align: center;
+  padding: 60px 40px;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+}
+
+.success-icon,
+.pending-icon,
+.rejected-icon {
+  font-size: 4rem;
+  margin-bottom: 20px;
+}
+
+.kyc-success h2 {
+  color: #28a745;
+  margin-bottom: 15px;
+}
+
+.kyc-pending h2 {
+  color: #ffc107;
+  margin-bottom: 15px;
+}
+
+.kyc-rejected h2 {
+  color: #dc3545;
+  margin-bottom: 15px;
+}
+
+.blockchain-info {
+  background: #f8f9fa;
+  padding: 25px;
+  border-radius: 10px;
+  margin-top: 25px;
+  border: 2px solid #e9ecef;
+}
+
+.blockchain-info h3 {
+  margin-bottom: 20px;
+  color: #495057;
+}
+
+.rejection-reason {
+  background: #f8d7da;
+  color: #721c24;
+  padding: 10px 15px;
+  border-radius: 6px;
+  margin: 15px 0;
+  border-left: 4px solid #dc3545;
+}
+
+.retry-btn {
+  background: #dc3545;
+  color: white;
+  border: none;
+  padding: 12px 25px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 500;
+  margin-top: 15px;
+  transition: background 0.3s ease;
+}
+
+.retry-btn:hover {
+  background: #c82333;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .kyc-container {
+    padding: 15px;
+  }
+  
+  .kyc-header h1 {
+    font-size: 1.8rem;
+  }
+  
+  .kyc-form {
+    padding: 20px;
+  }
+  
+  .form-row {
+    grid-template-columns: 1fr;
+    gap: 15px;
+  }
+  
+  .kyc-success,
+  .kyc-pending,
+  .kyc-rejected {
+    padding: 40px 20px;
+  }
+  
+  .success-icon,
+  .pending-icon,
+  .rejected-icon {
+    font-size: 3rem;
+  }
+}

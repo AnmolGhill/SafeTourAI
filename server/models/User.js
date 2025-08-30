@@ -20,7 +20,7 @@ const userSchema = new mongoose.Schema({
     unique: true,
     lowercase: true,
     trim: true,
-    match: [/^\w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,3})+$/, 'Please enter a valid email']
+    match: [/^[^\s@]+@[^\s@]+\.[^\s@]+$/, 'Please enter a valid email']
   },
   password: {
     type: String,
@@ -32,7 +32,7 @@ const userSchema = new mongoose.Schema({
     type: String,
     required: [true, 'Phone number is required'],
     trim: true,
-    match: [/^\+?[\d\s-()]+$/, 'Please enter a valid phone number']
+    match: [/^\+?[0-9\s\-()]+$/, 'Please enter a valid phone number']
   },
   role: {
     type: String,
@@ -95,6 +95,78 @@ const userSchema = new mongoose.Schema({
   profileImage: {
     type: String,
     default: ''
+  },
+  // KYC and Blockchain Identity fields
+  kyc: {
+    status: {
+      type: String,
+      enum: ['pending', 'submitted', 'verified', 'rejected'],
+      default: 'pending'
+    },
+    fullName: {
+      type: String,
+      trim: true
+    },
+    dateOfBirth: {
+      type: Date
+    },
+    gender: {
+      type: String,
+      enum: ['male', 'female', 'other']
+    },
+    address: {
+      street: String,
+      city: String,
+      state: String,
+      country: String,
+      pincode: String
+    },
+    governmentId: {
+      type: {
+        type: String,
+        enum: ['aadhaar', 'passport', 'driving_license']
+      },
+      number: {
+        type: String,
+        select: false // Hide from queries for security
+      },
+      documentUrl: String,
+      selfieUrl: String
+    },
+    submittedAt: Date,
+    verifiedAt: Date,
+    rejectedAt: Date,
+    rejectionReason: String,
+    verifiedBy: {
+      type: String,
+      ref: 'User'
+    }
+  },
+  blockchain: {
+    walletAddress: {
+      type: String,
+      unique: true,
+      sparse: true
+    },
+    blockchainId: {
+      type: String,
+      unique: true,
+      sparse: true
+    },
+    privateKeyHash: {
+      type: String,
+      select: false // Never expose private key
+    },
+    isBlockchainVerified: {
+      type: Boolean,
+      default: false
+    },
+    blockchainCreatedAt: Date,
+    consentGiven: {
+      type: Boolean,
+      default: false
+    },
+    consentTimestamp: Date
   },
   preferences: {
     notifications: {
