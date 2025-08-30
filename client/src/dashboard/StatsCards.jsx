@@ -5,7 +5,11 @@ import {
   FiBell, 
   FiLink,
   FiTrendingUp,
-  FiTrendingDown
+  FiTrendingDown,
+  FiUsers,
+  FiShield,
+  FiHash,
+  FiActivity
 } from 'react-icons/fi';
 
 const StatsCards = () => {
@@ -13,7 +17,11 @@ const StatsCards = () => {
     activeEmergencies: 3,
     safeCheckins: 247,
     alertsSent: 18,
-    blockchainRecords: 1234
+    blockchainRecords: 1234,
+    verifiedUsers: 892,
+    activeUserSessions: 156,
+    blockchainTransactions: 3247,
+    securityScore: 98.5
   });
 
   const [loading, setLoading] = useState(false);
@@ -24,7 +32,9 @@ const StatsCards = () => {
       setStats(prev => ({
         ...prev,
         safeCheckins: prev.safeCheckins + Math.floor(Math.random() * 3),
-        blockchainRecords: prev.blockchainRecords + Math.floor(Math.random() * 2)
+        blockchainRecords: prev.blockchainRecords + Math.floor(Math.random() * 2),
+        activeUserSessions: Math.max(100, prev.activeUserSessions + Math.floor(Math.random() * 10) - 5),
+        blockchainTransactions: prev.blockchainTransactions + Math.floor(Math.random() * 5)
       }));
     }, 30000); // Update every 30 seconds
 
@@ -33,48 +43,56 @@ const StatsCards = () => {
 
   const cardData = [
     {
-      title: 'Active Emergencies',
-      value: stats.activeEmergencies,
-      icon: FiAlertTriangle,
-      color: 'red',
-      bgColor: 'bg-red-50',
-      iconColor: 'text-red-600',
-      textColor: 'text-red-700',
-      trend: '+2',
-      trendUp: true
-    },
-    {
-      title: 'Safe Check-ins Today',
-      value: stats.safeCheckins,
-      icon: FiCheckCircle,
-      color: 'green',
-      bgColor: 'bg-green-50',
-      iconColor: 'text-green-600',
-      textColor: 'text-green-700',
-      trend: '+15',
-      trendUp: true
-    },
-    {
-      title: 'Emergency Alerts Sent',
-      value: stats.alertsSent,
-      icon: FiBell,
-      color: 'yellow',
-      bgColor: 'bg-yellow-50',
-      iconColor: 'text-yellow-600',
-      textColor: 'text-yellow-700',
-      trend: '+5',
-      trendUp: true
-    },
-    {
-      title: 'Blockchain Records',
-      value: stats.blockchainRecords.toLocaleString(),
-      icon: FiLink,
+      title: 'Verified Blockchain Users',
+      value: stats.verifiedUsers.toLocaleString(),
+      icon: FiUsers,
       color: 'blue',
-      bgColor: 'bg-blue-50',
+      bgColor: 'stat-card',
+      iconBg: 'bg-blue-100',
       iconColor: 'text-blue-600',
       textColor: 'text-blue-700',
-      trend: '+12',
-      trendUp: true
+      trend: '+23',
+      trendUp: true,
+      subtitle: 'Identity Verified'
+    },
+    {
+      title: 'Active User Sessions',
+      value: stats.activeUserSessions,
+      icon: FiActivity,
+      color: 'green',
+      bgColor: 'stat-card',
+      iconBg: 'bg-green-100',
+      iconColor: 'text-green-600',
+      textColor: 'text-green-700',
+      trend: '+8',
+      trendUp: true,
+      subtitle: 'Currently Online'
+    },
+    {
+      title: 'Blockchain Transactions',
+      value: stats.blockchainTransactions.toLocaleString(),
+      icon: FiHash,
+      color: 'purple',
+      bgColor: 'stat-card',
+      iconBg: 'bg-purple-100',
+      iconColor: 'text-purple-600',
+      textColor: 'text-purple-700',
+      trend: '+47',
+      trendUp: true,
+      subtitle: 'Total Records'
+    },
+    {
+      title: 'Security Score',
+      value: `${stats.securityScore}%`,
+      icon: FiShield,
+      color: 'emerald',
+      bgColor: 'stat-card',
+      iconBg: 'bg-emerald-100',
+      iconColor: 'text-emerald-600',
+      textColor: 'text-emerald-700',
+      trend: '+0.3',
+      trendUp: true,
+      subtitle: 'System Security'
     }
   ];
 
@@ -86,7 +104,11 @@ const StatsCards = () => {
         activeEmergencies: Math.floor(Math.random() * 10),
         safeCheckins: prev.safeCheckins + Math.floor(Math.random() * 20),
         alertsSent: prev.alertsSent + Math.floor(Math.random() * 5),
-        blockchainRecords: prev.blockchainRecords + Math.floor(Math.random() * 10)
+        blockchainRecords: prev.blockchainRecords + Math.floor(Math.random() * 10),
+        verifiedUsers: prev.verifiedUsers + Math.floor(Math.random() * 15),
+        activeUserSessions: Math.max(100, Math.floor(Math.random() * 200) + 50),
+        blockchainTransactions: prev.blockchainTransactions + Math.floor(Math.random() * 25),
+        securityScore: Math.min(100, prev.securityScore + (Math.random() - 0.5) * 2)
       }));
       setLoading(false);
     }, 1000);
@@ -106,7 +128,7 @@ const StatsCards = () => {
         </button>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="stats-grid">
         {cardData.map((card, index) => {
           const Icon = card.icon;
           const TrendIcon = card.trendUp ? FiTrendingUp : FiTrendingDown;
@@ -114,49 +136,71 @@ const StatsCards = () => {
           return (
             <div
               key={index}
-              className={`
-                ${card.bgColor} rounded-xl p-6 shadow-lg hover:shadow-xl 
-                transition-all duration-300 transform hover:-translate-y-1
-                border border-gray-100 cursor-pointer group
-              `}
+              className={`${card.bgColor} cursor-pointer group`}
+              style={{
+                background: 'white',
+                borderRadius: '12px',
+                padding: '1.5rem',
+                boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)',
+                transition: 'all 0.3s ease',
+                border: '1px solid #e5e7eb'
+              }}
+              onMouseEnter={(e) => {
+                e.target.style.transform = 'translateY(-2px)';
+                e.target.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.15)';
+              }}
+              onMouseLeave={(e) => {
+                e.target.style.transform = 'translateY(0)';
+                e.target.style.boxShadow = '0 1px 3px rgba(0, 0, 0, 0.1)';
+              }}
             >
-              <div className="flex items-center justify-between mb-4">
-                <div className={`
-                  p-3 rounded-lg ${card.bgColor} group-hover:scale-110 
-                  transition-transform duration-200
-                `}>
-                  <Icon className={`${card.iconColor} text-2xl`} />
+              <div className="stat-header">
+                <div 
+                  className={`stat-icon ${card.iconBg}`}
+                  style={{
+                    backgroundColor: card.color === 'blue' ? '#dbeafe' :
+                                   card.color === 'green' ? '#dcfce7' :
+                                   card.color === 'purple' ? '#f3e8ff' :
+                                   card.color === 'emerald' ? '#d1fae5' : '#f3f4f6'
+                  }}
+                >
+                  <Icon className={`${card.iconColor}`} style={{ fontSize: '1.25rem' }} />
                 </div>
                 
-                <div className="flex items-center space-x-1 text-sm">
-                  <TrendIcon className={`${card.trendUp ? 'text-green-500' : 'text-red-500'} text-sm`} />
-                  <span className={`${card.trendUp ? 'text-green-600' : 'text-red-600'} font-medium`}>
+                <div className={`stat-change ${card.trendUp ? 'positive' : 'negative'}`}>
+                  <TrendIcon style={{ marginRight: '0.25rem', fontSize: '0.875rem' }} />
+                  <span style={{ fontWeight: '500' }}>
                     {card.trend}
                   </span>
                 </div>
               </div>
 
               <div>
-                <h3 className="text-sm font-medium text-gray-600 mb-1">
+                <h3 className="stat-title">
                   {card.title}
                 </h3>
-                <p className={`text-3xl font-bold ${card.textColor} mb-2`}>
+                <p className={`stat-value ${card.textColor}`}>
                   {card.value}
                 </p>
-                <div className="flex items-center space-x-2">
-                  <div className={`w-2 h-2 rounded-full ${
-                    card.color === 'red' ? 'bg-red-400' :
-                    card.color === 'green' ? 'bg-green-400' :
-                    card.color === 'yellow' ? 'bg-yellow-400' :
-                    'bg-blue-400'
-                  } animate-pulse`}></div>
-                  <span className="text-xs text-gray-500">Live updates</span>
+                {card.subtitle && (
+                  <p style={{ fontSize: '0.75rem', color: '#6b7280', marginBottom: '0.5rem' }}>
+                    {card.subtitle}
+                  </p>
+                )}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <div 
+                    className="status-indicator"
+                    style={{
+                      backgroundColor: card.color === 'blue' ? '#3b82f6' :
+                                     card.color === 'green' ? '#10b981' :
+                                     card.color === 'purple' ? '#8b5cf6' :
+                                     card.color === 'emerald' ? '#10b981' : '#6b7280',
+                      animation: 'pulse 2s infinite'
+                    }}
+                  ></div>
+                  <span style={{ fontSize: '0.75rem', color: '#6b7280' }}>Live updates</span>
                 </div>
               </div>
-
-              {/* Hover Effect Overlay */}
-              <div className="absolute inset-0 bg-white bg-opacity-0 group-hover:bg-opacity-5 
-                            rounded-xl transition-all duration-200"></div>
             </div>
           );
         })}
