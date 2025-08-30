@@ -20,12 +20,12 @@ const Dashboard = () => {
           <div className="animate-fadeIn">
             <WelcomeBanner userName="John Doe" />
             <StatsCards />
-            <div className="grid-2 mb-6">
-              <div>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+              <div className="space-y-6">
                 <QuickActions />
                 <ActivityFeed />
               </div>
-              <div>
+              <div className="space-y-6">
                 <BlockchainPanel />
                 <ResponderWidget />
               </div>
@@ -86,7 +86,7 @@ const Dashboard = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex">
+    <div className="min-h-screen bg-gray-50">
       {/* Sidebar */}
       <Sidebar 
         activeTab={activeTab} 
@@ -96,7 +96,7 @@ const Dashboard = () => {
       />
       
       {/* Main Content Area */}
-      <div className="flex-1 flex flex-col">
+      <div className="main-content">
         {/* Top Navbar */}
         <Navbar 
           sidebarOpen={sidebarOpen}
@@ -104,7 +104,7 @@ const Dashboard = () => {
         />
         
         {/* Main Content */}
-        <main className="flex-1 p-6 overflow-auto">
+        <main className="content-area">
           {renderContent()}
         </main>
       </div>
