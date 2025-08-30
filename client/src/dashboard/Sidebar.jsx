@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { 
   FiHome, 
   FiAlertTriangle, 
@@ -10,24 +11,31 @@ import {
   FiMenu, 
   FiX,
   FiLogOut,
-  FiDatabase
+  FiDatabase,
+  FiCheckCircle
 } from 'react-icons/fi';
 
 const Sidebar = ({ activeTab, setActiveTab }) => {
   const [isOpen, setIsOpen] = useState(false);
+  const navigate = useNavigate();
 
   const menuItems = [
-    { id: 'dashboard', label: 'Dashboard', icon: FiHome },
-    { id: 'emergency', label: 'Emergency SOS', icon: FiAlertTriangle },
-    { id: 'responder', label: 'Responder Panel', icon: FiUsers },
-    { id: 'profiles', label: 'User Profiles', icon: FiUser },
-    { id: 'blockchain', label: 'Blockchain Records', icon: FiDatabase },
-    { id: 'analytics', label: 'Analytics', icon: FiBarChart3 },
-    { id: 'settings', label: 'Settings', icon: FiSettings },
+    { id: 'dashboard', label: 'Dashboard', icon: FiHome, route: '/dashboard' },
+    { id: 'kyc', label: 'KYC Verification', icon: FiCheckCircle, route: '/kyc' },
+    { id: 'emergency', label: 'Emergency SOS', icon: FiAlertTriangle, route: '/emergency' },
+    { id: 'responder', label: 'Responder Panel', icon: FiUsers, route: '/responder' },
+    { id: 'profiles', label: 'User Profiles', icon: FiUser, route: '/profiles' },
+    { id: 'blockchain', label: 'Blockchain Records', icon: FiDatabase, route: '/blockchain' },
+    { id: 'analytics', label: 'Analytics', icon: FiBarChart3, route: '/analytics' },
+    { id: 'settings', label: 'Settings', icon: FiSettings, route: '/settings' },
   ];
 
-  const handleMenuClick = (itemId) => {
-    setActiveTab(itemId);
+  const handleMenuClick = (itemId, route) => {
+    if (route) {
+      navigate(route);
+    } else {
+      setActiveTab(itemId);
+    }
     setIsOpen(false);
   };
 
@@ -94,7 +102,7 @@ const Sidebar = ({ activeTab, setActiveTab }) => {
               return (
                 <button
                   key={item.id}
-                  onClick={() => handleMenuClick(item.id)}
+                  onClick={() => handleMenuClick(item.id, item.route)}
                   className={`
                     w-full flex items-center space-x-3 px-4 py-3 rounded-lg
                     text-left transition-all duration-200

@@ -196,8 +196,14 @@ const requireMinimumRole = (minimumRole) => {
   };
 };
 
+// Authorize function (alias for requireRole with single role)
+const authorize = (role) => {
+  return requireRole([role]);
+};
+
 module.exports = {
   requireRole,
+  authorize,
   requireAdmin,
   requireResponder,
   requireUser,

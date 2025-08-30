@@ -5,7 +5,7 @@ let transporter;
 
 const initializeEmailTransporter = () => {
   try {
-    transporter = nodemailer.createTransporter({
+    transporter = nodemailer.createTransport({
       service: process.env.EMAIL_SERVICE || 'gmail',
       host: process.env.SMTP_HOST || 'smtp.gmail.com',
       port: process.env.SMTP_PORT || 587,

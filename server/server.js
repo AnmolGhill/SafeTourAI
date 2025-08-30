@@ -15,6 +15,7 @@ const userRoutes = require('./routes/userRoutes');
 const emergencyRoutes = require('./routes/emergencyRoutes');
 const blockchainRoutes = require('./routes/blockchainRoutes');
 const notificationRoutes = require('./routes/notificationRoutes');
+const kycRoutes = require('./routes/kyc');
 
 // Import middleware
 const { rateLimiter } = require('./middleware/authMiddleware');
@@ -58,6 +59,7 @@ app.use('/api/users', userRoutes);
 app.use('/api/emergencies', emergencyRoutes);
 app.use('/api/blockchain', blockchainRoutes);
 app.use('/api/notifications', notificationRoutes);
+app.use('/api/kyc', kycRoutes);
 
 // Root endpoint
 app.get('/', (req, res) => {
@@ -71,7 +73,8 @@ app.get('/', (req, res) => {
       users: '/api/users',
       emergencies: '/api/emergencies',
       blockchain: '/api/blockchain',
-      notifications: '/api/notifications'
+      notifications: '/api/notifications',
+      kyc: '/api/kyc'
     }
   });
 });
@@ -121,13 +124,20 @@ app.get('/api/docs', (req, res) => {
         'POST /api/notifications/email': 'Send email notification',
         'POST /api/notifications/emergency-contacts': 'Notify emergency contacts',
         'POST /api/notifications/nearby-responders': 'Notify nearby responders'
+      },
+      kyc: {
+        'POST /api/kyc/submit': 'Submit KYC information',
+        'GET /api/kyc/status': 'Get KYC status',
+        'GET /api/kyc/pending': 'Get pending KYC submissions (Admin)',
+        'POST /api/kyc/verify/:userId': 'Verify KYC submission (Admin)',
+        'GET /api/kyc/statistics': 'Get KYC statistics (Admin)'
       }
     }
   });
 });
 
 // 404 handler
-app.use('*', (req, res) => {
+app.use((req, res) => {
   res.status(404).json({
     success: false,
     message: 'Route not found',
@@ -137,7 +147,8 @@ app.use('*', (req, res) => {
       '/api/users',
       '/api/emergencies',
       '/api/blockchain',
-      '/api/notifications'
+      '/api/notifications',
+      '/api/kyc'
     ]
   });
 });
@@ -238,6 +249,7 @@ const startServer = async () => {
    • Emergencies: http://localhost:${PORT}/api/emergencies
    • Blockchain: http://localhost:${PORT}/api/blockchain
    • Notifications: http://localhost:${PORT}/api/notifications
+   • KYC: http://localhost:${PORT}/api/kyc
 
 📱 Features Enabled:
    ✅ MongoDB Database
@@ -247,6 +259,7 @@ const startServer = async () => {
    ✅ Real-time Emergency Alerts
    ✅ Location-based Services
    ✅ Role-based Access Control
+   ✅ KYC & Blockchain Identity Verification
       `);
     });
   } catch (error) {

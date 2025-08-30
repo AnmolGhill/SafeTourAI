@@ -243,6 +243,7 @@ const validateApiKey = (req, res, next) => {
 
 module.exports = {
   authenticateToken,
+  protect: authenticateToken, // Alias for protect
   optionalAuth,
   verifyOwnership,
   rateLimiter,

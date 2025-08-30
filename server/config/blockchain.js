@@ -1,5 +1,6 @@
-const Web3 = require('web3');
+const { Web3 } = require('web3');
 const crypto = require('crypto');
+const { ethers } = require('ethers');
 
 // Simple blockchain structure for local transactions
 class SimpleBlockchain {
@@ -173,11 +174,78 @@ const sendWeb3Transaction = async (transactionData) => {
   }
 };
 
+// Generate blockchain wallet address and private key
+const generateWallet = () => {
+  try {
+    const wallet = ethers.Wallet.createRandom();
+    return {
+      address: wallet.address,
+      privateKey: wallet.privateKey,
+      mnemonic: wallet.mnemonic?.phrase || null
+    };
+  } catch (error) {
+    console.error('Error generating wallet:', error);
+    throw error;
+  }
+};
+
+// Generate unique blockchain ID
+const generateBlockchainId = () => {
+  const timestamp = Date.now().toString();
+  const randomBytes = crypto.randomBytes(4).toString('hex');
+  return `USR-BC-${timestamp.slice(-6)}${randomBytes.toUpperCase()}`;
+};
+
+// Hash private key for secure storage
+const hashPrivateKey = (privateKey) => {
+  return crypto.createHash('sha256').update(privateKey).digest('hex');
+};
+
+// Create blockchain identity for user
+const createBlockchainIdentity = async (userId, kycData) => {
+  try {
+    const wallet = generateWallet();
+    const blockchainId = generateBlockchainId();
+    const privateKeyHash = hashPrivateKey(wallet.privateKey);
+
+    // Create blockchain transaction for identity verification
+    const identityData = {
+      userId,
+      blockchainId,
+      walletAddress: wallet.address,
+      kycVerified: true,
+      identityHash: crypto.createHash('sha256').update(JSON.stringify(kycData)).digest('hex'),
+      timestamp: new Date(),
+      action: 'identity_created'
+    };
+
+    const blockResult = await addTransaction(identityData);
+
+    return {
+      success: true,
+      blockchainId,
+      walletAddress: wallet.address,
+      privateKeyHash,
+      blockHash: blockResult.blockHash,
+      blockIndex: blockResult.blockIndex,
+      // Never return actual private key in production
+      privateKey: process.env.NODE_ENV === 'development' ? wallet.privateKey : undefined
+    };
+  } catch (error) {
+    console.error('Error creating blockchain identity:', error);
+    throw error;
+  }
+};
+
 module.exports = {
   initializeBlockchain,
   addTransaction,
   getTransactionHistory,
   validateBlockchain,
   sendWeb3Transaction,
+  generateWallet,
+  generateBlockchainId,
+  hashPrivateKey,
+  createBlockchainIdentity,
   SimpleBlockchain
 };
