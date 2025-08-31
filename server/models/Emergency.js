@@ -119,8 +119,6 @@ const emergencySchema = new mongoose.Schema({
 emergencySchema.index({ location: '2dsphere' });
 
 // Index for faster queries
-emergencySchema.index({ emergencyId: 1 });
-emergencySchema.index({ userId: 1 });
 emergencySchema.index({ status: 1 });
 emergencySchema.index({ type: 1 });
 emergencySchema.index({ severity: 1 });

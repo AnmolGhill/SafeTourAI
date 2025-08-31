@@ -15,7 +15,16 @@ const generateToken = (userId) => {
 // Register new user
 const register = async (req, res) => {
   try {
+    console.log('Registration request body:', req.body);
     const { name, email, password, phone, emergencyContacts } = req.body;
+
+    // Validate required fields
+    if (!name || !email || !password) {
+      return res.status(400).json({
+        success: false,
+        message: 'Name, email, and password are required'
+      });
+    }
 
     // Check if user already exists
     const existingUser = await User.findOne({ email });

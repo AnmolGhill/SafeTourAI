@@ -168,6 +168,43 @@ const userSchema = new mongoose.Schema({
     },
     consentTimestamp: Date
   },
+  // Digital ID fields
+  digitalId: {
+    id: {
+      type: String,
+      unique: true,
+      sparse: true
+    },
+    blockchainHash: String,
+    createdAt: Date,
+    network: String,
+    contractAddress: String,
+    tokenId: Number,
+    verificationLevel: String,
+    expiryDate: Date,
+    userData: {
+      fullName: String,
+      email: String,
+      nationality: String,
+      dateOfBirth: Date,
+      kycVerified: Boolean
+    },
+    securityFeatures: {
+      immutable: Boolean,
+      cryptographicallySecure: Boolean,
+      globallyRecognized: Boolean,
+      emergencyAccess: Boolean
+    }
+  },
+  digitalIdHistory: [{
+    action: String,
+    timestamp: Date,
+    reason: String
+  }],
+  kycVerified: {
+    type: Boolean,
+    default: false
+  },
   preferences: {
     notifications: {
       email: {
@@ -208,8 +245,6 @@ const userSchema = new mongoose.Schema({
 userSchema.index({ location: '2dsphere' });
 
 // Index for faster queries
-userSchema.index({ userId: 1 });
-userSchema.index({ email: 1 });
 userSchema.index({ role: 1 });
 
 // Virtual for user's emergencies

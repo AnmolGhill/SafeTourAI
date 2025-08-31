@@ -210,6 +210,7 @@ const verifyKYC = async (req, res) => {
       user.kyc.status = 'verified';
       user.kyc.verifiedAt = new Date();
       user.kyc.verifiedBy = req.user.userId;
+      user.kycVerified = true; // Set the main KYC flag
 
       user.blockchain.walletAddress = blockchainResult.walletAddress;
       user.blockchain.blockchainId = blockchainResult.blockchainId;
@@ -217,15 +218,47 @@ const verifyKYC = async (req, res) => {
       user.blockchain.isBlockchainVerified = true;
       user.blockchain.blockchainCreatedAt = new Date();
 
+      // Auto-generate Digital ID after successful KYC
+      const digitalIdData = {
+        id: blockchainResult.blockchainId,
+        blockchainHash: blockchainResult.blockHash,
+        createdAt: new Date().toISOString(),
+        network: 'SafeTour Local Blockchain',
+        contractAddress: blockchainResult.walletAddress,
+        tokenId: blockchainResult.blockIndex,
+        verificationLevel: 'Level 3 - Full KYC',
+        expiryDate: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString(),
+        userData: {
+          fullName: user.kyc.fullName,
+          email: user.email,
+          nationality: user.kyc.address?.country || 'Unknown',
+          dateOfBirth: user.kyc.dateOfBirth,
+          kycVerified: true
+        },
+        securityFeatures: {
+          immutable: true,
+          cryptographicallySecure: true,
+          globallyRecognized: true,
+          emergencyAccess: true
+        },
+        blockchainDetails: {
+          walletAddress: blockchainResult.walletAddress,
+          privateKeyHash: blockchainResult.privateKeyHash,
+          blockIndex: blockchainResult.blockIndex
+        }
+      };
+
+      user.digitalId = digitalIdData;
       await user.save();
 
       res.status(200).json({
         success: true,
-        message: 'KYC verified and blockchain identity created successfully',
+        message: 'KYC verified and Digital ID created successfully',
         data: {
           kycStatus: user.kyc.status,
           blockchainId: user.blockchain.blockchainId,
           walletAddress: user.blockchain.walletAddress,
+          digitalId: user.digitalId,
           blockHash: blockchainResult.blockHash,
           blockIndex: blockchainResult.blockIndex
         }

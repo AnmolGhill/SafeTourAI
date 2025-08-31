@@ -114,10 +114,6 @@ const transactionSchema = new mongoose.Schema({
 });
 
 // Indexes for faster queries
-transactionSchema.index({ transactionId: 1 });
-transactionSchema.index({ userId: 1 });
-transactionSchema.index({ emergencyId: 1 });
-transactionSchema.index({ blockchainHash: 1 });
 transactionSchema.index({ transactionType: 1 });
 transactionSchema.index({ status: 1 });
 transactionSchema.index({ createdAt: -1 });
