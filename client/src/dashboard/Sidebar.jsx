@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 import { 
   FiHome, 
   FiAlertTriangle, 
@@ -12,36 +13,55 @@ import {
   FiX,
   FiLogOut,
   FiDatabase,
-  FiCheckCircle
+  FiCheckCircle,
+  FiUserCheck,
+  FiCreditCard,
+  FiFileText
 } from 'react-icons/fi';
 
 const Sidebar = ({ activeTab, setActiveTab }) => {
   const [isOpen, setIsOpen] = useState(false);
   const navigate = useNavigate();
+  const { isAuthenticated, logout, user } = useAuth();
 
   const menuItems = [
-    { id: 'dashboard', label: 'Dashboard', icon: FiHome, route: '/dashboard' },
-    { id: 'kyc', label: 'KYC Verification', icon: FiCheckCircle, route: '/kyc' },
-    { id: 'emergency', label: 'Emergency SOS', icon: FiAlertTriangle, route: '/emergency' },
-    { id: 'responder', label: 'Responder Panel', icon: FiUsers, route: '/responder' },
-    { id: 'profiles', label: 'User Profiles', icon: FiUser, route: '/profiles' },
-    { id: 'blockchain', label: 'Blockchain Records', icon: FiDatabase, route: '/blockchain' },
-    { id: 'analytics', label: 'Analytics', icon: FiBarChart3, route: '/analytics' },
-    { id: 'settings', label: 'Settings', icon: FiSettings, route: '/settings' },
+    { id: 'dashboard', label: 'Dashboard', icon: FiHome, route: '/dashboard', useTab: true },
+    { id: 'profile', label: 'User Profiles', icon: FiUser, route: '/profile', useTab: false },
+    { id: 'digital-id', label: 'Digital ID', icon: FiCreditCard, route: '/digital-id', useTab: false },
+    { id: 'kyc', label: 'KYC Verification', icon: FiFileText, route: '/kyc', useTab: false },
+    { id: 'admin-kyc', label: 'Admin KYC', icon: FiShield, route: '/admin/kyc', useTab: false },
+    { id: 'emergency', label: 'Emergency SOS', icon: FiAlertTriangle, route: '/emergency', useTab: true },
+    { id: 'responder', label: 'Responder Panel', icon: FiUsers, route: '/responder', useTab: true },
+    { id: 'blockchain', label: 'Blockchain Records', icon: FiDatabase, route: '/blockchain', useTab: true },
+    { id: 'analytics', label: 'Analytics', icon: FiBarChart3, route: '/analytics', useTab: true },
+    { id: 'settings', label: 'Settings', icon: FiSettings, route: '/settings', useTab: true },
   ];
 
-  const handleMenuClick = (itemId, route) => {
-    if (route) {
-      navigate(route);
-    } else {
+  const handleMenuClick = (itemId, route, useTab) => {
+    if (useTab) {
+      // Use setActiveTab for dashboard navigation
       setActiveTab(itemId);
+    } else {
+      // Use React Router navigation for standalone pages
+      navigate(route);
     }
     setIsOpen(false);
   };
 
-  const handleLogout = () => {
-    // Add logout logic here
-    console.log('Logout clicked');
+  const handleLogout = async () => {
+    try {
+      await logout();
+      navigate('/login');
+      setIsOpen(false);
+    } catch (error) {
+      console.error('Logout error:', error);
+      alert('Failed to logout. Please try again.');
+    }
+  };
+
+  const handleLogin = () => {
+    navigate('/login');
+    setIsOpen(false);
   };
 
   return (
@@ -102,7 +122,7 @@ const Sidebar = ({ activeTab, setActiveTab }) => {
               return (
                 <button
                   key={item.id}
-                  onClick={() => handleMenuClick(item.id, item.route)}
+                  onClick={() => handleMenuClick(item.id, item.route, item.useTab)}
                   className={`
                     w-full flex items-center space-x-3 px-4 py-3 rounded-lg
                     text-left transition-all duration-200
@@ -119,26 +139,45 @@ const Sidebar = ({ activeTab, setActiveTab }) => {
             })}
           </nav>
 
-          {/* User Profile & Logout */}
+          {/* User Profile & Auth Button */}
           <div className="p-4 border-t border-gray-200">
-            <div className="flex items-center space-x-3 mb-4">
-              <div className="w-10 h-10 bg-gradient-to-br from-green-400 to-blue-500 rounded-full flex items-center justify-center">
-                <span className="text-white font-semibold text-sm">JD</span>
-              </div>
-              <div>
-                <p className="text-sm font-medium text-gray-800">John Doe</p>
-                <p className="text-xs text-gray-500">Administrator</p>
-              </div>
-            </div>
-            
-            <button
-              onClick={handleLogout}
-              className="w-full flex items-center space-x-3 px-4 py-3 rounded-lg
-                       text-red-600 hover:bg-red-50 transition-colors duration-200"
-            >
-              <FiLogOut className="w-5 h-5" />
-              <span className="font-medium">Logout</span>
-            </button>
+            {isAuthenticated ? (
+              <>
+                <div className="flex items-center space-x-3 mb-4">
+                  <div className="w-10 h-10 bg-gradient-to-br from-green-400 to-blue-500 rounded-full flex items-center justify-center">
+                    <span className="text-white font-semibold text-sm">
+                      {user?.displayName ? user.displayName.charAt(0).toUpperCase() : 'U'}
+                    </span>
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-gray-800">
+                      {user?.displayName || 'Demo User'}
+                    </p>
+                    <p className="text-xs text-gray-500">
+                      {user?.email || 'demo@example.com'}
+                    </p>
+                  </div>
+                </div>
+                
+                <button
+                  onClick={handleLogout}
+                  className="w-full flex items-center space-x-3 px-4 py-3 rounded-lg
+                           text-red-600 hover:bg-red-50 transition-colors duration-200"
+                >
+                  <FiLogOut className="w-5 h-5" />
+                  <span className="font-medium">Logout</span>
+                </button>
+              </>
+            ) : (
+              <button
+                onClick={handleLogin}
+                className="w-full flex items-center space-x-3 px-4 py-3 rounded-lg
+                         text-blue-600 hover:bg-blue-50 transition-colors duration-200"
+              >
+                <FiUser className="w-5 h-5" />
+                <span className="font-medium">Login</span>
+              </button>
+            )}
           </div>
         </div>
       </div>

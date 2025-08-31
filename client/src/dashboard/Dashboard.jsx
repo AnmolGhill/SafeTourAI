@@ -8,6 +8,10 @@ import ActivityFeed from './ActivityFeed';
 import BlockchainPanel from './BlockchainPanel';
 import AnalyticsChart from './AnalyticsChart';
 import ResponderWidget from './ResponderWidget';
+import EmergencyPanel from '../components/Emergency/EmergencyPanel';
+import ResponderPanel from '../components/Responder/ResponderPanel';
+import AnalyticsPanel from '../components/Analytics/AnalyticsPanel';
+import SettingsPanel from '../components/Settings/SettingsPanel';
 
 const Dashboard = () => {
   const [activeTab, setActiveTab] = useState('dashboard');
@@ -34,17 +38,14 @@ const Dashboard = () => {
           </div>
         );
       case 'emergency':
-        return (
-          <div className="card text-center animate-fadeIn">
-            <h2 className="text-2xl font-bold text-gray-800 mb-4">Emergency SOS Panel</h2>
-            <p className="text-gray-600">Emergency SOS management interface will be implemented here.</p>
-          </div>
-        );
+        return <EmergencyPanel />;
       case 'responder':
+        return <ResponderPanel />;
+      case 'kyc':
         return (
           <div className="card text-center animate-fadeIn">
-            <h2 className="text-2xl font-bold text-gray-800 mb-4">Responder Management</h2>
-            <p className="text-gray-600">Full responder panel with detailed management features.</p>
+            <h2 className="text-2xl font-bold text-gray-800 mb-4">KYC Verification</h2>
+            <p className="text-gray-600">Know Your Customer verification interface will be implemented here.</p>
           </div>
         );
       case 'profiles':
@@ -55,26 +56,11 @@ const Dashboard = () => {
           </div>
         );
       case 'blockchain':
-        return (
-          <div className="card text-center animate-fadeIn">
-            <h2 className="text-2xl font-bold text-gray-800 mb-4">Blockchain Records</h2>
-            <p className="text-gray-600">Detailed blockchain transaction history and management.</p>
-          </div>
-        );
+        return <BlockchainPanel />;
       case 'analytics':
-        return (
-          <div className="card text-center animate-fadeIn">
-            <h2 className="text-2xl font-bold text-gray-800 mb-4">Advanced Analytics</h2>
-            <p className="text-gray-600">Comprehensive analytics and reporting dashboard.</p>
-          </div>
-        );
+        return <AnalyticsPanel />;
       case 'settings':
-        return (
-          <div className="card text-center animate-fadeIn">
-            <h2 className="text-2xl font-bold text-gray-800 mb-4">System Settings</h2>
-            <p className="text-gray-600">Application settings and configuration options.</p>
-          </div>
-        );
+        return <SettingsPanel />;
       default:
         return (
           <div className="card text-center animate-fadeIn">

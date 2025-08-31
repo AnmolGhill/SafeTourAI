@@ -1,4 +1,6 @@
 const express = require('express');
+const http = require('http');
+const socketIo = require('socket.io');
 const cors = require('cors');
 const dotenv = require('dotenv');
 const connectDB = require('./config/db');
@@ -16,12 +18,21 @@ const emergencyRoutes = require('./routes/emergencyRoutes');
 const blockchainRoutes = require('./routes/blockchainRoutes');
 const notificationRoutes = require('./routes/notificationRoutes');
 const kycRoutes = require('./routes/kyc');
+const digitalIdRoutes = require('./routes/digitalId');
 
 // Import middleware
 const { rateLimiter } = require('./middleware/authMiddleware');
 
-// Initialize Express app
+// Initialize Express app and HTTP server
 const app = express();
+const server = http.createServer(app);
+const io = socketIo(server, {
+  cors: {
+    origin: process.env.FRONTEND_URL || 'http://localhost:3000',
+    methods: ['GET', 'POST'],
+    credentials: true
+  }
+});
 
 // CORS configuration
 const corsOptions = {
@@ -60,6 +71,7 @@ app.use('/api/emergencies', emergencyRoutes);
 app.use('/api/blockchain', blockchainRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/kyc', kycRoutes);
+app.use('/api/digital-id', digitalIdRoutes);
 
 // Root endpoint
 app.get('/', (req, res) => {
@@ -74,7 +86,8 @@ app.get('/', (req, res) => {
       emergencies: '/api/emergencies',
       blockchain: '/api/blockchain',
       notifications: '/api/notifications',
-      kyc: '/api/kyc'
+      kyc: '/api/kyc',
+      digitalId: '/api/digital-id'
     }
   });
 });
@@ -131,6 +144,12 @@ app.get('/api/docs', (req, res) => {
         'GET /api/kyc/pending': 'Get pending KYC submissions (Admin)',
         'POST /api/kyc/verify/:userId': 'Verify KYC submission (Admin)',
         'GET /api/kyc/statistics': 'Get KYC statistics (Admin)'
+      },
+      digitalId: {
+        'POST /api/digital-id/generate': 'Generate blockchain digital ID',
+        'GET /api/digital-id/user/:userId': 'Get user digital ID',
+        'GET /api/digital-id/verify/:digitalIdHash': 'Verify digital ID',
+        'POST /api/digital-id/regenerate': 'Regenerate digital ID'
       }
     }
   });
@@ -148,7 +167,8 @@ app.use((req, res) => {
       '/api/emergencies',
       '/api/blockchain',
       '/api/notifications',
-      '/api/kyc'
+      '/api/kyc',
+      '/api/digital-id'
     ]
   });
 });
@@ -234,7 +254,10 @@ const startServer = async () => {
   try {
     await initializeServices();
     
-    app.listen(PORT, () => {
+    // Setup Socket.IO event handlers
+    setupSocketHandlers(io);
+    
+    server.listen(PORT, () => {
       console.log(`
 🌟 SafeTourAI Server Started Successfully!
 📍 Environment: ${NODE_ENV}
@@ -291,7 +314,66 @@ process.on('SIGINT', () => {
   process.exit(0);
 });
 
+// Socket.IO event handlers
+const setupSocketHandlers = (io) => {
+  io.on('connection', (socket) => {
+    console.log(`🔌 User connected: ${socket.id}`);
+    
+    // Handle user joining location-based rooms
+    socket.on('join_room', (data) => {
+      socket.join(data.room);
+      console.log(`👤 User ${socket.id} joined room: ${data.room}`);
+    });
+    
+    // Handle user leaving rooms
+    socket.on('leave_room', (data) => {
+      socket.leave(data.room);
+      console.log(`👤 User ${socket.id} left room: ${data.room}`);
+    });
+    
+    // Handle user online status
+    socket.on('user_online', (data) => {
+      socket.broadcast.emit('user_status', {
+        userId: socket.userId,
+        status: 'online',
+        timestamp: data.timestamp
+      });
+    });
+    
+    // Handle emergency alerts
+    socket.on('emergency_created', (data) => {
+      // Broadcast to nearby users and responders
+      socket.broadcast.to(`location_${data.locationId}`).emit('emergency_alert', data);
+    });
+    
+    // Handle responder updates
+    socket.on('responder_update', (data) => {
+      socket.broadcast.emit('responder_assigned', data);
+    });
+    
+    // Handle emergency status updates
+    socket.on('emergency_status_update', (data) => {
+      socket.broadcast.emit('emergency_updated', data);
+    });
+    
+    // Handle blockchain transaction updates
+    socket.on('blockchain_transaction', (data) => {
+      socket.broadcast.emit('blockchain_transaction', data);
+    });
+    
+    // Handle user disconnect
+    socket.on('disconnect', () => {
+      console.log(`🔌 User disconnected: ${socket.id}`);
+      socket.broadcast.emit('user_status', {
+        userId: socket.userId,
+        status: 'offline',
+        timestamp: new Date()
+      });
+    });
+  });
+};
+
 // Start the server
 startServer();
 
-module.exports = app;
+module.exports = { app, io };
