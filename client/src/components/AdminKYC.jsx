@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import './AdminKYC.css';
+import { adminAPI } from '../config/api';
 
 const AdminKYC = () => {
   const [pendingKYC, setPendingKYC] = useState([]);
@@ -16,82 +17,61 @@ const AdminKYC = () => {
   }, []);
 
   const fetchPendingKYC = async () => {
+    setLoading(true);
     try {
-      // Mock data for demo purposes since backend is not running
-      const mockPendingKYC = [
-        {
-          _id: '1',
-          name: 'John Doe',
-          email: 'john@example.com',
-          kyc: {
-            status: 'pending',
-            submittedAt: new Date().toISOString(),
-            documents: ['passport.jpg', 'utility_bill.pdf']
-          }
-        },
-        {
-          _id: '2', 
-          name: 'Jane Smith',
-          email: 'jane@example.com',
-          kyc: {
-            status: 'pending',
-            submittedAt: new Date().toISOString(),
-            documents: ['license.jpg', 'bank_statement.pdf']
-          }
-        }
-      ];
-      setPendingKYC(mockPendingKYC);
+      const response = await adminAPI.getPendingKYCs();
+      setPendingKYC(response.data || []);
     } catch (error) {
       console.error('Error fetching pending KYC:', error);
+      alert('Failed to fetch pending KYC applications');
+    } finally {
+      setLoading(false);
     }
   };
 
   const fetchStatistics = async () => {
     try {
-      // Mock statistics for demo purposes since backend is not running
-      const mockStatistics = {
-        totalSubmissions: 25,
-        pendingReview: 8,
-        approved: 15,
-        rejected: 2,
-        averageProcessingTime: '2.5 days'
-      };
-      setStatistics(mockStatistics);
+      const kycStats = await adminAPI.getKYCStats();
+      
+      setStatistics({
+        total: kycStats.data?.total || 0,
+        submitted: kycStats.data?.submitted || 0,
+        verified: kycStats.data?.approved || 0,
+        rejected: kycStats.data?.rejected || 0,
+        blockchainVerified: kycStats.data?.approved || 0
+      });
     } catch (error) {
       console.error('Error fetching statistics:', error);
+      setStatistics({
+        total: 0,
+        submitted: 0,
+        verified: 0,
+        rejected: 0,
+        blockchainVerified: 0
+      });
     }
   };
 
   const handleVerifyKYC = async (userId, action, reason = '') => {
     setLoading(true);
     try {
-      const response = await fetch(`/api/kyc/verify/${userId}`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        },
-        body: JSON.stringify({
-          action,
-          rejectionReason: reason
-        })
-      });
-
-      const data = await response.json();
-
-      if (data.success) {
-        alert(`KYC ${action === 'approve' ? 'approved' : 'rejected'} successfully!`);
-        fetchPendingKYC();
-        fetchStatistics();
-        setShowModal(false);
-        setSelectedUser(null);
-        setRejectionReason('');
-      } else {
-        alert(data.message || `Failed to ${action} KYC`);
+      const response = await adminAPI.reviewKYC(userId, action, reason);
+      
+      alert(`KYC ${action === 'approve' ? 'approved' : 'rejected'} successfully!`);
+      
+      if (action === 'approve' && response.data?.blockchainId) {
+        alert(`Blockchain ID generated: ${response.data.blockchainId}`);
       }
+      
+      // Refresh data
+      await Promise.all([fetchPendingKYC(), fetchStatistics()]);
+      
+      setShowModal(false);
+      setSelectedUser(null);
+      setRejectionReason('');
     } catch (error) {
       console.error(`Error ${action}ing KYC:`, error);
-      alert(`An error occurred while ${action}ing KYC`);
+      alert(`Failed to ${action} KYC: ${error.message}`);
     } finally {
       setLoading(false);
     }
@@ -116,7 +96,7 @@ const AdminKYC = () => {
       return;
     }
     
-    handleVerifyKYC(selectedUser.userId, actionType, rejectionReason);
+    handleVerifyKYC(selectedUser.uid, actionType, rejectionReason);
   };
 
   const formatDate = (dateString) => {
@@ -203,29 +183,29 @@ const AdminKYC = () => {
                 </tr>
               </thead>
               <tbody>
-                {pendingKYC.map((user) => (
-                  <tr key={user.userId}>
-                    <td className="user-id">{user.userId}</td>
-                    <td>{user.name}</td>
-                    <td>{user.email}</td>
-                    <td>{user.kyc.fullName}</td>
+                {pendingKYC.map((application) => (
+                  <tr key={application.uid}>
+                    <td className="user-id">{application.uid}</td>
+                    <td>{application.userName || application.fullName}</td>
+                    <td>{application.userEmail}</td>
+                    <td>{application.fullName}</td>
                     <td>
                       <span className="id-type">
-                        {user.kyc.governmentId?.type?.toUpperCase() || 'N/A'}
+                        {application.governmentIdType?.toUpperCase() || 'N/A'}
                       </span>
                     </td>
-                    <td>{formatDate(user.kyc.submittedAt)}</td>
+                    <td>{formatDate(application.submittedAt)}</td>
                     <td>
                       <div className="action-buttons">
                         <button
-                          onClick={() => openModal(user, 'approve')}
+                          onClick={() => openModal(application, 'approve')}
                           className="approve-btn"
                           disabled={loading}
                         >
                           ✅ Approve
                         </button>
                         <button
-                          onClick={() => openModal(user, 'reject')}
+                          onClick={() => openModal(application, 'reject')}
                           className="reject-btn"
                           disabled={loading}
                         >
@@ -255,12 +235,12 @@ const AdminKYC = () => {
             <div className="modal-body">
               <div className="user-details">
                 <h4>User Details:</h4>
-                <p><strong>Name:</strong> {selectedUser?.name}</p>
-                <p><strong>Email:</strong> {selectedUser?.email}</p>
-                <p><strong>Full Name:</strong> {selectedUser?.kyc.fullName}</p>
-                <p><strong>DOB:</strong> {selectedUser?.kyc.dateOfBirth ? new Date(selectedUser.kyc.dateOfBirth).toLocaleDateString() : 'N/A'}</p>
-                <p><strong>Gender:</strong> {selectedUser?.kyc.gender}</p>
-                <p><strong>ID Type:</strong> {selectedUser?.kyc.governmentId?.type?.toUpperCase()}</p>
+                <p><strong>Name:</strong> {selectedUser?.userName || selectedUser?.fullName}</p>
+                <p><strong>Email:</strong> {selectedUser?.userEmail}</p>
+                <p><strong>Full Name:</strong> {selectedUser?.fullName}</p>
+                <p><strong>DOB:</strong> {selectedUser?.dateOfBirth ? new Date(selectedUser.dateOfBirth).toLocaleDateString() : 'N/A'}</p>
+                <p><strong>Gender:</strong> {selectedUser?.gender}</p>
+                <p><strong>ID Type:</strong> {selectedUser?.governmentIdType?.toUpperCase()}</p>
               </div>
 
               {actionType === 'approve' ? (

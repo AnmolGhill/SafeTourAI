@@ -1,245 +1,261 @@
 import React, { useState, useEffect } from 'react';
-import { toast } from 'react-toastify';
-import emergencyService from '../../services/emergencyService';
-import socketService from '../../services/socketService';
+import { useAuth } from '../../utils/auth';
+// emergencyService removed - using mock data for now
 import { 
-  ExclamationTriangleIcon, 
-  MapPinIcon, 
-  PhoneIcon,
-  CameraIcon,
-  ClockIcon
-} from '@heroicons/react/24/outline';
+  FiAlertTriangle, 
+  FiMapPin, 
+  FiPhone, 
+  FiClock, 
+  FiUsers,
+  FiSend,
+  FiRefreshCw
+} from 'react-icons/fi';
 
 const EmergencyPanel = () => {
+  const { user } = useAuth();
   const [emergencies, setEmergencies] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [sosLoading, setSosLoading] = useState(false);
-  const [selectedType, setSelectedType] = useState('medical');
+  const [location, setLocation] = useState(null);
+  const [emergencyType, setEmergencyType] = useState('medical');
   const [description, setDescription] = useState('');
+  const [isCreatingEmergency, setIsCreatingEmergency] = useState(false);
 
   useEffect(() => {
-    loadActiveEmergencies();
-    
-    // Setup socket listeners
-    socketService.on('emergency_alert', handleEmergencyAlert);
-    socketService.on('emergency_updated', handleEmergencyUpdate);
-    
-    return () => {
-      socketService.off('emergency_alert', handleEmergencyAlert);
-      socketService.off('emergency_updated', handleEmergencyUpdate);
-    };
+    fetchNearbyEmergencies();
+    getCurrentLocation();
   }, []);
 
-  const loadActiveEmergencies = async () => {
-    setLoading(true);
+  const getCurrentLocation = () => {
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          setLocation({
+            latitude: position.coords.latitude,
+            longitude: position.coords.longitude
+          });
+        },
+        (error) => {
+          console.error('Error getting location:', error);
+        }
+      );
+    }
+  };
+
+  const fetchNearbyEmergencies = async () => {
     try {
-      const data = await emergencyService.getActiveEmergencies();
-      setEmergencies(data);
+      setLoading(true);
+      // Mock data for emergencies
+      const mockData = [
+        {
+          id: 1,
+          type: 'Medical',
+          description: 'Tourist injured at Main Square',
+          location: 'Main Square, Downtown',
+          status: 'active',
+          priority: 'high',
+          timestamp: new Date(Date.now() - 300000).toISOString()
+        },
+        {
+          id: 2,
+          type: 'Traffic',
+          description: 'Road accident on Highway 101',
+          location: 'Highway 101, Mile 15',
+          status: 'responding',
+          priority: 'medium',
+          timestamp: new Date(Date.now() - 600000).toISOString()
+        }
+      ];
+      setTimeout(() => {
+        setEmergencies(mockData);
+        setLoading(false);
+      }, 1000);
     } catch (error) {
-      toast.error('Failed to load emergencies');
-    } finally {
+      console.error('Error fetching emergencies:', error);
+      setEmergencies([]);
       setLoading(false);
     }
   };
 
-  const handleEmergencyAlert = (data) => {
-    setEmergencies(prev => [data, ...prev]);
-    toast.error(`New Emergency Alert: ${data.type.toUpperCase()}`);
-  };
+  const handleCreateEmergency = async () => {
+    if (!location) {
+      alert('Location access is required to create an emergency alert');
+      return;
+    }
 
-  const handleEmergencyUpdate = (data) => {
-    setEmergencies(prev => 
-      prev.map(emergency => 
-        emergency.emergencyId === data.emergencyId ? data : emergency
-      )
-    );
-  };
-
-  const handleQuickSOS = async () => {
-    setSosLoading(true);
     try {
-      const emergency = await emergencyService.quickSOS(selectedType, description);
-      toast.success('Emergency SOS sent successfully!');
-      setDescription('');
-      loadActiveEmergencies();
+      setIsCreatingEmergency(true);
+      // Mock emergency creation
+      const newEmergency = {
+        id: Date.now(),
+        type: emergencyType,
+        description,
+        location,
+        status: 'active',
+        priority: 'high',
+        timestamp: new Date().toISOString()
+      };
+      
+      setTimeout(() => {
+        setEmergencies(prev => [newEmergency, ...prev]);
+        setEmergencyType('');
+        setDescription('');
+        setLocation('');
+        setIsCreatingEmergency(false);
+      }, 1000);
     } catch (error) {
-      toast.error(error.message);
+      console.error('Error creating emergency:', error);
+      setIsCreatingEmergency(false);
     } finally {
-      setSosLoading(false);
+      setIsCreatingEmergency(false);
     }
   };
 
-  const handleStatusUpdate = async (emergencyId, newStatus) => {
-    try {
-      await emergencyService.updateEmergencyStatus(emergencyId, newStatus);
-      toast.success('Emergency status updated');
-      loadActiveEmergencies();
-    } catch (error) {
-      toast.error('Failed to update status');
+  const getEmergencyIcon = (type) => {
+    switch (type) {
+      case 'medical': return '🏥';
+      case 'fire': return '🔥';
+      case 'police': return '🚔';
+      case 'accident': return '🚗';
+      default: return '⚠️';
     }
   };
 
   const getStatusColor = (status) => {
     switch (status) {
-      case 'active': return 'bg-red-100 text-red-800';
-      case 'responded': return 'bg-yellow-100 text-yellow-800';
-      case 'resolved': return 'bg-green-100 text-green-800';
-      default: return 'bg-gray-100 text-gray-800';
-    }
-  };
-
-  const getSeverityColor = (severity) => {
-    switch (severity) {
-      case 'critical': return 'bg-red-500';
-      case 'high': return 'bg-orange-500';
-      case 'medium': return 'bg-yellow-500';
-      case 'low': return 'bg-green-500';
-      default: return 'bg-gray-500';
+      case 'active': return 'text-red-600 bg-red-100';
+      case 'responding': return 'text-yellow-600 bg-yellow-100';
+      case 'resolved': return 'text-green-600 bg-green-100';
+      default: return 'text-gray-600 bg-gray-100';
     }
   };
 
   return (
-    <div className="p-6 space-y-6">
-      {/* Quick SOS Section */}
-      <div className="bg-white rounded-xl shadow-lg p-6 border-l-4 border-red-500">
-        <h2 className="text-2xl font-bold text-gray-900 mb-4 flex items-center">
-          <ExclamationTriangleIcon className="h-8 w-8 text-red-500 mr-3" />
-          Emergency SOS
-        </h2>
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center space-x-3">
+          <FiAlertTriangle className="w-6 h-6 text-red-600" />
+          <h2 className="text-2xl font-bold text-gray-800">Emergency Panel</h2>
+        </div>
+        <button
+          onClick={fetchNearbyEmergencies}
+          disabled={loading}
+          className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
+        >
+          <FiRefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+          <span>Refresh</span>
+        </button>
+      </div>
+
+      {/* Create Emergency Form */}
+      <div className="bg-white p-6 rounded-lg shadow-md border-l-4 border-red-500">
+        <h3 className="text-lg font-semibold text-gray-800 mb-4">Create Emergency Alert</h3>
         
-        <div className="grid md:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Emergency Type
             </label>
             <select
-              value={selectedType}
-              onChange={(e) => setSelectedType(e.target.value)}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500"
+              value={emergencyType}
+              onChange={(e) => setEmergencyType(e.target.value)}
+              className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
             >
               <option value="medical">Medical Emergency</option>
-              <option value="accident">Accident</option>
-              <option value="crime">Crime</option>
-              <option value="fire">Fire</option>
-              <option value="natural_disaster">Natural Disaster</option>
+              <option value="fire">Fire Emergency</option>
+              <option value="police">Police Emergency</option>
+              <option value="accident">Traffic Accident</option>
               <option value="other">Other</option>
             </select>
           </div>
           
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              Description (Optional)
+              Location Status
             </label>
-            <textarea
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              placeholder="Brief description of the emergency..."
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 resize-none"
-              rows="3"
-            />
+            <div className="flex items-center space-x-2 p-3 bg-gray-50 rounded-lg">
+              <FiMapPin className={`w-4 h-4 ${location ? 'text-green-600' : 'text-red-600'}`} />
+              <span className={`text-sm ${location ? 'text-green-600' : 'text-red-600'}`}>
+                {location ? 'Location Acquired' : 'Location Required'}
+              </span>
+            </div>
           </div>
         </div>
 
+        <div className="mb-4">
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            Description
+          </label>
+          <textarea
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            placeholder="Describe the emergency situation..."
+            rows={3}
+            className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+          />
+        </div>
+
         <button
-          onClick={handleQuickSOS}
-          disabled={sosLoading}
-          className={`w-full mt-6 py-4 px-6 rounded-lg font-bold text-lg transition duration-200 ${
-            sosLoading
-              ? 'bg-gray-400 cursor-not-allowed'
-              : 'bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white shadow-lg hover:shadow-xl'
-          }`}
+          onClick={handleCreateEmergency}
+          disabled={isCreatingEmergency || !location || !description.trim()}
+          className="w-full flex items-center justify-center space-x-2 px-4 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          {sosLoading ? (
-            <div className="flex items-center justify-center">
-              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-white mr-3"></div>
-              Sending SOS...
-            </div>
-          ) : (
-            'SEND EMERGENCY SOS'
-          )}
+          <FiSend className="w-4 h-4" />
+          <span>{isCreatingEmergency ? 'Creating Alert...' : 'Create Emergency Alert'}</span>
         </button>
       </div>
 
       {/* Active Emergencies */}
-      <div className="bg-white rounded-xl shadow-lg p-6">
-        <div className="flex justify-between items-center mb-6">
-          <h3 className="text-xl font-bold text-gray-900">Active Emergencies</h3>
-          <button
-            onClick={loadActiveEmergencies}
-            disabled={loading}
-            className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition duration-200"
-          >
-            {loading ? 'Loading...' : 'Refresh'}
-          </button>
-        </div>
-
-        {emergencies.length === 0 ? (
+      <div className="bg-white p-6 rounded-lg shadow-md">
+        <h3 className="text-lg font-semibold text-gray-800 mb-4">Nearby Emergencies</h3>
+        
+        {loading ? (
+          <div className="flex items-center justify-center py-8">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-red-600"></div>
+          </div>
+        ) : emergencies.length === 0 ? (
           <div className="text-center py-8 text-gray-500">
-            <ExclamationTriangleIcon className="h-16 w-16 mx-auto mb-4 text-gray-300" />
-            <p>No active emergencies</p>
+            <FiAlertTriangle className="w-12 h-12 mx-auto mb-4 text-gray-300" />
+            <p>No active emergencies in your area</p>
           </div>
         ) : (
           <div className="space-y-4">
             {emergencies.map((emergency) => (
-              <div key={emergency.emergencyId} className="border border-gray-200 rounded-lg p-4">
-                <div className="flex justify-between items-start mb-3">
-                  <div className="flex items-center space-x-3">
-                    <div className={`w-3 h-3 rounded-full ${getSeverityColor(emergency.severity)}`}></div>
-                    <div>
-                      <h4 className="font-semibold text-gray-900">
-                        {emergency.type.replace('_', ' ').toUpperCase()}
-                      </h4>
-                      <p className="text-sm text-gray-600">ID: {emergency.emergencyId}</p>
-                    </div>
-                  </div>
-                  <span className={`px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(emergency.status)}`}>
-                    {emergency.status.toUpperCase()}
-                  </span>
-                </div>
-
-                {emergency.description && (
-                  <p className="text-gray-700 mb-3">{emergency.description}</p>
-                )}
-
-                <div className="flex items-center space-x-4 text-sm text-gray-600 mb-3">
-                  <div className="flex items-center">
-                    <MapPinIcon className="h-4 w-4 mr-1" />
-                    <span>{emergency.location?.address || 'Location unavailable'}</span>
-                  </div>
-                  <div className="flex items-center">
-                    <ClockIcon className="h-4 w-4 mr-1" />
-                    <span>{new Date(emergency.createdAt).toLocaleString()}</span>
-                  </div>
-                </div>
-
-                {emergency.responders && emergency.responders.length > 0 && (
-                  <div className="mb-3">
-                    <p className="text-sm font-medium text-gray-700 mb-1">Responders:</p>
-                    <div className="flex space-x-2">
-                      {emergency.responders.map((responder, index) => (
-                        <span key={index} className="px-2 py-1 bg-blue-100 text-blue-800 rounded text-xs">
-                          {responder.status}
+              <div key={emergency.id} className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
+                <div className="flex items-start justify-between">
+                  <div className="flex items-start space-x-3">
+                    <div className="text-2xl">{getEmergencyIcon(emergency.type)}</div>
+                    <div className="flex-1">
+                      <div className="flex items-center space-x-2 mb-2">
+                        <h4 className="font-semibold text-gray-800 capitalize">
+                          {emergency.type} Emergency
+                        </h4>
+                        <span className={`px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(emergency.status)}`}>
+                          {emergency.status}
                         </span>
-                      ))}
+                      </div>
+                      <p className="text-gray-600 mb-2">{emergency.description}</p>
+                      <div className="flex items-center space-x-4 text-sm text-gray-500">
+                        <div className="flex items-center space-x-1">
+                          <FiMapPin className="w-4 h-4" />
+                          <span>{emergency.distance || '0.5'} km away</span>
+                        </div>
+                        <div className="flex items-center space-x-1">
+                          <FiClock className="w-4 h-4" />
+                          <span>{emergency.timeAgo || '5 min ago'}</span>
+                        </div>
+                        <div className="flex items-center space-x-1">
+                          <FiUsers className="w-4 h-4" />
+                          <span>{emergency.responders || 0} responders</span>
+                        </div>
+                      </div>
                     </div>
                   </div>
-                )}
-
-                <div className="flex space-x-2">
+                  
                   {emergency.status === 'active' && (
-                    <button
-                      onClick={() => handleStatusUpdate(emergency.emergencyId, 'responded')}
-                      className="px-3 py-1 bg-yellow-500 text-white rounded text-sm hover:bg-yellow-600 transition duration-200"
-                    >
-                      Mark Responded
-                    </button>
-                  )}
-                  {emergency.status === 'responded' && (
-                    <button
-                      onClick={() => handleStatusUpdate(emergency.emergencyId, 'resolved')}
-                      className="px-3 py-1 bg-green-500 text-white rounded text-sm hover:bg-green-600 transition duration-200"
-                    >
-                      Mark Resolved
+                    <button className="flex items-center space-x-1 px-3 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700">
+                      <FiPhone className="w-4 h-4" />
+                      <span>Respond</span>
                     </button>
                   )}
                 </div>

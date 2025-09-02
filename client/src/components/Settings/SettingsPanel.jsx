@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { toast } from 'react-toastify';
-import authService from '../../services/authService';
-import notificationService from '../../services/notificationService';
+import toast from 'react-hot-toast';
+// authService and notificationService removed - using mock data
+// import authService from '../../services/authService';
+// import notificationService from "../../services/notificationService";
 import { 
   CogIcon, 
   BellIcon, 

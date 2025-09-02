@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate, Link, useLocation } from 'react-router-dom';
-// import { toast } from 'react-toastify';
-import { useAuth } from '../../context/AuthContext';
+import { useAuthNotifications } from '../Notifications/NotificationHooks';
 import { EyeIcon, EyeSlashIcon } from '@heroicons/react/24/outline';
 
 const Login = () => {
@@ -9,13 +8,13 @@ const Login = () => {
     email: '',
     password: ''
   });
-  const [loading, setLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
-  const { login } = useAuth();
+  const { showAuthSuccess, showAuthError, showAuthInfo } = useAuthNotifications();
 
-  const handleChange = (e) => {
+  const handleInputChange = (e) => {
     setFormData({
       ...formData,
       [e.target.name]: e.target.value
@@ -26,28 +25,58 @@ const Login = () => {
     e.preventDefault();
     
     if (!formData.email || !formData.password) {
-      alert('Please enter both email and password');
+      showAuthError('Please enter both email and password');
       return;
     }
 
-    setLoading(true);
+    setIsLoading(true);
 
     try {
-      const result = await login(formData.email, formData.password);
+      showAuthInfo('Signing you in...');
       
-      if (result.success) {
-        console.log('Login successful!');
-        // Redirect to the page user was trying to access, or dashboard
-        const from = location.state?.from?.pathname || '/dashboard';
-        navigate(from, { replace: true });
+      // Direct API call to backend
+      const response = await fetch('http://localhost:5000/api/auth/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email: formData.email.toLowerCase().trim(),
+          password: formData.password
+        })
+      });
+
+      const result = await response.json();
+      
+      if (response.ok && result.success) {
+        // Store user data and token
+        localStorage.setItem('token', result.token);
+        localStorage.setItem('userData', JSON.stringify(result.user));
+        
+        showAuthSuccess('Login successful!');
+        
+        // Redirect based on user role
+        const userRole = result.user?.role || 'user';
+        switch (userRole) {
+          case 'admin':
+            navigate('/dashboard/admin', { replace: true });
+            break;
+          case 'subadmin':
+            navigate('/dashboard/sub-admin', { replace: true });
+            break;
+          case 'user':
+          default:
+            navigate('/dashboard-user', { replace: true });
+            break;
+        }
       } else {
-        alert(result.message || 'Login failed');
+        throw new Error(result.message || 'Login failed');
       }
     } catch (error) {
       console.error('Login error:', error);
-      alert(error.message || 'Login failed. Please try again.');
+      showAuthError(error.message || 'Login failed. Please try again.');
     } finally {
-      setLoading(false);
+      setIsLoading(false);
     }
   };
 
@@ -75,7 +104,7 @@ const Login = () => {
               id="email"
               name="email"
               value={formData.email}
-              onChange={handleChange}
+              onChange={handleInputChange}
               required
               className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200"
               placeholder="Enter your email"
@@ -93,7 +122,7 @@ const Login = () => {
                 id="password"
                 name="password"
                 value={formData.password}
-                onChange={handleChange}
+                onChange={handleInputChange}
                 required
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200 pr-12"
                 placeholder="Enter your password"
@@ -125,14 +154,14 @@ const Login = () => {
           {/* Submit Button */}
           <button
             type="submit"
-            disabled={loading}
+            disabled={isLoading}
             className={`w-full py-3 px-4 rounded-lg font-medium transition duration-200 ${
-              loading
+              isLoading
                 ? 'bg-gray-400 cursor-not-allowed'
                 : 'bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white'
             }`}
           >
-            {loading ? (
+            {isLoading ? (
               <div className="flex items-center justify-center">
                 <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
                 Signing In...
