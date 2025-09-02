@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { toast } from 'react-toastify';
-import emergencyService from '../../services/emergencyService';
-import { usersAPI } from '../../config/api';
-import socketService from '../../services/socketService';
+import toast from 'react-hot-toast';
+// emergencyService removed - using mock data
+// usersAPI removed - using mock data
+// socketService removed - using mock data
 import { 
   UserGroupIcon, 
   MapPinIcon, 

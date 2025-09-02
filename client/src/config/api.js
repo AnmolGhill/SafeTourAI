@@ -1,121 +1,250 @@
-import axios from 'axios';
-
-// API Configuration
 const API_BASE_URL = 'http://localhost:5000/api';
 
-// Create axios instance with default config
-const api = axios.create({
-  baseURL: API_BASE_URL,
-  timeout: 10000,
-  headers: {
+// Helper function to get auth headers
+const getAuthHeaders = () => {
+  const token = localStorage.getItem('token');
+  return {
     'Content-Type': 'application/json',
-  },
-});
-
-// Request interceptor to add auth token
-api.interceptors.request.use(
-  (config) => {
-    const token = localStorage.getItem('authToken');
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
-    }
-    return config;
-  },
-  (error) => {
-    return Promise.reject(error);
-  }
-);
-
-// Response interceptor for error handling
-api.interceptors.response.use(
-  (response) => response,
-  (error) => {
-    if (error.response?.status === 401) {
-      localStorage.removeItem('authToken');
-      window.location.href = '/login';
-    }
-    return Promise.reject(error);
-  }
-);
-
-// Auth API
-export const authAPI = {
-  register: (userData) => api.post('/auth/register', userData),
-  login: (credentials) => api.post('/auth/login', credentials),
-  logout: () => api.post('/auth/logout'),
-  verifyEmail: (token) => api.post('/auth/verify-email', { token }),
-  forgotPassword: (email) => api.post('/auth/forgot-password', { email }),
-  resetPassword: (token, password) => api.post('/auth/reset-password', { token, password }),
-  refreshToken: () => api.post('/auth/refresh'),
-  getProfile: () => api.get('/auth/profile'),
-  updateProfile: (data) => api.put('/auth/profile', data),
+    ...(token && { 'Authorization': `Bearer ${token}` })
+  };
 };
 
-// Users API
-export const usersAPI = {
-  getAll: (params) => api.get('/users', { params }),
-  getById: (id) => api.get(`/users/${id}`),
-  update: (id, data) => api.put(`/users/${id}`, data),
-  delete: (id) => api.delete(`/users/${id}`),
-  updateLocation: (data) => api.put('/users/location', data),
-  getNearby: (params) => api.get('/users/nearby', { params }),
-  getResponders: (params) => api.get('/users/responders', { params }),
-};
-
-// Emergency API
-export const emergencyAPI = {
-  create: (data) => api.post('/emergencies', data),
-  getAll: (params) => api.get('/emergencies', { params }),
-  getById: (id) => api.get(`/emergencies/${id}`),
-  update: (id, data) => api.put(`/emergencies/${id}`, data),
-  delete: (id) => api.delete(`/emergencies/${id}`),
-  getNearby: (params) => api.get('/emergencies/nearby', { params }),
-  getActive: () => api.get('/emergencies/active'),
-  assignResponder: (id, responderId) => api.post(`/emergencies/${id}/assign`, { responderId }),
-  updateStatus: (id, status) => api.put(`/emergencies/${id}/status`, { status }),
-  addMedia: (id, formData) => api.post(`/emergencies/${id}/media`, formData, {
-    headers: { 'Content-Type': 'multipart/form-data' }
-  }),
-  getStatistics: (params) => api.get('/emergencies/statistics', { params }),
-};
-
-// Blockchain API
-export const blockchainAPI = {
-  getTransactions: (params) => api.get('/blockchain/transactions', { params }),
-  getTransaction: (id) => api.get(`/blockchain/transactions/${id}`),
-  createWallet: (userId) => api.post('/blockchain/wallet', { userId }),
-  getWallet: (userId) => api.get(`/blockchain/wallet/${userId}`),
-  recordTransaction: (data) => api.post('/blockchain/record', data),
-  verifyTransaction: (hash) => api.get(`/blockchain/verify/${hash}`),
-  getStatistics: () => api.get('/blockchain/statistics'),
-};
-
-// Notifications API
-export const notificationsAPI = {
-  getAll: (params) => api.get('/notifications', { params }),
-  markAsRead: (id) => api.put(`/notifications/${id}/read`),
-  markAllAsRead: () => api.put('/notifications/read-all'),
-  subscribe: (token) => api.post('/notifications/subscribe', { token }),
-  unsubscribe: (token) => api.post('/notifications/unsubscribe', { token }),
-  sendTestNotification: (data) => api.post('/notifications/test', data),
+// Helper function to get auth headers for file uploads
+const getFileUploadHeaders = () => {
+  const token = localStorage.getItem('token');
+  return {
+    ...(token && { 'Authorization': `Bearer ${token}` })
+  };
 };
 
 // KYC API
 export const kycAPI = {
-  submit: (formData) => api.post('/kyc/submit', formData, {
-    headers: { 'Content-Type': 'multipart/form-data' }
-  }),
-  getStatus: () => api.get('/kyc/status'),
-  getAll: (params) => api.get('/kyc/applications', { params }),
-  approve: (id) => api.put(`/kyc/${id}/approve`),
-  reject: (id, reason) => api.put(`/kyc/${id}/reject`, { reason }),
-  getStatistics: () => api.get('/kyc/statistics'),
+  async submit(formData) {
+    try {
+      const response = await fetch(`${API_BASE_URL}/kyc/submit`, {
+        method: 'POST',
+        headers: getFileUploadHeaders(),
+        body: formData
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
+      }
+
+      const result = await response.json();
+      return { 
+        data: {
+          success: true,
+          message: result.message,
+          status: result.status,
+          submittedAt: result.submittedAt
+        }
+      };
+    } catch (error) {
+      console.error('KYC submit error:', error);
+      throw error;
+    }
+  },
+
+  async getStatus() {
+    try {
+      const response = await fetch(`${API_BASE_URL}/kyc/status`, {
+        headers: getAuthHeaders()
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const result = await response.json();
+      return { 
+        data: {
+          success: true,
+          data: {
+            kycStatus: result.status,
+            blockchainId: result.blockchainId,
+            submittedAt: result.submittedAt,
+            reviewedAt: result.reviewedAt,
+            rejectionReason: result.rejectionReason
+          }
+        }
+      };
+    } catch (error) {
+      console.error('KYC status error:', error);
+      // Return default status for new users
+      return {
+        data: {
+          success: true,
+          data: {
+            kycStatus: 'not_submitted',
+            blockchainId: null
+          }
+        }
+      };
+    }
+  }
 };
 
-// Health Check API
-export const healthAPI = {
-  check: () => api.get('/health'),
-  detailed: () => api.get('/health/detailed'),
+// Users API
+export const usersAPI = {
+  async getResponders(params) {
+    try {
+      const queryString = new URLSearchParams(params).toString();
+      const response = await fetch(`${API_BASE_URL}/user/responders?${queryString}`, {
+        headers: getAuthHeaders()
+      });
+
+      const result = await response.json();
+      return { data: result.data || [] };
+    } catch (error) {
+      console.error('Get responders error:', error);
+      // Return mock data for demo
+      return {
+        data: [
+          {
+            userId: 'resp-1',
+            name: 'Officer Smith',
+            role: 'Police Officer',
+            phone: '+1234567890',
+            isActive: true,
+            location: { coordinates: [0, 0] }
+          }
+        ]
+      };
+    }
+  },
+
+  async getProfile() {
+    try {
+      const response = await fetch(`${API_BASE_URL}/user/profile`, {
+        headers: getAuthHeaders()
+      });
+
+      const result = await response.json();
+      return { data: result.data };
+    } catch (error) {
+      console.error('Get profile error:', error);
+      throw error;
+    }
+  },
+
+  async updateProfile(profileData) {
+    try {
+      const response = await fetch(`${API_BASE_URL}/user/profile`, {
+        method: 'PUT',
+        headers: getAuthHeaders(),
+        body: JSON.stringify(profileData)
+      });
+
+      const result = await response.json();
+      return { data: result.data };
+    } catch (error) {
+      console.error('Update profile error:', error);
+      throw error;
+    }
+  }
 };
 
-export default api;
+// Emergency API
+export const emergencyAPI = {
+  async create(emergencyData) {
+    try {
+      const response = await fetch(`${API_BASE_URL}/emergency/create`, {
+        method: 'POST',
+        headers: getAuthHeaders(),
+        body: JSON.stringify(emergencyData)
+      });
+
+      const result = await response.json();
+      return { data: result.data };
+    } catch (error) {
+      console.error('Create emergency error:', error);
+      throw error;
+    }
+  },
+
+  async getNearby(latitude, longitude, radius) {
+    try {
+      const response = await fetch(`${API_BASE_URL}/emergency/nearby?lat=${latitude}&lng=${longitude}&radius=${radius}`, {
+        headers: getAuthHeaders()
+      });
+
+      const result = await response.json();
+      return { data: result.data || [] };
+    } catch (error) {
+      console.error('Get nearby emergencies error:', error);
+      return { data: [] };
+    }
+  }
+};
+
+// Admin API for KYC management
+export const adminAPI = {
+  async getPendingKYCs() {
+    try {
+      const response = await fetch(`${API_BASE_URL}/kyc/admin/pending`, {
+        headers: getAuthHeaders()
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const result = await response.json();
+      return { data: result.applications || [] };
+    } catch (error) {
+      console.error('Get pending KYCs error:', error);
+      throw error;
+    }
+  },
+
+  async reviewKYC(uid, action, rejectionReason = null) {
+    try {
+      const response = await fetch(`${API_BASE_URL}/admin/kyc/${uid}/review`, {
+        method: 'POST',
+        headers: getAuthHeaders(),
+        body: JSON.stringify({
+          action,
+          rejectionReason
+        })
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
+      }
+
+      const result = await response.json();
+      return { data: result };
+    } catch (error) {
+      console.error('Review KYC error:', error);
+      throw error;
+    }
+  },
+
+  async getKYCStats() {
+    try {
+      const response = await fetch(`${API_BASE_URL}/kyc/admin/stats`, {
+        headers: getAuthHeaders()
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const result = await response.json();
+      return { data: result.stats };
+    } catch (error) {
+      console.error('Get KYC stats error:', error);
+      throw error;
+    }
+  }
+};
+
+export default {
+  kycAPI,
+  usersAPI,
+  emergencyAPI,
+  adminAPI
+};

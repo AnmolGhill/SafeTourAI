@@ -1,338 +1,324 @@
 # SafeTourAI Backend Server
 
-A comprehensive Node.js backend server for SafeTourAI - an emergency response and safety management system with blockchain integration, Firebase notifications, and real-time location tracking.
+A comprehensive Node.js/Express backend server with Firebase authentication, KYC management, and blockchain integration for the SafeTourAI platform.
 
-## 🚀 Features
+## Features
 
-- **Authentication & Authorization**: JWT + Firebase Auth with role-based access control
-- **Emergency Management**: Real-time SOS alerts with location tracking
-- **Blockchain Integration**: Transaction recording with local blockchain + Web3 support
-- **Notification System**: Firebase push notifications + email alerts
-- **Location Services**: Geospatial queries for nearby users and responders
-- **User Management**: Comprehensive profile and emergency contact management
-- **Security**: Rate limiting, input validation, and secure password hashing
+- **🔐 Role-based Authentication**: User, Sub-admin, and Admin roles with Firebase Auth
+- **📋 KYC Management**: Complete KYC verification system with document upload
+- **⛓️ Blockchain Integration**: Automatic blockchain ID generation for verified users
+- **📧 Email Services**: OTP verification and notification system
+- **👥 User Management**: Comprehensive user profile and admin management
+- **🔒 Security**: Rate limiting, input validation, and secure file uploads
+- **📊 Analytics**: Real-time statistics and monitoring
 
-## 📁 Project Structure
+## Prerequisites
 
-```
-server/
-├── config/
-│   ├── db.js                 # MongoDB connection
-│   ├── firebase.js           # Firebase Admin SDK setup
-│   └── blockchain.js         # Blockchain configuration
-├── controllers/
-│   ├── authController.js     # Authentication logic
-│   ├── userController.js     # User management
-│   ├── emergencyController.js # Emergency operations
-│   ├── blockchainController.js # Blockchain transactions
-│   └── notificationController.js # Notification services
-├── models/
-│   ├── User.js              # User schema with unique IDs
-│   ├── Emergency.js         # Emergency schema
-│   ├── Transaction.js       # Blockchain transaction schema
-│   └── Otp.js              # OTP verification schema
-├── routes/
-│   ├── authRoutes.js        # Authentication endpoints
-│   ├── userRoutes.js        # User management endpoints
-│   ├── emergencyRoutes.js   # Emergency endpoints
-│   ├── blockchainRoutes.js  # Blockchain endpoints
-│   └── notificationRoutes.js # Notification endpoints
-├── middleware/
-│   ├── authMiddleware.js    # JWT/Firebase authentication
-│   └── roleMiddleware.js    # Role-based access control
-├── utils/
-│   ├── generateId.js        # Unique ID generation (USR, EMG, TXN)
-│   ├── generateOtp.js       # OTP generation utilities
-│   └── sendEmail.js         # Email service configuration
-├── server.js               # Main server entry point
-├── package.json            # Dependencies and scripts
-├── .env.example           # Environment variables template
-└── README.md              # This file
-```
+- Node.js (v16 or higher)
+- Firebase project with Admin SDK
+- Gmail account for SMTP (or other email service)
+- Optional: Infura account for blockchain integration
 
-## 🛠️ Installation & Setup
+## Installation
 
-### 1. Install Dependencies
+1. **Clone and navigate to server directory**
+   ```bash
+   cd server
+   ```
+
+2. **Install dependencies**
+   ```bash
+   npm install
+   ```
+
+3. **Create logs directory**
+   ```bash
+   mkdir logs
+   ```
+
+4. **Environment Setup**
+   - Copy `.env.example` to `.env`
+   - Fill in your Firebase and email credentials
+   ```bash
+   cp .env.example .env
+   ```
+
+## Configuration
+
+### Firebase Setup
+
+1. Go to [Firebase Console](https://console.firebase.google.com/)
+2. Create a new project or use existing
+3. Enable Authentication and Firestore
+4. Generate a service account key:
+   - Go to Project Settings > Service Accounts
+   - Click "Generate new private key"
+   - Download the JSON file
+
+5. Update `.env` with Firebase credentials:
+   ```env
+   FIREBASE_PROJECT_ID=your_project_id
+   FIREBASE_PRIVATE_KEY_ID=your_private_key_id
+   FIREBASE_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\nyour_private_key_here\n-----END PRIVATE KEY-----\n"
+   FIREBASE_CLIENT_EMAIL=your_service_account_email
+   FIREBASE_CLIENT_ID=your_client_id
+   FIREBASE_CLIENT_CERT_URL=your_cert_url
+   FIREBASE_DATABASE_URL=your_database_url
+   ```
+
+### Email Configuration
+
+For Gmail SMTP:
+1. Enable 2-factor authentication on your Gmail account
+2. Generate an App Password:
+   - Go to Google Account settings
+   - Security > 2-Step Verification > App passwords
+   - Generate password for "Mail"
+
+3. Update `.env`:
+   ```env
+   EMAIL_USER=your_email@gmail.com
+   EMAIL_PASSWORD=your_app_password
+   ```
+
+## API Endpoints
+
+### Authentication Routes (`/api/auth`)
+
+- `POST /register` - Register new user with role
+- `POST /login` - User login
+- `POST /verify-otp` - Verify email OTP
+- `POST /resend-otp` - Resend OTP
+- `GET /me` - Get current user info
+
+### KYC Routes (`/api/kyc`)
+
+- `POST /submit` - Submit KYC application with documents
+- `GET /status` - Get KYC status
+- `GET /details` - Get KYC details
+- `GET /admin/pending` - Get pending KYC applications (Admin)
+- `POST /admin/review/:uid` - Review KYC application (Admin)
+- `GET /admin/stats` - Get KYC statistics (Admin)
+
+### User Routes (`/api/user`)
+
+- `GET /profile` - Get user profile
+- `PUT /profile` - Update user profile
+- `PUT /emergency-contacts` - Update emergency contacts
+- `PUT /health-info` - Update health information
+- `PUT /security-settings` - Update security settings
+- `PUT /ai-preferences` - Update AI preferences
+- `GET /dashboard` - Get dashboard data
+- `DELETE /account` - Delete user account
+
+### Admin Routes (`/api/admin`)
+
+- `GET /users` - Get all users with pagination
+- `GET /users/:uid` - Get user details
+- `PUT /users/:uid/role` - Update user role
+- `POST /users/:uid/approve` - Approve/reject user registration
+- `DELETE /users/:uid` - Delete user
+- `GET /stats` - Get system statistics
+- `POST /kyc/:uid/review` - Review KYC with email notifications
+
+### Blockchain Routes (`/api/blockchain`)
+
+- `GET /digital-id` - Get digital identity
+- `POST /verify` - Verify blockchain ID
+
+## User Registration Flow
+
+### Regular Users (role: 'user')
+1. Register with email/password
+2. Receive OTP via email
+3. Verify OTP to activate account
+4. Complete profile (optional)
+5. Submit KYC for blockchain features
+
+### Admin/Sub-admin (role: 'admin'/'subadmin')
+1. Register with email/password
+2. Account pending admin approval
+3. Admin approves/rejects registration
+4. Account activated upon approval
+
+## KYC Verification Process
+
+1. **User submits KYC** with:
+   - Personal information
+   - Government ID document
+   - Selfie photo
+   - Address details
+
+2. **Admin reviews** application:
+   - Approve: Generates blockchain ID + email notification
+   - Reject: Sends rejection email with reason
+
+3. **Blockchain ID generation** (on approval):
+   - Unique ID format: `ST-XXXXXXXXXXXXXXXX`
+   - Stored in Firebase and linked to user
+   - Email notification sent to user
+
+## File Upload
+
+- **Supported formats**: Images (JPG, PNG, etc.) and PDF
+- **Size limit**: 10MB per file
+- **Storage**: Firebase Storage with public URLs
+- **Security**: File type validation and sanitization
+
+## Security Features
+
+- **Rate limiting**: 1000 requests per 15 minutes per IP
+- **Input validation**: Express-validator for all inputs
+- **File upload security**: Multer with type restrictions
+- **JWT tokens**: Secure authentication with expiration
+- **CORS protection**: Configured for frontend domain
+- **Helmet**: Security headers middleware
+
+## Development
 
 ```bash
-cd server
-npm install
-```
-
-### 2. Environment Configuration
-
-Copy the example environment file and configure your settings:
-
-```bash
-cp .env.example .env
-```
-
-Edit `.env` with your actual configuration values:
-
-```env
-# Required configurations
-NODE_ENV=development
-PORT=5000
-MONGODB_URI=mongodb://localhost:27017/safetour_ai
-JWT_SECRET=your_super_secret_jwt_key_here
-
-# Firebase configuration (get from Firebase Console)
-FIREBASE_PROJECT_ID=your_firebase_project_id
-FIREBASE_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----\n"
-FIREBASE_CLIENT_EMAIL=firebase-adminsdk-xxxxx@your_project.iam.gserviceaccount.com
-
-# Email configuration (Gmail example)
-EMAIL_USER=your_email@gmail.com
-EMAIL_PASSWORD=your_app_specific_password
-```
-
-### 3. Database Setup
-
-Ensure MongoDB is running on your system:
-
-```bash
-# Start MongoDB (if using local installation)
-mongod
-
-# Or using Docker
-docker run -d -p 27017:27017 --name mongodb mongo:latest
-```
-
-### 4. Firebase Setup
-
-1. Create a Firebase project at [Firebase Console](https://console.firebase.google.com/)
-2. Enable Authentication and Cloud Messaging
-3. Generate a service account key (JSON)
-4. Extract the required fields for your `.env` file
-
-### 5. Start the Server
-
-```bash
-# Development mode with auto-restart
+# Start development server with auto-reload
 npm run dev
 
-# Production mode
+# Start production server
 npm start
-```
 
-## 📚 API Documentation
-
-### Base URL
-```
-http://localhost:5000/api
-```
-
-### Authentication Endpoints
-
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| POST | `/auth/register` | Register new user |
-| POST | `/auth/verify-otp` | Verify email OTP |
-| POST | `/auth/login` | User login |
-| POST | `/auth/firebase-login` | Firebase authentication |
-| POST | `/auth/resend-otp` | Resend OTP |
-| POST | `/auth/logout` | User logout |
-| GET | `/auth/me` | Get current user |
-
-### User Management Endpoints
-
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | `/users/:userId` | Get user profile |
-| PUT | `/users/:userId` | Update user profile |
-| PUT | `/users/:userId/location` | Update user location |
-| GET | `/users/:userId/dashboard` | Get user dashboard |
-| POST | `/users/:userId/emergency-contacts` | Add emergency contact |
-| DELETE | `/users/:userId/emergency-contacts/:contactId` | Remove emergency contact |
-| GET | `/users/nearby/users` | Get nearby users |
-| GET | `/users/nearby/responders` | Get nearby responders |
-
-### Emergency Endpoints
-
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| POST | `/emergencies/create` | Create emergency (SOS) |
-| GET | `/emergencies/user/:userId` | Get user emergencies |
-| GET | `/emergencies/nearby` | Get nearby emergencies |
-| GET | `/emergencies/:emergencyId` | Get emergency details |
-| PUT | `/emergencies/:emergencyId/status` | Update emergency status |
-| POST | `/emergencies/:emergencyId/assign-responder` | Assign responder |
-
-### Blockchain Endpoints
-
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| POST | `/blockchain/transaction` | Create blockchain transaction |
-| GET | `/blockchain/user/:userId` | Get user transactions |
-| GET | `/blockchain/emergency/:emergencyId` | Get emergency transactions |
-| GET | `/blockchain/hash/:hash` | Get transaction by hash |
-
-### Notification Endpoints
-
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| POST | `/notifications/firebase` | Send Firebase notification |
-| POST | `/notifications/email` | Send email notification |
-| POST | `/notifications/emergency-contacts` | Notify emergency contacts |
-| POST | `/notifications/nearby-responders` | Notify nearby responders |
-
-## 🔐 Authentication
-
-The API supports two authentication methods:
-
-### 1. JWT Authentication
-```bash
-Authorization: Bearer <jwt_token>
-```
-
-### 2. Firebase Authentication
-```bash
-Authorization: Bearer <firebase_id_token>
-```
-
-## 👥 User Roles
-
-- **admin**: Full system access
-- **responder**: Emergency response capabilities
-- **user**: Standard user access
-
-## 🆔 Unique ID System
-
-The system generates unique IDs with prefixes:
-- **USR_**: User IDs
-- **EMG_**: Emergency IDs
-- **TXN_**: Transaction IDs
-- **NOT_**: Notification IDs
-
-## 🔗 Blockchain Integration
-
-- **Local Blockchain**: Simple proof-of-work blockchain for transaction recording
-- **Web3 Support**: Optional integration with external blockchains
-- **Transaction Types**: emergency_created, emergency_updated, responder_assigned, emergency_resolved
-
-## 📧 Email Templates
-
-Pre-built email templates for:
-- OTP verification
-- Welcome messages
-- Emergency alerts
-- Password reset
-
-## 🚨 Emergency Workflow
-
-1. User creates emergency via `/emergencies/create`
-2. System records transaction on blockchain
-3. Emergency contacts are notified via email
-4. Nearby responders receive push notifications
-5. Responders can be assigned via `/emergencies/:id/assign-responder`
-6. Status updates are tracked with blockchain transactions
-
-## 🛡️ Security Features
-
-- **Rate Limiting**: 1000 requests per 15 minutes per IP/user
-- **Input Validation**: Mongoose schema validation
-- **Password Hashing**: bcrypt with salt rounds
-- **JWT Security**: Configurable expiration and secret
-- **Role-based Access**: Middleware for endpoint protection
-
-## 📱 Firebase Integration
-
-- **Push Notifications**: Real-time emergency alerts
-- **Authentication**: Firebase ID token verification
-- **Cloud Messaging**: Multicast notifications to responders
-
-## 🗄️ Database Schema
-
-### User Model
-```javascript
-{
-  userId: "USR_123456_ABC123",
-  name: "John Doe",
-  email: "john@example.com",
-  phone: "+1234567890",
-  role: "user|responder|admin",
-  location: {
-    type: "Point",
-    coordinates: [longitude, latitude],
-    address: "123 Main St"
-  },
-  emergencyContacts: [...],
-  preferences: {...}
-}
-```
-
-### Emergency Model
-```javascript
-{
-  emergencyId: "EMG_123456_ABC123",
-  userId: "USR_123456_ABC123",
-  type: "medical|accident|crime|fire|natural_disaster|other",
-  severity: "low|medium|high|critical",
-  status: "active|responded|resolved|cancelled",
-  location: {...},
-  responders: [...],
-  timeline: [...]
-}
-```
-
-## 🚀 Deployment
-
-### Environment Variables for Production
-```env
-NODE_ENV=production
-PORT=5000
-MONGODB_URI=mongodb+srv://username:password@cluster.mongodb.net/safetour_ai
-JWT_SECRET=your_production_jwt_secret
-# ... other production configs
-```
-
-### Docker Deployment
-```dockerfile
-FROM node:18-alpine
-WORKDIR /app
-COPY package*.json ./
-RUN npm ci --only=production
-COPY . .
-EXPOSE 5000
-CMD ["npm", "start"]
-```
-
-## 🧪 Testing
-
-```bash
-# Run tests (when implemented)
+# Run tests (if configured)
 npm test
-
-# Health check
-curl http://localhost:5000/health
 ```
 
-## 📊 Monitoring
+## Production Deployment
 
-- Health check endpoint: `/health`
-- API documentation: `/api/docs`
-- Error logging with stack traces in development
-- Request/response logging
+1. **Environment variables**: Set all required env vars
+2. **Firebase setup**: Ensure Firestore security rules are configured
+3. **Email service**: Configure production SMTP settings
+4. **Logging**: Check log files in `logs/` directory
+5. **Monitoring**: Monitor API endpoints and error logs
 
-## 🤝 Contributing
+## Firestore Collections
 
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Add tests if applicable
-5. Submit a pull request
+### `users`
+```javascript
+{
+  uid: string,
+  email: string,
+  name: string,
+  phone: string,
+  role: 'user' | 'subadmin' | 'admin',
+  kycStatus: 'not_submitted' | 'submitted' | 'approved' | 'rejected',
+  profileComplete: boolean,
+  blockchainId: string | null,
+  createdAt: string,
+  emailVerified: boolean
+}
+```
 
-## 📄 License
+### `kyc`
+```javascript
+{
+  uid: string,
+  fullName: string,
+  dateOfBirth: string,
+  gender: string,
+  address: object,
+  governmentIdType: string,
+  governmentIdNumber: string,
+  documents: { document: string, selfie: string },
+  status: 'submitted' | 'approved' | 'rejected',
+  submittedAt: string,
+  reviewedAt: string | null,
+  reviewedBy: string | null,
+  blockchainId: string | null,
+  rejectionReason: string | null
+}
+```
 
-This project is licensed under the MIT License.
+### `userProfiles`
+```javascript
+{
+  // Basic info
+  fullName: string,
+  age: number,
+  dateOfBirth: string,
+  gender: string,
+  contactNumber: string,
+  nationality: string,
+  occupation: string,
+  address: string,
+  
+  // Emergency contacts
+  emergencyContacts: array,
+  
+  // Health info
+  bloodGroup: string,
+  allergies: string,
+  medicalConditions: string,
+  medications: string,
+  doctorName: string,
+  doctorPhone: string,
+  healthInsurance: string,
+  
+  // Security settings
+  sosPreference: string,
+  privacySettings: string,
+  blockchainConsent: boolean,
+  safeWord: string,
+  
+  // AI preferences
+  predictiveAlerts: boolean,
+  smartRecommendations: boolean,
+  behaviorAnalysis: boolean,
+  voiceAssistant: boolean,
+  aiLearningLevel: string,
+  aiNotificationFreq: string
+}
+```
 
-## 🆘 Support
+## Error Handling
 
-For support and questions:
-- Create an issue in the repository
-- Check the API documentation at `/api/docs`
-- Review the health check at `/health`
+- **Global error handler**: Catches all unhandled errors
+- **Validation errors**: Returns detailed field-level errors
+- **Authentication errors**: Clear 401/403 responses
+- **File upload errors**: Specific error messages for file issues
+- **Logging**: All errors logged with Winston
 
----
+## Troubleshooting
 
-**SafeTourAI Backend** - Empowering safe travels through technology 🌟
+### Common Issues
+
+1. **Firebase connection failed**
+   - Check Firebase credentials in `.env`
+   - Verify service account permissions
+   - Ensure Firestore is enabled
+
+2. **Email not sending**
+   - Verify Gmail app password
+   - Check SMTP settings
+   - Ensure 2FA is enabled on Gmail
+
+3. **File upload fails**
+   - Check Firebase Storage permissions
+   - Verify file size limits
+   - Ensure correct file types
+
+4. **CORS errors**
+   - Update `FRONTEND_URL` in `.env`
+   - Check CORS configuration in `server.js`
+
+### Logs
+
+- **Error logs**: `logs/error.log`
+- **Combined logs**: `logs/combined.log`
+- **Console logs**: Available in development mode
+
+## Support
+
+For issues and questions:
+1. Check the logs for detailed error messages
+2. Verify all environment variables are set correctly
+3. Ensure Firebase project is properly configured
+4. Test API endpoints with tools like Postman
+
+## License
+
+MIT License - see LICENSE file for details.

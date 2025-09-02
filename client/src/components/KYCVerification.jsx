@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import './KYCVerification.css';
+import { kycAPI } from '../config/api';
 
 const KYCVerification = () => {
   const [formData, setFormData] = useState({
@@ -34,19 +35,22 @@ const KYCVerification = () => {
 
   const fetchKYCStatus = async () => {
     try {
-      const response = await fetch('/api/kyc/status', {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        }
-      });
-      const data = await response.json();
+      const token = localStorage.getItem('token');
+      if (!token) {
+        console.log('No auth token found, user not logged in');
+        return;
+      }
+
+      const response = await kycAPI.getStatus();
       
-      if (data.success) {
-        setKycStatus(data.data.kycStatus);
-        setBlockchainData(data.data);
+      if (response.data.success) {
+        setKycStatus(response.data.data.kycStatus);
+        setBlockchainData(response.data.data);
       }
     } catch (error) {
       console.error('Error fetching KYC status:', error);
+      // Set default status if error
+      setKycStatus('not_submitted');
     }
   };
 
@@ -124,31 +128,26 @@ const KYCVerification = () => {
         formDataToSend.append('selfie', files.selfie);
       }
 
-      const response = await fetch('/api/kyc/submit', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        },
-        body: formDataToSend
-      });
+      const response = await kycAPI.submit(formDataToSend);
 
-      const data = await response.json();
-
-      if (data.success) {
+      if (response.data.success) {
         setKycStatus('submitted');
         alert('KYC information submitted successfully! Please wait for verification.');
+        // Refresh KYC status to get updated data
+        await fetchKYCStatus();
       } else {
-        alert(data.message || 'Failed to submit KYC information');
+        alert(response.data.message || 'Failed to submit KYC information');
       }
     } catch (error) {
       console.error('Error submitting KYC:', error);
-      alert('An error occurred while submitting KYC information');
+      const errorMessage = error.message || 'An error occurred while submitting KYC information';
+      alert(errorMessage);
     } finally {
       setLoading(false);
     }
   };
 
-  if (kycStatus === 'verified') {
+  if (kycStatus === 'approved') {
     return (
       <div className="kyc-container">
         <div className="kyc-success">

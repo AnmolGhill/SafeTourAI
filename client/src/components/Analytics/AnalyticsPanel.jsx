@@ -1,304 +1,203 @@
 import React, { useState, useEffect } from 'react';
-import { toast } from 'react-toastify';
-import { emergencyAPI, blockchainAPI, kycAPI } from '../../config/api';
 import { 
-  LineChart, 
-  Line, 
-  XAxis, 
-  YAxis, 
-  CartesianGrid, 
-  Tooltip, 
-  ResponsiveContainer,
-  PieChart,
-  Pie,
-  Cell,
-  BarChart,
-  Bar
-} from 'recharts';
-import { 
-  ChartBarIcon, 
-  ClockIcon, 
-  UserGroupIcon,
-  ExclamationTriangleIcon
-} from '@heroicons/react/24/outline';
+  FiBarChart2, 
+  FiTrendingUp, 
+  FiUsers, 
+  FiAlertTriangle,
+  FiShield,
+  FiMapPin,
+  FiClock,
+  FiActivity
+} from 'react-icons/fi';
 
 const AnalyticsPanel = () => {
-  const [emergencyStats, setEmergencyStats] = useState(null);
-  const [blockchainStats, setBlockchainStats] = useState(null);
-  const [kycStats, setKycStats] = useState(null);
-  const [loading, setLoading] = useState(false);
+  // Get current user from localStorage
+  const getCurrentUser = () => {
+    try {
+      const userData = localStorage.getItem('userData');
+      return userData ? JSON.parse(userData) : null;
+    } catch (error) {
+      console.error('Error parsing user data:', error);
+      return null;
+    }
+  };
+  
+  const user = getCurrentUser();
+  const [analytics, setAnalytics] = useState({
+    totalUsers: 0,
+    activeEmergencies: 0,
+    resolvedEmergencies: 0,
+    responseTime: 0,
+    kycVerified: 0,
+    monthlyGrowth: 0
+  });
   const [timeRange, setTimeRange] = useState('7d');
-
-  const COLORS = ['#3B82F6', '#EF4444', '#F59E0B', '#10B981', '#8B5CF6'];
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    loadAnalytics();
+    fetchAnalytics();
   }, [timeRange]);
 
-  const loadAnalytics = async () => {
-    setLoading(true);
+  const fetchAnalytics = async () => {
     try {
-      const endDate = new Date();
-      const startDate = new Date();
-      
-      switch (timeRange) {
-        case '24h':
-          startDate.setHours(startDate.getHours() - 24);
-          break;
-        case '7d':
-          startDate.setDate(startDate.getDate() - 7);
-          break;
-        case '30d':
-          startDate.setDate(startDate.getDate() - 30);
-          break;
-        case '90d':
-          startDate.setDate(startDate.getDate() - 90);
-          break;
-      }
-
-      const [emergencyData, blockchainData, kycData] = await Promise.all([
-        emergencyAPI.getStatistics({ startDate: startDate.toISOString(), endDate: endDate.toISOString() }),
-        blockchainAPI.getStatistics(),
-        kycAPI.getStatistics()
-      ]);
-
-      setEmergencyStats(emergencyData.data);
-      setBlockchainStats(blockchainData.data);
-      setKycStats(kycData.data);
+      setLoading(true);
+      // Mock data for demo
+      setTimeout(() => {
+        setAnalytics({
+          totalUsers: 1247,
+          activeEmergencies: 3,
+          resolvedEmergencies: 89,
+          responseTime: 4.2,
+          kycVerified: 892,
+          monthlyGrowth: 12.5
+        });
+        setLoading(false);
+      }, 1000);
     } catch (error) {
-      toast.error('Failed to load analytics data');
-    } finally {
+      console.error('Error fetching analytics:', error);
       setLoading(false);
     }
   };
 
-  const formatChartData = (stats) => {
-    if (!stats) return [];
-    
-    return Object.entries(stats.byType || {}).map(([type, count]) => ({
-      name: type.replace('_', ' ').toUpperCase(),
-      value: count
-    }));
-  };
+  const StatCard = ({ icon: Icon, title, value, subtitle, color = 'blue' }) => (
+    <div className="bg-white p-6 rounded-lg shadow-md border-l-4 border-blue-500">
+      <div className="flex items-center justify-between">
+        <div>
+          <p className="text-sm font-medium text-gray-600">{title}</p>
+          <p className="text-2xl font-bold text-gray-900">{value}</p>
+          {subtitle && <p className="text-sm text-gray-500">{subtitle}</p>}
+        </div>
+        <div className={`p-3 rounded-full bg-${color}-100`}>
+          <Icon className={`w-6 h-6 text-${color}-600`} />
+        </div>
+      </div>
+    </div>
+  );
+
+  const ChartPlaceholder = ({ title, height = "300px" }) => (
+    <div className="bg-white p-6 rounded-lg shadow-md">
+      <h3 className="text-lg font-semibold text-gray-800 mb-4">{title}</h3>
+      <div 
+        className="bg-gray-50 rounded-lg flex items-center justify-center border-2 border-dashed border-gray-300"
+        style={{ height }}
+      >
+        <div className="text-center text-gray-500">
+          <FiBarChart2 className="w-12 h-12 mx-auto mb-2" />
+          <p>Chart visualization would appear here</p>
+          <p className="text-sm">Integration with Chart.js or similar library needed</p>
+        </div>
+      </div>
+    </div>
+  );
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+      </div>
+    );
+  }
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="space-y-6">
       {/* Header */}
-      <div className="bg-white rounded-xl shadow-lg p-6">
-        <div className="flex justify-between items-center mb-6">
-          <h2 className="text-2xl font-bold text-gray-900 flex items-center">
-            <ChartBarIcon className="h-8 w-8 text-blue-500 mr-3" />
-            Analytics Dashboard
-          </h2>
-          
+      <div className="flex items-center justify-between">
+        <div className="flex items-center space-x-3">
+          <FiBarChart2 className="w-6 h-6 text-blue-600" />
+          <h2 className="text-2xl font-bold text-gray-800">Analytics Dashboard</h2>
+        </div>
+        
+        <div className="flex items-center space-x-2">
+          <label className="text-sm font-medium text-gray-700">Time Range:</label>
           <select
             value={timeRange}
             onChange={(e) => setTimeRange(e.target.value)}
-            className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+            className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
           >
-            <option value="24h">Last 24 Hours</option>
+            <option value="1d">Last 24 Hours</option>
             <option value="7d">Last 7 Days</option>
             <option value="30d">Last 30 Days</option>
-            <option value="90d">Last 90 Days</option>
+            <option value="90d">Last 3 Months</option>
           </select>
         </div>
+      </div>
 
-        {/* Overview Stats */}
-        <div className="grid md:grid-cols-4 gap-4">
-          <div className="bg-blue-50 p-4 rounded-lg">
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="font-semibold text-blue-900">Total Emergencies</h3>
-                <p className="text-2xl font-bold text-blue-600">
-                  {emergencyStats?.total || 0}
-                </p>
-              </div>
-              <ExclamationTriangleIcon className="h-8 w-8 text-blue-500" />
-            </div>
-          </div>
-          
-          <div className="bg-green-50 p-4 rounded-lg">
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="font-semibold text-green-900">Resolved</h3>
-                <p className="text-2xl font-bold text-green-600">
-                  {emergencyStats?.resolved || 0}
-                </p>
-              </div>
-              <CheckCircleIcon className="h-8 w-8 text-green-500" />
-            </div>
-          </div>
-          
-          <div className="bg-purple-50 p-4 rounded-lg">
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="font-semibold text-purple-900">Blockchain Txns</h3>
-                <p className="text-2xl font-bold text-purple-600">
-                  {blockchainStats?.total || 0}
-                </p>
-              </div>
-              <CubeIcon className="h-8 w-8 text-purple-500" />
-            </div>
-          </div>
-          
-          <div className="bg-yellow-50 p-4 rounded-lg">
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="font-semibold text-yellow-900">KYC Verified</h3>
-                <p className="text-2xl font-bold text-yellow-600">
-                  {kycStats?.verified || 0}
-                </p>
-              </div>
-              <UserGroupIcon className="h-8 w-8 text-yellow-500" />
-            </div>
-          </div>
-        </div>
+      {/* Key Metrics */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <StatCard
+          icon={FiUsers}
+          title="Total Users"
+          value={analytics.totalUsers.toLocaleString()}
+          subtitle={`+${analytics.monthlyGrowth}% this month`}
+          color="blue"
+        />
+        <StatCard
+          icon={FiAlertTriangle}
+          title="Active Emergencies"
+          value={analytics.activeEmergencies}
+          subtitle="Requires immediate attention"
+          color="red"
+        />
+        <StatCard
+          icon={FiShield}
+          title="Resolved Emergencies"
+          value={analytics.resolvedEmergencies}
+          subtitle="Successfully handled"
+          color="green"
+        />
+        <StatCard
+          icon={FiClock}
+          title="Avg Response Time"
+          value={`${analytics.responseTime} min`}
+          subtitle="Emergency response average"
+          color="yellow"
+        />
+        <StatCard
+          icon={FiActivity}
+          title="KYC Verified"
+          value={analytics.kycVerified.toLocaleString()}
+          subtitle={`${((analytics.kycVerified / analytics.totalUsers) * 100).toFixed(1)}% of users`}
+          color="purple"
+        />
+        <StatCard
+          icon={FiTrendingUp}
+          title="Growth Rate"
+          value={`+${analytics.monthlyGrowth}%`}
+          subtitle="Monthly user growth"
+          color="green"
+        />
       </div>
 
       {/* Charts Section */}
-      <div className="grid lg:grid-cols-2 gap-6">
-        {/* Emergency Types Distribution */}
-        <div className="bg-white rounded-xl shadow-lg p-6">
-          <h3 className="text-lg font-bold text-gray-900 mb-4">Emergency Types Distribution</h3>
-          {emergencyStats ? (
-            <ResponsiveContainer width="100%" height={300}>
-              <PieChart>
-                <Pie
-                  data={formatChartData(emergencyStats)}
-                  cx="50%"
-                  cy="50%"
-                  labelLine={false}
-                  label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-                  outerRadius={80}
-                  fill="#8884d8"
-                  dataKey="value"
-                >
-                  {formatChartData(emergencyStats).map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                  ))}
-                </Pie>
-                <Tooltip />
-              </PieChart>
-            </ResponsiveContainer>
-          ) : (
-            <div className="h-300 flex items-center justify-center text-gray-500">
-              No data available
-            </div>
-          )}
-        </div>
-
-        {/* Response Time Trends */}
-        <div className="bg-white rounded-xl shadow-lg p-6">
-          <h3 className="text-lg font-bold text-gray-900 mb-4">Response Time Trends</h3>
-          <ResponsiveContainer width="100%" height={300}>
-            <LineChart data={[
-              { name: 'Mon', responseTime: 4.2 },
-              { name: 'Tue', responseTime: 3.8 },
-              { name: 'Wed', responseTime: 4.5 },
-              { name: 'Thu', responseTime: 3.9 },
-              { name: 'Fri', responseTime: 4.1 },
-              { name: 'Sat', responseTime: 3.7 },
-              { name: 'Sun', responseTime: 4.0 }
-            ]}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="name" />
-              <YAxis />
-              <Tooltip formatter={(value) => [`${value} min`, 'Response Time']} />
-              <Line 
-                type="monotone" 
-                dataKey="responseTime" 
-                stroke="#3B82F6" 
-                strokeWidth={3}
-                dot={{ fill: '#3B82F6', strokeWidth: 2, r: 4 }}
-              />
-            </LineChart>
-          </ResponsiveContainer>
-        </div>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <ChartPlaceholder title="Emergency Response Trends" />
+        <ChartPlaceholder title="User Registration Growth" />
       </div>
 
-      {/* Detailed Analytics */}
-      <div className="grid lg:grid-cols-3 gap-6">
-        {/* Emergency Status Breakdown */}
-        <div className="bg-white rounded-xl shadow-lg p-6">
-          <h3 className="text-lg font-bold text-gray-900 mb-4">Emergency Status</h3>
-          {emergencyStats ? (
-            <div className="space-y-3">
-              <div className="flex justify-between items-center">
-                <span className="text-gray-600">Active</span>
-                <span className="font-semibold text-red-600">{emergencyStats.active || 0}</span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-gray-600">Responded</span>
-                <span className="font-semibold text-yellow-600">{emergencyStats.responded || 0}</span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-gray-600">Resolved</span>
-                <span className="font-semibold text-green-600">{emergencyStats.resolved || 0}</span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-gray-600">Cancelled</span>
-                <span className="font-semibold text-gray-600">{emergencyStats.cancelled || 0}</span>
-              </div>
-            </div>
-          ) : (
-            <p className="text-gray-500">No data available</p>
-          )}
-        </div>
+      <div className="grid grid-cols-1 gap-6">
+        <ChartPlaceholder title="Geographic Distribution of Emergencies" height="400px" />
+      </div>
 
-        {/* Blockchain Transaction Status */}
-        <div className="bg-white rounded-xl shadow-lg p-6">
-          <h3 className="text-lg font-bold text-gray-900 mb-4">Blockchain Status</h3>
-          {blockchainStats ? (
-            <div className="space-y-3">
-              <div className="flex justify-between items-center">
-                <span className="text-gray-600">Confirmed</span>
-                <span className="font-semibold text-green-600">{blockchainStats.confirmed || 0}</span>
+      {/* Recent Activity */}
+      <div className="bg-white p-6 rounded-lg shadow-md">
+        <h3 className="text-lg font-semibold text-gray-800 mb-4">Recent Activity</h3>
+        <div className="space-y-3">
+          {[
+            { type: 'emergency', message: 'Medical emergency reported in Downtown', time: '2 min ago', icon: FiAlertTriangle, color: 'red' },
+            { type: 'user', message: 'New user registration: Sarah Johnson', time: '5 min ago', icon: FiUsers, color: 'blue' },
+            { type: 'kyc', message: 'KYC verification completed for Mike Chen', time: '12 min ago', icon: FiShield, color: 'green' },
+            { type: 'emergency', message: 'Traffic accident resolved on Main St', time: '18 min ago', icon: FiMapPin, color: 'green' }
+          ].map((activity, index) => (
+            <div key={index} className="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg">
+              <div className={`p-2 rounded-full bg-${activity.color}-100`}>
+                <activity.icon className={`w-4 h-4 text-${activity.color}-600`} />
               </div>
-              <div className="flex justify-between items-center">
-                <span className="text-gray-600">Pending</span>
-                <span className="font-semibold text-yellow-600">{blockchainStats.pending || 0}</span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-gray-600">Failed</span>
-                <span className="font-semibold text-red-600">{blockchainStats.failed || 0}</span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-gray-600">Total Fees</span>
-                <span className="font-semibold text-blue-600">{blockchainStats.totalNetworkFees || 0} ETH</span>
+              <div className="flex-1">
+                <p className="text-sm text-gray-800">{activity.message}</p>
+                <p className="text-xs text-gray-500">{activity.time}</p>
               </div>
             </div>
-          ) : (
-            <p className="text-gray-500">No data available</p>
-          )}
-        </div>
-
-        {/* KYC Status */}
-        <div className="bg-white rounded-xl shadow-lg p-6">
-          <h3 className="text-lg font-bold text-gray-900 mb-4">KYC Verification</h3>
-          {kycStats ? (
-            <div className="space-y-3">
-              <div className="flex justify-between items-center">
-                <span className="text-gray-600">Verified</span>
-                <span className="font-semibold text-green-600">{kycStats.verified || 0}</span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-gray-600">Pending</span>
-                <span className="font-semibold text-yellow-600">{kycStats.pending || 0}</span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-gray-600">Rejected</span>
-                <span className="font-semibold text-red-600">{kycStats.rejected || 0}</span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-gray-600">Verification Rate</span>
-                <span className="font-semibold text-blue-600">
-                  {kycStats.total ? ((kycStats.verified / kycStats.total) * 100).toFixed(1) : 0}%
-                </span>
-              </div>
-            </div>
-          ) : (
-            <p className="text-gray-500">No data available</p>
-          )}
+          ))}
         </div>
       </div>
     </div>

@@ -1,23 +1,93 @@
 import React, { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
-// import { toast } from 'react-toastify';
-import authService from '../../services/authService';
+import { Link, useNavigate } from 'react-router-dom';
 import { EyeIcon, EyeSlashIcon } from '@heroicons/react/24/outline';
+import CountryCodeSelector from './CountryCodeSelector';
+import { useAuthNotifications } from '../Notifications/NotificationHooks';
+import LoadingSpinner from '../LoadingSpinner';
 
 const Register = () => {
+  const navigate = useNavigate();
+  const { showAuthSuccess, showAuthError, showAuthInfo } = useAuthNotifications();
   const [formData, setFormData] = useState({
     name: '',
     email: '',
     password: '',
     confirmPassword: '',
     phone: '',
+    countryCode: '+91',
     role: 'user'
   });
-  const [loading, setLoading] = useState(false);
+  const [errors, setErrors] = useState({});
+  const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-  const navigate = useNavigate();
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [messageType, setMessageType] = useState('');
 
-  const handleChange = (e) => {
+  const validateEmail = (email) => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+  };
+
+  const validatePassword = (password) => {
+    return password && password.length >= 6;
+  };
+
+  const validatePhoneNumber = (phone) => {
+    const phoneRegex = /^\d{10,15}$/;
+    return phoneRegex.test(phone.replace(/\D/g, ''));
+  };
+
+  const formatPhoneNumber = (countryCode, phoneNumber) => {
+    const cleanPhone = phoneNumber.replace(/\D/g, '');
+    return `${countryCode}${cleanPhone}`;
+  };
+
+  const validateForm = () => {
+    const newErrors = {};
+
+    // Name validation
+    if (!formData.name.trim()) {
+      newErrors.name = 'Name is required';
+    } else if (formData.name.trim().length < 2) {
+      newErrors.name = 'Name must be at least 2 characters';
+    }
+
+    // Email validation with role-based format checking
+    if (!formData.email) {
+      newErrors.email = 'Email is required';
+    } else if (!validateEmail(formData.email)) {
+      newErrors.email = 'Please enter a valid email address';
+    } else if ((formData.role === 'admin' || formData.role === 'subadmin') && !formData.email.endsWith('@cgc.edu.in')) {
+      newErrors.email = 'Admin and SubAdmin accounts must use @cgc.edu.in email format (e.g., cec231053.cse.cec@cgc.edu.in)';
+    }
+
+    // Password validation
+    if (!formData.password) {
+      newErrors.password = 'Password is required';
+    } else if (!validatePassword(formData.password)) {
+      newErrors.password = 'Password must be at least 6 characters';
+    }
+
+    // Confirm password validation
+    if (!formData.confirmPassword) {
+      newErrors.confirmPassword = 'Please confirm your password';
+    } else if (formData.password !== formData.confirmPassword) {
+      newErrors.confirmPassword = 'Passwords do not match';
+    }
+
+    // Phone validation (optional but if provided, should be valid)
+    // Phone numbers can be reused across all roles
+    if (formData.phone && formData.phone.trim()) {
+      if (!validatePhoneNumber(formData.phone)) {
+        newErrors.phone = 'Please enter a valid phone number (10-15 digits)';
+      }
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const handleInputChange = (e) => {
     setFormData({
       ...formData,
       [e.target.name]: e.target.value
@@ -27,97 +97,86 @@ const Register = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     
-    // Validate form data
-    if (!formData.name.trim()) {
-      alert('Name is required');
-      return;
-    }
-    
-    if (!formData.email.trim()) {
-      alert('Email is required');
-      return;
-    }
-    
-    if (!formData.password.trim()) {
-      alert('Password is required');
-      return;
-    }
-    
-    if (formData.password.length < 6) {
-      alert('Password must be at least 6 characters');
-      return;
-    }
-    
-    if (formData.password !== formData.confirmPassword) {
-      alert('Passwords do not match');
-      return;
-    }
-    
-    if (!formData.phone.trim()) {
-      alert('Phone number is required');
+    if (!validateForm()) {
+      // Show first validation error
+      const firstError = Object.values(errors)[0];
+      if (firstError) {
+        showAuthError(firstError);
+      }
       return;
     }
 
-    setLoading(true);
-
+    setIsLoading(true);
+    
     try {
-      // Prepare data for backend (exclude confirmPassword)
-      const registrationData = {
+      showAuthInfo('Creating your account...');
+      
+      const userData = {
         name: formData.name.trim(),
-        email: formData.email.trim().toLowerCase(),
+        email: formData.email.toLowerCase().trim(),
         password: formData.password,
-        phone: formData.phone.trim(),
-        role: formData.role,
-        emergencyContacts: []
+        role: formData.role
       };
+
+      // Add phone number if provided (skip for admin/subadmin if empty to avoid conflicts)
+      if (formData.phone && formData.phone.trim()) {
+        userData.phone = formatPhoneNumber(formData.countryCode, formData.phone.trim());
+      }
       
-      console.log('Sending registration data:', registrationData);
-      
+      // Direct API call to backend
       const response = await fetch('http://localhost:5000/api/auth/register', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(registrationData)
+        body: JSON.stringify(userData)
       });
-      
-      console.log('Response status:', response.status);
-      console.log('Response ok:', response.ok);
-      
+
       const result = await response.json();
-      console.log('Registration result:', result);
-      console.log('Response status:', response.status, 'Response ok:', response.ok);
-      
+
       if (response.ok && result.success) {
-        alert('Registration successful! Please check your email for verification code.');
+        showAuthSuccess(result.message);
         
-        // Store data in localStorage as backup
-        const otpData = {
-          email: formData.email.trim().toLowerCase(),
-          userId: result.data?.userId || null,
+        // Store user data for role-based routing
+        localStorage.setItem('userData', JSON.stringify({
+          uid: result.uid,
+          email: formData.email.toLowerCase().trim(),
           name: formData.name.trim(),
-          timestamp: Date.now()
-        };
+          role: formData.role
+        }));
         
-        localStorage.setItem('otpVerificationData', JSON.stringify(otpData));
-        console.log('Stored OTP data:', otpData);
-        
-        // Add a small delay before navigation to ensure state is set
-        setTimeout(() => {
-          navigate('/verify-otp', {
-            state: otpData,
-            replace: true
+        // All roles now require OTP verification
+        if (result.requiresOTP) {
+          navigate('/verify-otp', { 
+            state: { 
+              email: formData.email.toLowerCase().trim(),
+              fromRegistration: true,
+              role: formData.role
+            } 
           });
-        }, 100);
+        } else {
+          // Fallback (shouldn't happen now)
+          navigate('/login');
+        }
       } else {
-        console.error('Registration failed:', result);
-        alert(result.message || 'Registration failed');
+        throw new Error(result.message || 'Registration failed');
       }
     } catch (error) {
       console.error('Registration error:', error);
-      alert('Failed to connect to server. Please check if the backend is running.');
+      console.error('Error details:', {
+        name: error.name,
+        message: error.message,
+        stack: error.stack
+      });
+      
+      // Handle network errors specifically
+      if (error.message.includes('Failed to fetch') || error.message.includes('ERR_CONNECTION_REFUSED')) {
+        showAuthError('Cannot connect to server. Please make sure the backend is running on port 5000.');
+      } else {
+        showAuthError(error.message || 'Registration failed. Please try again.');
+      }
     } finally {
-      setLoading(false);
+      setIsLoading(false);
     }
   };
 
@@ -133,6 +192,17 @@ const Register = () => {
           <p className="text-gray-600 mt-2">Join SafeTourAI for secure travel</p>
         </div>
 
+        {/* Message Display */}
+        {messageType && (
+          <div className={`p-4 rounded-lg mb-4 ${
+            messageType === 'success' 
+              ? 'bg-green-50 text-green-800 border border-green-200' 
+              : 'bg-red-50 text-red-800 border border-red-200'
+          }`}>
+            {messageType}
+          </div>
+        )}
+
         {/* Register Form */}
         <form onSubmit={handleSubmit} className="space-y-4">
           {/* Name Field */}
@@ -145,11 +215,16 @@ const Register = () => {
               id="name"
               name="name"
               value={formData.name}
-              onChange={handleChange}
+              onChange={handleInputChange}
               required
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200"
+              className={`w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200 ${
+                errors.name ? 'border-red-500 bg-red-50' : ''
+              }`}
               placeholder="Enter your full name"
             />
+            {errors.name && (
+              <p className="mt-1 text-sm text-red-600">{errors.name}</p>
+            )}
           </div>
 
           {/* Email Field */}
@@ -162,28 +237,54 @@ const Register = () => {
               id="email"
               name="email"
               value={formData.email}
-              onChange={handleChange}
+              onChange={handleInputChange}
               required
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200"
-              placeholder="Enter your email"
+              className={`w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200 ${
+                errors.email ? 'border-red-500 bg-red-50' : ''
+              }`}
+              placeholder={
+                formData.role === 'admin' || formData.role === 'subadmin' 
+                  ? "cec231053.cse.cec@cgc.edu.in" 
+                  : "Enter your email"
+              }
             />
+            {(formData.role === 'admin' || formData.role === 'subadmin') && (
+              <p className="mt-1 text-xs text-blue-600">
+                Must end with @cgc.edu.in (e.g., cec231053.cse.cec@cgc.edu.in)
+              </p>
+            )}
+            {errors.email && (
+              <p className="mt-1 text-sm text-red-600">{errors.email}</p>
+            )}
           </div>
 
           {/* Phone Field */}
           <div>
             <label htmlFor="phone" className="block text-sm font-medium text-gray-700 mb-2">
-              Phone Number
+              Phone Number (Optional - Can be shared across accounts)
             </label>
-            <input
-              type="tel"
-              id="phone"
-              name="phone"
-              value={formData.phone}
-              onChange={handleChange}
-              required
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200"
-              placeholder="Enter your phone number"
-            />
+            <div className="flex">
+              <CountryCodeSelector
+                selectedCode={formData.countryCode}
+                onCodeChange={(code) => setFormData(prev => ({ ...prev, countryCode: code }))}
+                disabled={isLoading}
+              />
+              <input
+                type="tel"
+                id="phone"
+                name="phone"
+                value={formData.phone}
+                onChange={handleInputChange}
+                className={`flex-1 px-4 py-3 border border-l-0 rounded-r-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200 ${
+                  errors.phone ? 'border-red-500 bg-red-50' : 'border-gray-300'
+                }`}
+                placeholder="Enter phone number"
+                disabled={isLoading}
+              />
+            </div>
+            {errors.phone && (
+              <p className="mt-1 text-sm text-red-600">{errors.phone}</p>
+            )}
           </div>
 
           {/* Role Field */}
@@ -195,12 +296,18 @@ const Register = () => {
               id="role"
               name="role"
               value={formData.role}
-              onChange={handleChange}
+              onChange={handleInputChange}
               className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200"
             >
-              <option value="user">Regular User</option>
-              <option value="responder">Emergency Responder</option>
+              <option value="user">User - Tourist Dashboard</option>
+              <option value="subadmin">Sub Admin - Police Dashboard (Requires @cgc.edu.in email)</option>
+              <option value="admin">Admin - Full System Control (Requires @cgc.edu.in email)</option>
             </select>
+            {(formData.role === 'admin' || formData.role === 'subadmin') && (
+              <p className="mt-1 text-xs text-amber-600">
+                ⚠️ Admin/SubAdmin accounts require @cgc.edu.in email format
+              </p>
+            )}
           </div>
 
           {/* Password Field */}
@@ -214,7 +321,7 @@ const Register = () => {
                 id="password"
                 name="password"
                 value={formData.password}
-                onChange={handleChange}
+                onChange={handleInputChange}
                 required
                 minLength={6}
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200 pr-12"
@@ -244,7 +351,7 @@ const Register = () => {
               id="confirmPassword"
               name="confirmPassword"
               value={formData.confirmPassword}
-              onChange={handleChange}
+              onChange={handleInputChange}
               required
               className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200"
               placeholder="Confirm your password"
@@ -254,14 +361,14 @@ const Register = () => {
           {/* Submit Button */}
           <button
             type="submit"
-            disabled={loading}
+            disabled={isLoading}
             className={`w-full py-3 px-4 rounded-lg font-medium transition duration-200 ${
-              loading
+              isLoading
                 ? 'bg-gray-400 cursor-not-allowed'
                 : 'bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white'
             }`}
           >
-            {loading ? (
+            {isLoading ? (
               <div className="flex items-center justify-center">
                 <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
                 Creating Account...

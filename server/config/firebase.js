@@ -1,33 +1,9 @@
 const admin = require('firebase-admin');
 
 // Initialize Firebase Admin SDK
-const initializeFirebase = () => {
+const initializeFirebase = async () => {
   try {
-    // Check if Firebase is already initialized
     if (admin.apps.length === 0) {
-      // Validate Firebase configuration
-      const requiredFields = [
-        'FIREBASE_PROJECT_ID',
-        'FIREBASE_PRIVATE_KEY_ID', 
-        'FIREBASE_PRIVATE_KEY',
-        'FIREBASE_CLIENT_EMAIL',
-        'FIREBASE_CLIENT_ID',
-        'FIREBASE_CLIENT_CERT_URL',
-        'FIREBASE_DATABASE_URL'
-      ];
-
-      const missingFields = requiredFields.filter(field => 
-        !process.env[field] || 
-        process.env[field].includes('your_') || 
-        process.env[field].includes('xxxxx')
-      );
-
-      if (missingFields.length > 0) {
-        console.warn('Firebase configuration incomplete. Missing or invalid fields:', missingFields);
-        console.warn('Firebase features will be disabled. Please configure Firebase environment variables for full functionality.');
-        return;
-      }
-
       const serviceAccount = {
         type: "service_account",
         project_id: process.env.FIREBASE_PROJECT_ID,
@@ -43,89 +19,61 @@ const initializeFirebase = () => {
 
       admin.initializeApp({
         credential: admin.credential.cert(serviceAccount),
-        databaseURL: process.env.FIREBASE_DATABASE_URL
+        databaseURL: process.env.FIREBASE_DATABASE_URL,
+        storageBucket: `${process.env.FIREBASE_PROJECT_ID}.appspot.com`
       });
 
-      console.log('Firebase Admin SDK initialized successfully');
+      console.log('🔥 Firebase Admin SDK initialized successfully');
+      
+      // Test Firestore database connectivity
+      await testDatabaseConnection();
     }
   } catch (error) {
-    console.error('Error initializing Firebase:', error.message);
-    console.warn('Firebase features will be disabled due to configuration error.');
-  }
-};
-
-// Send push notification
-const sendPushNotification = async (token, title, body, data = {}) => {
-  try {
-    if (admin.apps.length === 0) {
-      console.warn('Firebase not initialized. Cannot send push notification.');
-      return null;
-    }
-
-    const message = {
-      notification: {
-        title,
-        body
-      },
-      data,
-      token
-    };
-
-    const response = await admin.messaging().send(message);
-    console.log('Push notification sent successfully:', response);
-    return response;
-  } catch (error) {
-    console.error('Error sending push notification:', error);
+    console.error('Firebase initialization error:', error);
     throw error;
   }
 };
 
-// Send notification to multiple tokens
-const sendMulticastNotification = async (tokens, title, body, data = {}) => {
+// Test database connectivity
+const testDatabaseConnection = async () => {
   try {
-    if (admin.apps.length === 0) {
-      console.warn('Firebase not initialized. Cannot send multicast notification.');
-      return null;
-    }
-
-    const message = {
-      notification: {
-        title,
-        body
-      },
-      data,
-      tokens
-    };
-
-    const response = await admin.messaging().sendMulticast(message);
-    console.log('Multicast notification sent:', response);
-    return response;
+    const db = admin.firestore();
+    
+    // Try to access Firestore settings to verify connection
+    const testDoc = db.collection('_health_check').doc('test');
+    await testDoc.set({ timestamp: admin.firestore.FieldValue.serverTimestamp(), status: 'connected' });
+    await testDoc.delete(); // Clean up test document
+    
+    console.log('🗄️  Firestore database connected successfully');
+    return true;
   } catch (error) {
-    console.error('Error sending multicast notification:', error);
-    throw error;
+    if (error.code === 5 || error.message.includes('NOT_FOUND')) {
+      console.error('❌ Firestore database not found - Please enable Firestore in Firebase Console');
+      console.error('   → Go to https://console.firebase.google.com');
+      console.error('   → Select your project → Firestore Database → Create database');
+    } else {
+      console.error('❌ Firestore database connection failed:', error.message);
+    }
+    return false;
   }
 };
 
-// Verify Firebase ID token
-const verifyIdToken = async (idToken) => {
-  try {
-    if (admin.apps.length === 0) {
-      console.warn('Firebase not initialized. Cannot verify ID token.');
-      throw new Error('Firebase not configured');
-    }
+// Initialize Firebase
+initializeFirebase().catch(error => {
+  console.error('Failed to initialize Firebase:', error);
+  process.exit(1);
+});
 
-    const decodedToken = await admin.auth().verifyIdToken(idToken);
-    return decodedToken;
-  } catch (error) {
-    console.error('Error verifying Firebase token:', error);
-    throw error;
-  }
-};
+// Export Firebase services
+const auth = admin.auth();
+const db = admin.firestore();
+const storage = admin.storage();
+const realtimeDb = admin.database();
 
 module.exports = {
-  initializeFirebase,
-  sendPushNotification,
-  sendMulticastNotification,
-  verifyIdToken,
-  admin
+  admin,
+  auth,
+  db,
+  storage,
+  realtimeDb
 };

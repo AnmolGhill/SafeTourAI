@@ -1,0 +1,261 @@
+/* SafeTourAI Custom Toast Styles for react-hot-toast */
+
+/* Base toast container styling */
+.custom-toast-container {
+  font-family: 'Inter', system-ui, sans-serif;
+}
+
+/* Desktop notification sizing */
+.custom-toast-container > div {
+  min-width: 380px !important;
+  max-width: 500px !important;
+  width: auto !important;
+  margin: 0 auto !important;
+}
+
+/* Mobile notification sizing */
+@media (max-width: 640px) {
+  .custom-toast-container {
+    position: fixed !important;
+    top: 16px !important;
+    left: 50% !important;
+    right: auto !important;
+    transform: translateX(-50%) !important;
+    width: calc(100vw - 32px) !important;
+    max-width: 280px !important;
+    z-index: 9999 !important;
+  }
+  
+  .custom-toast-container > div {
+    min-width: 200px !important;
+    max-width: 280px !important;
+    width: 100% !important;
+    margin: 0 auto !important;
+    font-size: 11px !important;
+    padding: 6px 10px !important;
+    text-align: center !important;
+    display: flex !important;
+    justify-content: center !important;
+    align-items: center !important;
+  }
+  
+  .custom-toast-container > div > div {
+    padding: 2px !important;
+    justify-content: center !important;
+    align-items: center !important;
+    text-align: center !important;
+    width: 100% !important;
+  }
+  
+  .custom-toast-container > div > div .flex {
+    justify-content: center !important;
+    align-items: center !important;
+    text-align: center !important;
+    flex-direction: row !important;
+    gap: 6px !important;
+  }
+  
+  .custom-toast-container > div > div .flex .flex-shrink-0 {
+    margin-bottom: 0 !important;
+    width: 14px !important;
+    height: 14px !important;
+  }
+  
+  .custom-toast-container > div > div .flex .flex-1 {
+    text-align: center !important;
+    min-width: 0 !important;
+  }
+  
+  .custom-toast-container > div > div .flex .flex-1 p {
+    margin-bottom: 1px !important;
+    font-size: 11px !important;
+    line-height: 1.2 !important;
+  }
+}
+
+/* Tablet notification sizing */
+@media (min-width: 641px) and (max-width: 1024px) {
+  .custom-toast-container > div {
+    min-width: 340px !important;
+    max-width: 450px !important;
+    width: auto !important;
+    font-size: 14px !important;
+    padding: 14px 18px !important;
+  }
+}
+
+/* Large desktop notification sizing */
+@media (min-width: 1025px) {
+  .custom-toast-container > div {
+    min-width: 380px !important;
+    max-width: 500px !important;
+    width: auto !important;
+    font-size: 14px !important;
+    padding: 16px 20px !important;
+  }
+}
+
+/* Success toast */
+.toast-success {
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.95) 0%, rgba(5, 150, 105, 0.95) 100%);
+  color: white;
+  border-left: 4px solid #10B981;
+}
+
+.toast-success .Toastify__progress-bar {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+/* Error toast */
+.toast-error {
+  background: linear-gradient(135deg, rgba(239, 68, 68, 0.95) 0%, rgba(220, 38, 38, 0.95) 100%);
+  color: white;
+  border-left: 4px solid #EF4444;
+}
+
+.toast-error .Toastify__progress-bar {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+/* Warning toast */
+.toast-warning {
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.95) 0%, rgba(217, 119, 6, 0.95) 100%);
+  color: white;
+  border-left: 4px solid #F59E0B;
+}
+
+.toast-warning .Toastify__progress-bar {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+/* Info toast */
+.toast-info {
+  background: linear-gradient(135deg, rgba(37, 99, 235, 0.95) 0%, rgba(29, 78, 216, 0.95) 100%);
+  color: white;
+  border-left: 4px solid #2563EB;
+}
+
+.toast-info .Toastify__progress-bar {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+/* Loading toast */
+.toast-loading {
+  background: linear-gradient(135deg, rgba(20, 184, 166, 0.95) 0%, rgba(13, 148, 136, 0.95) 100%);
+  color: white;
+  border-left: 4px solid #14B8A6;
+}
+
+.toast-loading .Toastify__progress-bar {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+/* Close button styling */
+.Toastify__close-button {
+  color: rgba(255, 255, 255, 0.8);
+  opacity: 0.8;
+  transition: opacity 0.2s ease;
+}
+
+.Toastify__close-button:hover {
+  opacity: 1;
+  color: white;
+}
+
+/* Progress bar styling */
+.Toastify__progress-bar {
+  height: 3px;
+  border-radius: 2px;
+}
+
+/* Animation enhancements */
+.Toastify__toast--animate {
+  animation-duration: 0.4s;
+  animation-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.Toastify__bounce-enter--top-right {
+  animation-name: slideInRight;
+}
+
+.Toastify__bounce-exit--top-right {
+  animation-name: slideOutRight;
+}
+
+@keyframes slideInRight {
+  from {
+    transform: translate3d(100%, -100%, 0);
+    opacity: 0;
+  }
+  60% {
+    transform: translate3d(-25px, 0, 0);
+    opacity: 0.8;
+  }
+  to {
+    transform: translate3d(0, 0, 0);
+    opacity: 1;
+  }
+}
+
+@keyframes slideOutRight {
+  from {
+    transform: translate3d(0, 0, 0);
+    opacity: 1;
+  }
+  to {
+    transform: translate3d(100%, -100%, 0);
+    opacity: 0;
+  }
+}
+
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+  .Toastify__toast {
+    background: rgba(31, 41, 55, 0.95);
+    color: #F9FAFB;
+    border: 1px solid rgba(75, 85, 99, 0.3);
+  }
+}
+
+/* Mobile responsiveness */
+@media (max-width: 768px) {
+  .Toastify__toast-container {
+    width: calc(100vw - 32px);
+    left: 16px;
+    right: 16px;
+    margin: 0;
+  }
+  
+  .Toastify__toast {
+    margin-bottom: 8px;
+    padding: 12px;
+    min-height: 56px;
+  }
+}
+
+/* Hover effects */
+.Toastify__toast:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 15px 30px -5px rgba(0, 0, 0, 0.15), 0 15px 15px -5px rgba(0, 0, 0, 0.08);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Custom loading spinner */
+.toast-loading::before {
+  content: '';
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-radius: 50%;
+  border-top-color: white;
+  animation: spin 1s linear infinite;
+  margin-right: 8px;
+  vertical-align: middle;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
