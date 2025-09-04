@@ -75,7 +75,8 @@ const OTPVerification = () => {
       showAuthInfo('Verifying OTP...');
       
       // Direct API call to backend
-      const response = await fetch('http://localhost:5000/api/auth/verify-otp', {
+      const BASE_URL = import.meta.env.REACT_APP_BASE_URL || 'http://localhost:5000';
+      const response = await fetch(`${BASE_URL}/api/auth/verify-otp`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -136,7 +137,8 @@ const OTPVerification = () => {
       showAuthInfo('Sending new OTP...');
       
       // Direct API call to backend
-      const response = await fetch('http://localhost:5000/api/auth/resend-otp', {
+      const BASE_URL = import.meta.env.REACT_APP_BASE_URL || 'http://localhost:5000';
+      const response = await fetch(`${BASE_URL}/api/auth/resend-otp`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

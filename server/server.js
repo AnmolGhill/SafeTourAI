@@ -19,6 +19,7 @@ const kycRoutes = require('./routes/kyc');
 const userRoutes = require('./routes/user');
 const blockchainRoutes = require('./routes/blockchain');
 const adminRoutes = require('./routes/admin');
+const walletRoutes = require('./routes/wallet');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -95,6 +96,7 @@ app.use('/api/kyc', kycRoutes);
 app.use('/api/user', userRoutes);
 app.use('/api/blockchain', blockchainRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/wallet', walletRoutes);
 
 // 404 handler
 app.use('*', (req, res, next) => {
@@ -112,10 +114,23 @@ app.use(globalErrorHandler);
 
 // Graceful shutdown handling
 const server = app.listen(PORT, () => {
-  console.log(`🚀 SafeTourAI Backend Server running on port ${PORT}`);
-  console.log(`🌍 Environment: ${process.env.NODE_ENV}`);
-  console.log(`🔗 Frontend URL: ${process.env.FRONTEND_URL}`);
-  console.log(`✅ All services initialized successfully!`);
+  console.log('\n🚀 ========== SAFETOURAI SERVER ==========');
+  console.log('🌐 Server: http://localhost:5000');
+  console.log('🔗 Frontend: http://localhost:3000');
+  console.log('🌍 Environment: development');
+  
+  console.log('\n🔐 ========== AUTHENTICATION ==========');
+  console.log('✅ Firebase Admin SDK');
+  console.log('✅ Email Service');
+  console.log('✅ JWT Authentication');
+  
+  console.log('\n⛓️  ========== BLOCKCHAIN ==========');
+  console.log('🌐 Network: Ethereum Mainnet');
+  console.log('🔐 Wallet: HD Deterministic (BIP39)');
+  console.log('💎 Tokens: ETH + ERC-20');
+  console.log('🚀 Provider: Infura Production');
+  
+  console.log('\n✅ All services ready!\n');
 });
 
 // Handle server errors

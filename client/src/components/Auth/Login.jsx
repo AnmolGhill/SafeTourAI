@@ -1,7 +1,11 @@
-import React, { useState } from 'react';
-import { useNavigate, Link, useLocation } from 'react-router-dom';
-import { useAuthNotifications } from '../Notifications/NotificationHooks';
+import React, { useState, useEffect } from 'react';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
+import { FiMail, FiLock } from 'react-icons/fi';
 import { EyeIcon, EyeSlashIcon } from '@heroicons/react/24/outline';
+import toast from 'react-hot-toast';
+import { auth } from '../../config/firebase';
+import { signInWithCustomToken } from 'firebase/auth';
+import { useAuth } from '../../contexts/AuthContext';
 
 const Login = () => {
   const [formData, setFormData] = useState({
@@ -10,9 +14,10 @@ const Login = () => {
   });
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
-  const { showAuthSuccess, showAuthError, showAuthInfo } = useAuthNotifications();
+  const { setCurrentUser } = useAuth();
 
   const handleInputChange = (e) => {
     setFormData({
@@ -25,58 +30,115 @@ const Login = () => {
     e.preventDefault();
     
     if (!formData.email || !formData.password) {
-      showAuthError('Please enter both email and password');
+      toast.error('Please enter both email and password', {
+        position: 'top-center',
+        duration: 4000
+      });
       return;
     }
 
-    setIsLoading(true);
+    setIsSubmitting(true);
+    // Clear any existing toasts and show single loading message
+    toast.dismiss();
+    const loadingToast = toast.loading('Signing you in...', {
+      position: 'top-center'
+    });
 
     try {
-      showAuthInfo('Signing you in...');
-      
-      // Direct API call to backend
-      const response = await fetch('http://localhost:5000/api/auth/login', {
+      // Call backend login endpoint
+      const BASE_URL = import.meta.env.REACT_APP_BASE_URL || 'http://localhost:5000';
+      const response = await fetch(`${BASE_URL}/api/auth/login`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           email: formData.email.toLowerCase().trim(),
           password: formData.password
-        })
+        }),
+        credentials: 'include'
       });
 
       const result = await response.json();
       
-      if (response.ok && result.success) {
-        // Store user data and token
-        localStorage.setItem('token', result.token);
-        localStorage.setItem('userData', JSON.stringify(result.user));
-        
-        showAuthSuccess('Login successful!');
-        
-        // Redirect based on user role
-        const userRole = result.user?.role || 'user';
-        switch (userRole) {
-          case 'admin':
-            navigate('/dashboard/admin', { replace: true });
-            break;
-          case 'subadmin':
-            navigate('/dashboard/sub-admin', { replace: true });
-            break;
-          case 'user':
-          default:
-            navigate('/dashboard-user', { replace: true });
-            break;
-        }
-      } else {
+      if (!response.ok || !result.success) {
         throw new Error(result.message || 'Login failed');
       }
+
+      // Store authentication data
+      localStorage.setItem('token', result.token);
+      localStorage.setItem('userData', JSON.stringify(result.user));
+      
+      // Sign in with Firebase custom token if available - REQUIRED for last login tracking
+      if (result.customToken && auth) {
+        try {
+          const userCredential = await signInWithCustomToken(auth, result.customToken);
+          console.log('✅ Firebase Auth sign-in successful - Last login tracked', {
+            uid: userCredential.user.uid,
+            email: userCredential.user.email,
+            lastSignIn: userCredential.user.metadata.lastSignInTime,
+            creationTime: userCredential.user.metadata.creationTime
+          });
+          
+          // Update auth context with Firebase user
+          setCurrentUser({
+            ...result.user,
+            uid: userCredential.user.uid,
+            firebaseUser: userCredential.user
+          });
+          
+          // Force refresh Firebase user to ensure latest metadata
+          await userCredential.user.reload();
+          console.log('🔄 Firebase user metadata refreshed for console tracking');
+          
+        } catch (firebaseError) {
+          console.error('❌ Firebase Auth sign-in FAILED - Last login will NOT be tracked:', firebaseError);
+          console.error('Firebase Error Details:', {
+            code: firebaseError.code,
+            message: firebaseError.message,
+            customToken: result.customToken ? 'Present' : 'Missing'
+          });
+          
+          // This is critical for login tracking - show error to user
+          toast.error('Login successful but tracking failed. Please contact support if this persists.', {
+            position: 'top-center',
+            duration: 3000
+          });
+        }
+      } else {
+        console.warn('⚠️ Custom token or Firebase auth missing - Last login will NOT be tracked');
+        console.warn('Debug info:', {
+          hasCustomToken: !!result.customToken,
+          hasFirebaseAuth: !!auth,
+          customTokenLength: result.customToken?.length || 0
+        });
+      }
+      
+      // Dismiss loading toast and show brief success message
+      toast.dismiss();
+      toast.success('Login successful!', {
+        position: 'top-center',
+        duration: 2000
+      });
+      
+      // Handle redirect based on user role
+      const redirectPath = location.state?.from?.pathname || 
+        (result.user?.role === 'admin' ? '/dashboard/admin' : 
+         result.user?.role === 'subadmin' ? '/dashboard/sub-admin' : 
+         '/dashboard-user');
+      
+      // Navigate after a brief delay to show success message
+      setTimeout(() => {
+        navigate(redirectPath, { replace: true });
+      }, 1000);
+      
     } catch (error) {
       console.error('Login error:', error);
-      showAuthError(error.message || 'Login failed. Please try again.');
+      toast.dismiss();
+      toast.error(error.message || 'Login failed. Please check your credentials and try again.', {
+        position: 'top-center',
+        duration: 4000
+      });
     } finally {
-      setIsLoading(false);
+      setIsSubmitting(false);
     }
   };
 
@@ -154,17 +216,17 @@ const Login = () => {
           {/* Submit Button */}
           <button
             type="submit"
-            disabled={isLoading}
+            disabled={isSubmitting}
             className={`w-full py-3 px-4 rounded-lg font-medium transition duration-200 ${
-              isLoading
+              isSubmitting
                 ? 'bg-gray-400 cursor-not-allowed'
                 : 'bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white'
             }`}
           >
-            {isLoading ? (
+            {isSubmitting ? (
               <div className="flex items-center justify-center">
                 <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
-                Signing In...
+                Please wait...
               </div>
             ) : (
               'Sign In'

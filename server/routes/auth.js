@@ -84,7 +84,6 @@ router.post('/register', [
         createdAt: new Date().toISOString(),
         emailVerified: false,
         kycStatus: 'pending',
-        lastLoginAt: null,
         firebaseUserData // Store Firebase data for later creation
       };
 
@@ -246,22 +245,21 @@ router.post('/verify-otp', [
           ...(userData.phone && { phone: userData.phone }),
           createdAt: userData.createdAt,
           emailVerified: true,
-          kycStatus: 'pending',
-          lastLoginAt: loginTimestamp,
-          lastSignInAt: loginTimestamp,
-          firstLogin: true
+          kycStatus: 'pending'
         });
-        console.log('💾 User data saved to Firestore with login timestamp:', { uid: firebaseUser.uid, timestamp: loginTimestamp });
+        console.log('💾 User data saved to Firestore:', { uid: firebaseUser.uid });
         
-        // Update Firebase Auth user metadata to show sign-in
+        // Update Firebase Auth user metadata with creation timestamp
+        const creationTimestamp = new Date().toISOString();
         await auth.updateUser(firebaseUser.uid, {
           customClaims: {
             role: userData.role,
             emailVerified: true,
-            lastSignInTime: loginTimestamp
+            createdAt: creationTimestamp,
+            lastSignInTime: creationTimestamp // First login is at creation
           }
         });
-        console.log('🔥 Firebase Auth metadata updated with sign-in time');
+        console.log('🔥 Firebase Auth metadata updated with timestamps');
         
       } catch (firestoreError) {
         console.warn('⚠️ Firestore save failed - Database may not be enabled:', firestoreError.message);
@@ -401,21 +399,7 @@ router.post('/login', [
     try {
       const loginTimestamp = new Date().toISOString();
       
-      // Try to update Firestore user document
-      try {
-        if (db) {
-          await db.collection('users').doc(userData.uid).update({
-            lastLoginAt: loginTimestamp,
-            lastSignInAt: loginTimestamp,
-            firstLogin: false
-          });
-          console.log('💾 Firestore login timestamps updated');
-        }
-      } catch (firestoreError) {
-        console.warn('⚠️ Firestore update failed - using Firebase Auth only:', firestoreError.message);
-      }
-      
-      // Always update Firebase Auth user record to show "Signed In" status
+      // Update Firebase Auth user record with last sign-in time
       await auth.updateUser(userData.uid, {
         customClaims: {
           role: userData.role,
@@ -423,24 +407,51 @@ router.post('/login', [
           lastSignInTime: loginTimestamp
         }
       });
+
+      // Update Firestore with last login timestamp if available
+      try {
+        if (db) {
+          await db.collection('users').doc(userData.uid).update({
+            lastSignInTime: loginTimestamp,
+            lastLoginAt: loginTimestamp
+          });
+          console.log('📅 Firestore login timestamp updated:', { uid: userData.uid, timestamp: loginTimestamp });
+        }
+      } catch (firestoreError) {
+        console.warn('⚠️ Firestore login update failed:', firestoreError.message);
+      }
       
-      console.log('📅 Firebase Auth sign-in timestamp updated:', { uid: userData.uid, email, timestamp: loginTimestamp });
+      console.log('📅 Firebase Auth user updated with login time:', { uid: userData.uid, email, lastSignIn: loginTimestamp });
     } catch (updateError) {
       console.warn('⚠️ Failed to update login timestamps:', updateError.message);
       console.log('📋 Enable Firestore database in Firebase Console for full functionality');
     }
 
-    // Create custom token for client authentication
+    // Create custom token for client authentication and trigger Firebase sign-in
     let customToken;
     try {
+      // Add current timestamp to custom claims for tracking
+      const loginTimestamp = new Date().toISOString();
+      
       customToken = await auth.createCustomToken(userData.uid, {
         role: userData.role,
         emailVerified: userData.emailVerified,
-        lastSignInTime: new Date().toISOString()
+        lastSignInTime: loginTimestamp,
+        loginTimestamp: Date.now() // Add timestamp for tracking
       });
-      console.log('🔑 Custom token created for login:', { uid: userData.uid, email });
+      console.log('🔑 Custom token created for login with timestamp:', { 
+        uid: userData.uid, 
+        email, 
+        loginTime: loginTimestamp 
+      });
+      
+      // Important: The frontend must use this custom token to sign in with Firebase Auth
+      // This will update the native lastSignInTime in Firebase Console
+      console.log('📱 Frontend will call firebase.auth().signInWithCustomToken() to update Firebase Console');
+      
     } catch (tokenError) {
-      console.error('Custom token creation error:', tokenError);
+      console.error('❌ Custom token creation FAILED - Login tracking will not work:', tokenError);
+      // Don't fail the login, but log the issue
     }
 
     console.log('🔐 User logged in successfully', { email, uid: userData.uid, role: userData.role });
@@ -450,27 +461,26 @@ router.post('/login', [
       { 
         uid: userData.uid, 
         email: userData.email,
-        role: userData.role
+        role: userData.role 
       },
-      process.env.JWT_SECRET,
-      { expiresIn: process.env.JWT_EXPIRES_IN || '7d' }
+      process.env.JWT_SECRET || 'your-secret-key',
+      { expiresIn: '7d' }
     );
 
-    res.status(200).json({
-      message: 'Login successful',
+    res.json({
       success: true,
+      message: 'Login successful',
       token,
-      customToken,
+      customToken, // Include Firebase custom token for sign-in tracking
       user: {
         uid: userData.uid,
         email: userData.email,
         name: userData.name,
         role: userData.role,
-        emailVerified: userData.emailVerified
+        emailVerified: userData.emailVerified,
+        kycStatus: userData.kycStatus || 'pending'
       }
     });
-
-    console.log('🔐 User logged in successfully', { email, uid: userData.uid, role: userData.role });
 
 }));
 
@@ -511,6 +521,130 @@ router.post('/resend-otp', [
 
     res.json({ message: 'OTP sent successfully', success: true });
 
+}));
+
+// Forgot Password - Send reset email with OTP
+router.post('/forgot-password', [
+  body('email').isEmail().normalizeEmail()
+], handleValidationErrors, asyncHandler(async (req, res) => {
+  const { email } = req.body;
+
+  // Check if user exists in Firebase Auth
+  try {
+    await auth.getUserByEmail(email);
+  } catch (error) {
+    // Don't reveal if user exists or not for security
+    return res.json({ 
+      success: true, 
+      message: 'If an account with this email exists, a password reset code has been sent.' 
+    });
+  }
+
+  // Generate password reset OTP
+  const resetOtp = Math.floor(100000 + Math.random() * 900000).toString();
+  const otpExpiry = new Date(Date.now() + 15 * 60000); // 15 minutes
+
+  // Store reset OTP
+  otpStorage.set(`reset_${email}`, {
+    otp: await bcrypt.hash(resetOtp, 12),
+    plainOtp: resetOtp,
+    expiresAt: otpExpiry,
+    attempts: 0,
+    verified: false,
+    type: 'password_reset'
+  });
+
+  // Send reset email
+  try {
+    await emailService.sendPasswordResetOTP(email, resetOtp);
+    console.log('🔑 Password reset OTP sent:', { email });
+  } catch (emailError) {
+    console.error('Password reset email error:', emailError);
+    console.log(`Email service failed, reset OTP for ${email}: ${resetOtp}`);
+  }
+
+  res.json({ 
+    success: true, 
+    message: 'If an account with this email exists, a password reset code has been sent.' 
+  });
+}));
+
+// Reset Password with OTP verification
+router.post('/reset-password', [
+  body('email').isEmail().normalizeEmail(),
+  body('otp').isLength({ min: 6, max: 6 }).withMessage('OTP must be 6 digits'),
+  body('newPassword').isLength({ min: 6 }).withMessage('Password must be at least 6 characters')
+], handleValidationErrors, asyncHandler(async (req, res) => {
+  const { email, otp, newPassword } = req.body;
+
+  // Check if reset OTP exists and is valid
+  const resetKey = `reset_${email}`;
+  const storedOtpData = otpStorage.get(resetKey);
+
+  if (!storedOtpData) {
+    throw new AppError('Invalid or expired reset code', 400, 'INVALID_RESET_CODE');
+  }
+
+  if (new Date() > storedOtpData.expiresAt) {
+    otpStorage.delete(resetKey);
+    throw new AppError('Reset code has expired', 400, 'EXPIRED_RESET_CODE');
+  }
+
+  if (storedOtpData.attempts >= 3) {
+    otpStorage.delete(resetKey);
+    throw new AppError('Too many attempts. Please request a new reset code.', 400, 'TOO_MANY_ATTEMPTS');
+  }
+
+  // Verify OTP
+  const isValidOtp = await bcrypt.compare(otp, storedOtpData.otp);
+  if (!isValidOtp) {
+    storedOtpData.attempts++;
+    throw new AppError('Invalid reset code', 400, 'INVALID_RESET_CODE');
+  }
+
+  try {
+    // Update password in Firebase Auth
+    const user = await auth.getUserByEmail(email);
+    await auth.updateUser(user.uid, {
+      password: newPassword
+    });
+
+    // Update password hash in Firestore if user exists there
+    try {
+      const userQuery = await db.collection('users').where('email', '==', email).get();
+      if (!userQuery.empty) {
+        const userDoc = userQuery.docs[0];
+        const hashedPassword = await bcrypt.hash(newPassword, 12);
+        await userDoc.ref.update({
+          password: hashedPassword,
+          passwordUpdatedAt: new Date().toISOString()
+        });
+      }
+    } catch (firestoreError) {
+      console.warn('⚠️ Firestore password update failed:', firestoreError.message);
+    }
+
+    // Update in-memory storage if exists
+    if (registeredUsers.has(email)) {
+      const userData = registeredUsers.get(email);
+      userData.password = await bcrypt.hash(newPassword, 12);
+      registeredUsers.set(email, userData);
+    }
+
+    // Clean up reset OTP
+    otpStorage.delete(resetKey);
+
+    console.log('🔑 Password reset successful:', { email, uid: user.uid });
+
+    res.json({
+      success: true,
+      message: 'Password has been reset successfully. You can now login with your new password.'
+    });
+
+  } catch (error) {
+    console.error('Password reset error:', error);
+    throw new AppError('Failed to reset password. Please try again.', 500, 'RESET_FAILED');
+  }
 }));
 
 // Get current user - removed Firebase dependency

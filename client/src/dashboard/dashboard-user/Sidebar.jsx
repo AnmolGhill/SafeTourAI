@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../../utils/auth';
+import { useAuth } from '../../contexts/AuthContext';
+import toast from 'react-hot-toast';
 import DashboardSelector from '../../components/DashboardSelector';
 import { 
   FiHome, 
@@ -17,17 +18,40 @@ import {
   FiCheckCircle,
   FiUserCheck,
   FiCreditCard,
-  FiFileText
+  FiFileText,
+  FiDollarSign as FiWallet
 } from 'react-icons/fi';
 
 const Sidebar = ({ activeTab, setActiveTab }) => {
   const [isOpen, setIsOpen] = useState(false);
   const navigate = useNavigate();
-  const { isAuthenticated, logout, user } = useAuth();
+  const { logout } = useAuth();
+  
+  // Check authentication from localStorage
+  const isAuthenticated = () => {
+    const token = localStorage.getItem('token');
+    const userData = localStorage.getItem('userData');
+    return !!(token && userData);
+  };
+  
+  // Get current user from localStorage
+  const getCurrentUser = () => {
+    try {
+      const userData = localStorage.getItem('userData');
+      return userData ? JSON.parse(userData) : null;
+    } catch (error) {
+      console.error('Error parsing user data:', error);
+      return null;
+    }
+  };
+  
+  const user = getCurrentUser();
+  const userIsAuthenticated = isAuthenticated();
 
   const menuItems = [
     { id: 'dashboard', label: 'Dashboard', icon: FiHome, route: '/dashboard-user', useTab: true },
     { id: 'profile', label: 'User Profiles', icon: FiUser, route: '/profile', useTab: true },
+    { id: 'wallet', label: 'Crypto Wallet', icon: FiWallet, route: '/wallet', useTab: false },
     { id: 'digital-id', label: 'Digital ID', icon: FiCreditCard, route: '/digital-id', useTab: false },
     { id: 'kyc', label: 'KYC Verification', icon: FiFileText, route: '/kyc', useTab: false },
     { id: 'emergency', label: 'Emergency SOS', icon: FiAlertTriangle, route: '/emergency', useTab: true },
@@ -49,14 +73,23 @@ const Sidebar = ({ activeTab, setActiveTab }) => {
   };
 
   const handleLogout = async () => {
-    try {
-      await logout();
+    const loadingToast = toast.loading('Signing you out...', {
+      position: 'top-center'
+    });
+    
+    // Call logout function (clears localStorage)
+    logout();
+    
+    toast.dismiss();
+    toast.success('Logged out successfully!', {
+      position: 'top-center',
+      duration: 2000
+    });
+    
+    setTimeout(() => {
       navigate('/login');
       setIsOpen(false);
-    } catch (error) {
-      console.error('Logout error:', error);
-      alert('Failed to logout. Please try again.');
-    }
+    }, 1000);
   };
 
   const handleLogin = () => {
@@ -144,17 +177,19 @@ const Sidebar = ({ activeTab, setActiveTab }) => {
 
           {/* User Profile & Auth Button */}
           <div className="p-4 border-t border-gray-200">
-            {isAuthenticated ? (
+            {userIsAuthenticated ? (
               <>
                 <div className="flex items-center space-x-3 mb-4">
                   <div className="w-10 h-10 bg-gradient-to-br from-green-400 to-blue-500 rounded-full flex items-center justify-center">
                     <span className="text-white font-semibold text-sm">
-                      {user?.displayName ? user.displayName.charAt(0).toUpperCase() : 'U'}
+                      {user?.name ? user.name.charAt(0).toUpperCase() : 
+                       user?.fullName ? user.fullName.charAt(0).toUpperCase() : 
+                       user?.displayName ? user.displayName.charAt(0).toUpperCase() : 'U'}
                     </span>
                   </div>
                   <div>
                     <p className="text-sm font-medium text-gray-800">
-                      {user?.displayName || 'Demo User'}
+                      {user?.name || user?.fullName || user?.displayName || 'Demo User'}
                     </p>
                     <p className="text-xs text-gray-500">
                       {user?.email || 'demo@example.com'}

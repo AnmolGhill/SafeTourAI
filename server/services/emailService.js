@@ -27,7 +27,7 @@ class EmailService {
         }
       });
 
-      console.log('📧 Email service initialized successfully');
+      // Email service initialized successfully
     } catch (error) {
       console.error('Email service initialization failed:', error);
     }
@@ -140,12 +140,12 @@ class EmailService {
           <body>
             <div class="container">
               <div class="header">
-                <h1>🎉 Congratulations ${name}!</h1>
+                <h1> Congratulations ${name}!</h1>
                 <p>Your KYC has been approved</p>
               </div>
               <div class="content">
                 <div class="success-box">
-                  <h2>✅ KYC Verification Complete</h2>
+                  <h2>KYC Verification Complete</h2>
                   <p>Your identity has been successfully verified and your blockchain digital ID has been generated.</p>
                 </div>
                 
@@ -154,16 +154,16 @@ class EmailService {
                 
                 <h3>What's Next?</h3>
                 <ul>
-                  <li>🆔 Access your digital ID in the dashboard</li>
-                  <li>🔐 Enhanced security features are now available</li>
-                  <li>🌐 Your identity is now secured on the blockchain</li>
-                  <li>🚨 Full access to emergency features</li>
+                  <li>Access your digital ID in the dashboard</li>
+                  <li>Enhanced security features are now available</li>
+                  <li>Your identity is now secured on the blockchain</li>
+                  <li>Full access to emergency features</li>
                 </ul>
                 
                 <p><strong>Important:</strong> Keep your blockchain ID safe. This is your unique digital identity on the SafeTourAI platform.</p>
               </div>
               <div class="footer">
-                <p>© 2024 SafeTourAI. All rights reserved.</p>
+                <p> 2024 SafeTourAI. All rights reserved.</p>
               </div>
             </div>
           </body>
@@ -172,11 +172,83 @@ class EmailService {
       };
 
       await this.transporter.sendMail(mailOptions);
-      console.log(`✅ KYC approval email sent to: ${email}`);
+      console.log(`KYC approval email sent to: ${email}`);
 
     } catch (error) {
-      console.error('❌ Failed to send KYC approval email:', error);
+      console.error('Failed to send KYC approval email:', error);
       throw new Error('Failed to send approval notification');
+    }
+  }
+
+  /**
+   * Send password reset OTP email
+   * @param {string} email - Recipient email
+   * @param {string} otp - Reset OTP code
+   */
+  async sendPasswordResetOTP(email, otp) {
+    try {
+      const mailOptions = {
+        from: `SafeTourAI <${process.env.EMAIL_USER}>`,
+        to: email,
+        subject: 'SafeTourAI - Password Reset Code',
+        html: `
+          <!DOCTYPE html>
+          <html>
+          <head>
+            <style>
+              body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+              .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+              .header { background: linear-gradient(135deg, #e17055 0%, #d63031 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
+              .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px; }
+              .otp-box { background: #fff; border: 2px dashed #e17055; padding: 20px; text-align: center; margin: 20px 0; border-radius: 10px; }
+              .otp-code { font-size: 32px; font-weight: bold; color: #e17055; letter-spacing: 5px; }
+              .footer { text-align: center; margin-top: 20px; color: #666; font-size: 12px; }
+              .warning { background: #fff3cd; border: 1px solid #ffeaa7; padding: 15px; border-radius: 5px; margin: 20px 0; }
+            </style>
+          </head>
+          <body>
+            <div class="container">
+              <div class="header">
+                <h1>🔐 SafeTourAI</h1>
+                <p>Password Reset Request</p>
+              </div>
+              <div class="content">
+                <h2>Password Reset Code</h2>
+                <p>You requested to reset your SafeTourAI account password. Use the code below to proceed:</p>
+                
+                <div class="otp-box">
+                  <p>Your reset code is:</p>
+                  <div class="otp-code">${otp}</div>
+                </div>
+                
+                <div class="warning">
+                  <strong>Security Notice:</strong>
+                  <ul>
+                    <li>This code expires in 15 minutes</li>
+                    <li>Never share this code with anyone</li>
+                    <li>If you didn't request this, ignore this email</li>
+                    <li>Your password remains unchanged until you complete the reset</li>
+                  </ul>
+                </div>
+                
+                <p>After entering this code, you'll be able to set a new password for your account.</p>
+              </div>
+              <div class="footer">
+                <p>© 2024 SafeTourAI. All rights reserved.</p>
+                <p>This is an automated message, please do not reply.</p>
+              </div>
+            </div>
+          </body>
+          </html>
+        `
+      };
+
+      await this.transporter.sendMail(mailOptions);
+      console.log(`🔐 Password reset OTP sent successfully to: ${email}`);
+
+    } catch (error) {
+      console.error('❌ Failed to send password reset email:', error);
+      throw new Error('Failed to send password reset email');
     }
   }
 

@@ -27,7 +27,8 @@ export const useAuth = () => {
   const logout = () => {
     localStorage.removeItem('token');
     localStorage.removeItem('userData');
-    window.location.href = '/login';
+    // Don't redirect immediately - let the component handle it
+    return Promise.resolve();
   };
 
   return {

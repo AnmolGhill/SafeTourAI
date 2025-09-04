@@ -11,6 +11,7 @@ import AdminActivityFeed from './AdminActivityFeed';
 import SystemSettings from './SystemSettings';
 import DatabaseManagement from './DatabaseManagement';
 import AuditLogs from './AuditLogs';
+import AdminKYC from '../../components/AdminKYC';
 
 const AdminDashboard = () => {
   const [activeTab, setActiveTab] = useState('dashboard');
@@ -37,6 +38,8 @@ const AdminDashboard = () => {
         );
       case 'kyc':
         return <FullKYCManagement />;
+      case 'admin-kyc':
+        return <AdminKYC />;
       case 'users':
         return <UserManagement />;
       case 'analytics':

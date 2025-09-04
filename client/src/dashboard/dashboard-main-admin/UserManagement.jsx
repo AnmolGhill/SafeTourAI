@@ -6,54 +6,50 @@ const UserManagement = () => {
   const [selectedUser, setSelectedUser] = useState(null);
   const [filterRole, setFilterRole] = useState('all');
   
-  const [users] = useState([
+  const mockUsers = [
     {
       id: 1,
       name: 'John Doe',
-      email: 'john.doe@email.com',
+      email: 'john@example.com',
       role: 'tourist',
       status: 'active',
       joinDate: '2024-08-25',
-      lastLogin: '2024-08-31 14:30',
       kycStatus: 'verified',
       country: 'USA'
     },
     {
       id: 2,
-      name: 'Officer Smith',
-      email: 'smith@police.gov',
+      name: 'Admin User',
+      email: 'admin@safetourai.com',
       role: 'sub-admin',
       status: 'active',
       joinDate: '2024-07-15',
-      lastLogin: '2024-08-31 16:45',
       kycStatus: 'verified',
       country: 'Local'
     },
     {
       id: 3,
-      name: 'Admin Johnson',
-      email: 'johnson@admin.com',
+      name: 'Super Admin',
+      email: 'superadmin@safetourai.com',
       role: 'admin',
       status: 'active',
       joinDate: '2024-06-01',
-      lastLogin: '2024-08-31 17:20',
       kycStatus: 'verified',
       country: 'Local'
     },
     {
       id: 4,
-      name: 'Maria Garcia',
-      email: 'maria.garcia@email.com',
+      name: 'Jane Smith',
+      email: 'jane@example.com',
       role: 'tourist',
       status: 'inactive',
       joinDate: '2024-08-28',
-      lastLogin: '2024-08-30 10:15',
       kycStatus: 'pending',
       country: 'Spain'
     }
-  ]);
+  ];
 
-  const filteredUsers = users.filter(user => {
+  const filteredUsers = mockUsers.filter(user => {
     const matchesSearch = user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          user.email.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesFilter = filterRole === 'all' || user.role === filterRole;
@@ -203,15 +199,9 @@ const UserManagement = () => {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="text-sm text-gray-600">Join Date</label>
-                    <p className="font-semibold">{selectedUser.joinDate}</p>
-                  </div>
-                  <div>
-                    <label className="text-sm text-gray-600">Last Login</label>
-                    <p className="font-semibold">{selectedUser.lastLogin}</p>
-                  </div>
+                <div>
+                  <label className="text-sm text-gray-600">Join Date</label>
+                  <p className="font-semibold">{selectedUser.joinDate}</p>
                 </div>
 
                 {/* Role Permissions */}

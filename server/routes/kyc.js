@@ -234,14 +234,20 @@ router.get('/details', verifyFirebaseToken, async (req, res) => {
 // Admin: Get all pending KYC applications
 router.get('/admin/pending', verifyFirebaseToken, requireAdmin, async (req, res) => {
   try {
-    const pendingKycs = await db.collection('kyc')
-      .where('status', 'in', ['submitted', 'under_review'])
-      .orderBy('submittedAt', 'desc')
-      .get();
+    // Get all KYCs and filter in memory to avoid composite index requirement
+    const allKycs = await db.collection('kyc').get();
+    const pendingKycs = allKycs.docs.filter(doc => {
+      const data = doc.data();
+      return ['submitted', 'under_review'].includes(data.status);
+    }).sort((a, b) => {
+      const aTime = a.data().submittedAt?.toDate() || new Date(0);
+      const bTime = b.data().submittedAt?.toDate() || new Date(0);
+      return bTime - aTime; // desc order
+    });
 
     const applications = [];
     
-    for (const doc of pendingKycs.docs) {
+    for (const doc of pendingKycs) {
       const kycData = doc.data();
       
       // Get user details

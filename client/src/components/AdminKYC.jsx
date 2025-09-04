@@ -20,6 +20,7 @@ const AdminKYC = () => {
     setLoading(true);
     try {
       const response = await adminAPI.getPendingKYCs();
+      console.log('Pending KYC data:', response.data); // Debug log
       setPendingKYC(response.data || []);
     } catch (error) {
       console.error('Error fetching pending KYC:', error);
@@ -57,10 +58,10 @@ const AdminKYC = () => {
     try {
       const response = await adminAPI.reviewKYC(userId, action, reason);
       
-      alert(`KYC ${action === 'approve' ? 'approved' : 'rejected'} successfully!`);
-      
-      if (action === 'approve' && response.data?.blockchainId) {
-        alert(`Blockchain ID generated: ${response.data.blockchainId}`);
+      if (action === 'approve') {
+        alert(`KYC approved successfully!${response.data?.blockchainId ? `\nBlockchain ID: ${response.data.blockchainId}` : ''}`);
+      } else {
+        alert('KYC rejected successfully!');
       }
       
       // Refresh data
@@ -211,6 +212,13 @@ const AdminKYC = () => {
                         >
                           ❌ Reject
                         </button>
+                        <button
+                          onClick={() => setSelectedUser(application)}
+                          className="view-btn"
+                          disabled={loading}
+                        >
+                          👁️ View Details
+                        </button>
                       </div>
                     </td>
                   </tr>
@@ -241,6 +249,52 @@ const AdminKYC = () => {
                 <p><strong>DOB:</strong> {selectedUser?.dateOfBirth ? new Date(selectedUser.dateOfBirth).toLocaleDateString() : 'N/A'}</p>
                 <p><strong>Gender:</strong> {selectedUser?.gender}</p>
                 <p><strong>ID Type:</strong> {selectedUser?.governmentIdType?.toUpperCase()}</p>
+                <p><strong>ID Number:</strong> {selectedUser?.governmentIdNumber}</p>
+                
+                {/* Address Information */}
+                {selectedUser?.address && (
+                  <div className="address-section">
+                    <h5>Address:</h5>
+                    <p><strong>Street:</strong> {selectedUser.address.street}</p>
+                    <p><strong>City:</strong> {selectedUser.address.city}</p>
+                    <p><strong>State:</strong> {selectedUser.address.state}</p>
+                    <p><strong>Country:</strong> {selectedUser.address.country}</p>
+                    <p><strong>Pincode:</strong> {selectedUser.address.pincode}</p>
+                  </div>
+                )}
+
+                {/* Documents Section */}
+                <div className="documents-section">
+                  <h5>Submitted Documents:</h5>
+                  {selectedUser?.documents && Object.keys(selectedUser.documents).length > 0 ? (
+                    <div className="documents-grid">
+                      {Object.entries(selectedUser.documents).map(([docType, docUrl]) => (
+                        <div key={docType} className="document-item">
+                          <span className="doc-type">{docType.replace('_', ' ').toUpperCase()}</span>
+                          <div className="doc-actions">
+                            <button 
+                              onClick={() => window.open(docUrl, '_blank')}
+                              className="view-doc-btn"
+                              title="View Document"
+                            >
+                              👁️ View
+                            </button>
+                            <a 
+                              href={docUrl} 
+                              download
+                              className="download-doc-btn"
+                              title="Download Document"
+                            >
+                              📥 Download
+                            </a>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="no-documents">No documents uploaded</p>
+                  )}
+                </div>
               </div>
 
               {actionType === 'approve' ? (

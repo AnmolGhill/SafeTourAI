@@ -91,7 +91,8 @@ const UserProfiles = () => {
       if (user && token) {
         try {
           // Fetch complete profile from backend
-          const response = await fetch('http://localhost:5000/api/user/profile', {
+          const BASE_URL = import.meta.env.REACT_APP_BASE_URL || 'http://localhost:5000';
+          const response = await fetch(`${BASE_URL}/api/user/profile`, {
             method: 'GET',
             headers: {
               'Authorization': `Bearer ${token}`,
@@ -136,7 +137,8 @@ const UserProfiles = () => {
       setIsLoading(true);
       
       // Save profile to backend Firebase
-      const response = await fetch('http://localhost:5000/api/user/profile', {
+      const BASE_URL = (typeof process !== 'undefined' && process.env?.REACT_APP_BASE_URL) || 'http://localhost:5000';
+      const response = await fetch(`${BASE_URL}/api/user/profile`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',

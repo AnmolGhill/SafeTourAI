@@ -41,21 +41,40 @@ const DigitalID = () => {
           return;
         }
 
-        const response = await fetch('/api/digital-id/user', {
+        const response = await fetch('/api/blockchain/digital-id', {
           headers: {
             'Authorization': `Bearer ${token}`,
             'Content-Type': 'application/json'
           }
         });
 
+        if (!response.ok) {
+          console.error('API response not ok:', response.status, response.statusText);
+          setKycStatus('pending');
+          return;
+        }
+
+        // Check if response is actually JSON
+        const contentType = response.headers.get('content-type');
+        if (!contentType || !contentType.includes('application/json')) {
+          console.error('Response is not JSON, got:', contentType);
+          const textResponse = await response.text();
+          console.error('Response text:', textResponse);
+          setKycStatus('pending');
+          return;
+        }
+
         const data = await response.json();
         
         if (data.success) {
           setDigitalID(data.digitalId);
-          setKycStatus('verified');
-          setUserData(data.digitalId.userData);
+          // Map KYC status: 'approved' -> 'verified' for consistency
+          setKycStatus(data.kycStatus === 'approved' ? 'verified' : data.kycStatus || 'pending');
+          setUserData(data.userData);
         } else {
-          setKycStatus(data.kycStatus || 'pending');
+          // Map KYC status properly
+          const mappedStatus = data.kycStatus === 'approved' ? 'verified' : data.kycStatus || 'pending';
+          setKycStatus(mappedStatus);
         }
       } catch (error) {
         console.error('Error fetching digital ID:', error);
@@ -73,22 +92,6 @@ const DigitalID = () => {
     setScannerOpen(false);
   };
 
-  const generateBlockchainID = (user) => {
-    // Mock blockchain ID generation
-    const timestamp = Date.now();
-    const hash = btoa(`${user.email}-${user.fullName}-${timestamp}`).substring(0, 32);
-    
-    return {
-      id: `ST-${hash.toUpperCase()}`,
-      blockchainHash: `0x${Math.random().toString(16).substring(2, 66)}`,
-      createdAt: new Date().toISOString(),
-      network: 'Ethereum',
-      contractAddress: '0x742d35Cc6634C0532925a3b8D404fddF4f0c1234',
-      tokenId: Math.floor(Math.random() * 1000000),
-      verificationLevel: 'Level 3 - Full KYC',
-      expiryDate: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString() // 1 year
-    };
-  };
 
   const copyToClipboard = (text) => {
     navigator.clipboard.writeText(text);
@@ -112,8 +115,50 @@ const DigitalID = () => {
     URL.revokeObjectURL(url);
   };
 
+  const [qrCodeData, setQrCodeData] = useState(null);
+
+  const fetchQRCodeData = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) return;
+
+      const response = await fetch('/api/blockchain/digital-id/qr', {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      const data = await response.json();
+      if (data.qrData) {
+        setQrCodeData(data.qrData);
+      }
+    } catch (error) {
+      console.error('Error fetching QR code data:', error);
+    }
+  };
+
   const generateQRCode = () => {
-    // In real app, use a QR code library like qrcode.js
+    if (!qrCodeData) {
+      fetchQRCodeData();
+      return `data:image/svg+xml;base64,${btoa(`
+        <svg width="200" height="200" xmlns="http://www.w3.org/2000/svg">
+          <rect width="200" height="200" fill="white"/>
+          <text x="100" y="100" text-anchor="middle" font-size="12" fill="black">Loading QR...</text>
+        </svg>
+      `)}`;
+    }
+
+    // Generate QR code with secure hashmap data
+    const qrContent = JSON.stringify({
+      type: qrCodeData.type,
+      blockchainId: qrCodeData.blockchainId,
+      hash: qrCodeData.hash,
+      network: qrCodeData.network,
+      timestamp: qrCodeData.timestamp
+    });
+
+    // Simple QR-like pattern with actual data
     return `data:image/svg+xml;base64,${btoa(`
       <svg width="200" height="200" xmlns="http://www.w3.org/2000/svg">
         <rect width="200" height="200" fill="white"/>
@@ -124,6 +169,9 @@ const DigitalID = () => {
         <rect x="20" y="60" width="20" height="20" fill="black"/>
         <rect x="100" y="60" width="20" height="20" fill="black"/>
         <rect x="180" y="60" width="20" height="20" fill="black"/>
+        <rect x="40" y="40" width="120" height="120" fill="none" stroke="black" stroke-width="2"/>
+        <text x="100" y="105" text-anchor="middle" font-size="8" fill="black">${qrCodeData.blockchainId}</text>
+        <text x="100" y="120" text-anchor="middle" font-size="6" fill="black">${qrCodeData.hash}</text>
         <text x="100" y="190" text-anchor="middle" font-size="8" fill="black">SafeTour ID</text>
       </svg>
     `)}`;
@@ -202,7 +250,7 @@ const DigitalID = () => {
               </div>
               <div className="text-right">
                 <div className="text-sm text-indigo-100">ID Number</div>
-                <div className="font-mono text-lg font-bold">{digitalID.id}</div>
+                <div className="font-mono text-lg font-bold">{digitalID?.blockchainId}</div>
               </div>
             </div>
           </div>
@@ -229,16 +277,16 @@ const DigitalID = () => {
                     <span className="text-sm font-medium">{userData.dateOfBirth}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-sm text-gray-600">Verification Level:</span>
-                    <span className="text-sm font-medium text-green-600">{digitalID.verificationLevel}</span>
+                    <span className="text-sm text-gray-600">Blockchain ID:</span>
+                    <span className="text-sm font-medium font-mono">{digitalID?.blockchainId}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-sm text-gray-600">Issued:</span>
-                    <span className="text-sm font-medium">{new Date(digitalID.createdAt).toLocaleDateString()}</span>
+                    <span className="text-sm text-gray-600">Status:</span>
+                    <span className="text-sm font-medium text-green-600">{digitalID?.status}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-sm text-gray-600">Expires:</span>
-                    <span className="text-sm font-medium">{new Date(digitalID.expiryDate).toLocaleDateString()}</span>
+                    <span className="text-sm text-gray-600">Created:</span>
+                    <span className="text-sm font-medium">{digitalID?.createdAt ? new Date(digitalID.createdAt).toLocaleDateString() : 'N/A'}</span>
                   </div>
                 </div>
               </div>
