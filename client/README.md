@@ -1,50 +1,68 @@
 # SafeTourAI Frontend
 
-React-based frontend for SafeTourAI with Firebase Authentication integration.
+React-based frontend for SafeTourAI with Firebase Authentication and backend integration.
 
-## Quick Setup (Without Firebase)
-
-The app will work with backend-only authentication if Firebase is not configured:
+## Quick Setup
 
 1. **Install dependencies:**
 ```bash
 npm install
 ```
 
-2. **Start development server:**
+2. **Configure environment variables:**
+   - Copy `.env.example` to `.env`
+   - Update with your Firebase and backend configuration
+
+3. **Start development server:**
 ```bash
 npm run dev
 ```
 
-3. **Access the app:**
-Open http://localhost:5173 in your browser
+4. **Access the app:**
+Open http://localhost:3000 in your browser
 
-## Firebase Setup (Optional)
+## Firebase Configuration
 
-To enable full Firebase authentication:
+### Required Environment Variables
+Create a `.env` file in the root directory with the following variables:
 
-1. **Create `.env` file** (copy from `.env.example`):
-```bash
-cp .env.example .env
-```
-
-2. **Add your Firebase credentials to `.env`:**
 ```env
-VITE_FIREBASE_API_KEY=your_actual_api_key
-VITE_FIREBASE_AUTH_DOMAIN=your_project.firebaseapp.com
-VITE_FIREBASE_PROJECT_ID=your_project_id
-VITE_FIREBASE_STORAGE_BUCKET=your_project.appspot.com
-VITE_FIREBASE_MESSAGING_SENDER_ID=your_sender_id
-VITE_FIREBASE_APP_ID=your_app_id
+# Firebase Configuration (required for authentication)
+REACT_APP_FIREBASE_API_KEY=your_firebase_api_key
+REACT_APP_FIREBASE_AUTH_DOMAIN=your_project_id.firebaseapp.com
+REACT_APP_FIREBASE_PROJECT_ID=your_project_id
+REACT_APP_FIREBASE_STORAGE_BUCKET=your_project_id.appspot.com
+REACT_APP_FIREBASE_MESSAGING_SENDER_ID=your_messaging_sender_id
+REACT_APP_FIREBASE_APP_ID=your_app_id
+
+# Backend API URL (without trailing slash)
+REACT_APP_BASE_URL=http://localhost:5000
 ```
 
-3. **Restart the development server**
+### Firebase Setup Instructions
+1. Go to the [Firebase Console](https://console.firebase.google.com/)
+2. Create a new project or select an existing one
+3. Enable Email/Password authentication in Authentication > Sign-in method
+4. Get your Firebase config from Project settings > Your apps > Web app
+5. Copy the configuration values to your `.env` file
 
 ## Authentication Flow
 
-- **Backend-only mode:** Uses JWT tokens with backend API
-- **Firebase mode:** Uses Firebase Auth + backend integration
-- **Automatic fallback:** App detects configuration and uses appropriate method
+### Login Process
+1. User submits email/password to backend API
+2. Backend verifies credentials and generates a JWT token
+3. Backend creates/updates Firebase user and generates a custom token
+4. Frontend receives JWT and custom token
+5. Frontend signs in with Firebase custom token to update last sign-in time
+6. User is authenticated with both backend (JWT) and Firebase
+
+### Features
+- **Secure JWT-based authentication** with backend
+- **Firebase Authentication** for reliable sign-in tracking
+- **Role-based access control** (admin, subadmin, user)
+- **Password reset** with OTP via email
+- **Email verification** for new accounts
+- **Persistent sessions** with secure token storage
 
 ## Troubleshooting
 

@@ -23,7 +23,7 @@ const initializeFirebase = async () => {
         storageBucket: `${process.env.FIREBASE_PROJECT_ID}.appspot.com`
       });
 
-      console.log('🔥 Firebase Admin SDK initialized successfully');
+      // Firebase Admin SDK initialized successfully
       
       // Test Firestore database connectivity
       await testDatabaseConnection();
@@ -44,7 +44,7 @@ const testDatabaseConnection = async () => {
     await testDoc.set({ timestamp: admin.firestore.FieldValue.serverTimestamp(), status: 'connected' });
     await testDoc.delete(); // Clean up test document
     
-    console.log('🗄️  Firestore database connected successfully');
+    // Firestore database connected successfully
     return true;
   } catch (error) {
     if (error.code === 5 || error.message.includes('NOT_FOUND')) {

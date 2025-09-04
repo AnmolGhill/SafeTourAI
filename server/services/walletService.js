@@ -1,0 +1,294 @@
+const { Web3 } = require('web3');
+const { ethers } = require('ethers');
+const bip39 = require('bip39');
+const hdkey = require('hdkey');
+const CryptoJS = require('crypto-js');
+const crypto = require('crypto');
+
+class WalletService {
+  constructor() {
+    this.web3 = null;
+    this.provider = null;
+    this.initializeWeb3();
+    
+    // In-memory wallet cache for session
+    this.walletCache = new Map();
+  }
+
+  /**
+   * Initialize Web3 with Infura provider
+   */
+  initializeWeb3() {
+    try {
+      const providerUrl = process.env.WEB3_PROVIDER_URL || 'https://mainnet.infura.io/v3/9ba30f6b1b414ca480fea169a3527ab2';
+      
+      // Web3 v4 syntax
+      this.web3 = new Web3(providerUrl);
+      this.provider = new ethers.JsonRpcProvider(providerUrl);
+      
+      // Web3 initialized with Infura provider
+
+    } catch (error) {
+      console.error('❌ Failed to initialize Web3:', error);
+    }
+  }
+
+  /**
+   * Generate deterministic wallet from user email (like Telegram TON)
+   * @param {string} userEmail - User's email address
+   * @param {string} userId - User's Firebase UID
+   * @returns {object} - Wallet data with address, private key, mnemonic
+   */
+  async generateDeterministicWallet(userEmail, userId) {
+    try {
+      console.log(`\n🔐 ========== DETERMINISTIC WALLET GENERATION ==========`);
+      console.log(`📧 Email: ${userEmail}`);
+      console.log(`🆔 User ID: ${userId}`);
+
+      // Create deterministic seed from email + userId + app secret
+      const appSecret = process.env.WALLET_SECRET || 'SafeTourAI-Wallet-Secret-2024';
+      const seedString = `${userEmail}-${userId}-${appSecret}`;
+      
+      // Generate deterministic entropy
+      const entropy = crypto.createHash('sha256').update(seedString).digest();
+      console.log(`🌱 Deterministic entropy generated`);
+
+      // Generate mnemonic from entropy
+      const mnemonic = bip39.entropyToMnemonic(entropy);
+      console.log(`🔑 Mnemonic generated: ${mnemonic.split(' ').slice(0, 3).join(' ')}...`);
+
+      // Generate HD wallet
+      const seed = await bip39.mnemonicToSeed(mnemonic);
+      const root = hdkey.fromMasterSeed(seed);
+      
+      // Use standard Ethereum derivation path
+      const derivationPath = "m/44'/60'/0'/0/0";
+      const addrNode = root.derive(derivationPath);
+      
+      const privateKey = '0x' + addrNode.privateKey.toString('hex');
+      const wallet = new ethers.Wallet(privateKey, this.provider);
+      
+      const walletData = {
+        address: wallet.address,
+        privateKey: privateKey,
+        mnemonic: mnemonic,
+        derivationPath: derivationPath,
+        userId: userId,
+        email: userEmail,
+        createdAt: new Date().toISOString(),
+        network: 'ethereum-mainnet',
+        balance: '0'
+      };
+
+      console.log(`💼 Wallet Address: ${walletData.address}`);
+      console.log(`🔐 Private Key: ${privateKey.substring(0, 10)}...`);
+      console.log(`📝 Derivation Path: ${derivationPath}`);
+
+      // Cache wallet for session
+      this.walletCache.set(userId, walletData);
+
+      // Get initial balance
+      await this.updateWalletBalance(walletData);
+
+      console.log(`✅ Deterministic wallet generated successfully`);
+      return walletData;
+
+    } catch (error) {
+      console.error('❌ Failed to generate deterministic wallet:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Recover wallet from user credentials (auto-recovery like Telegram)
+   * @param {string} userEmail - User's email
+   * @param {string} userId - User's Firebase UID
+   * @returns {object} - Recovered wallet data
+   */
+  async recoverWallet(userEmail, userId) {
+    try {
+      console.log(`\n🔄 ========== WALLET RECOVERY ==========`);
+      console.log(`📧 Recovering wallet for: ${userEmail}`);
+
+      // Check cache first
+      if (this.walletCache.has(userId)) {
+        console.log(`💾 Wallet found in cache`);
+        const cachedWallet = this.walletCache.get(userId);
+        await this.updateWalletBalance(cachedWallet);
+        return cachedWallet;
+      }
+
+      // Generate the same deterministic wallet
+      const recoveredWallet = await this.generateDeterministicWallet(userEmail, userId);
+      
+      console.log(`✅ Wallet recovered successfully: ${recoveredWallet.address}`);
+      return recoveredWallet;
+
+    } catch (error) {
+      console.error('❌ Failed to recover wallet:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Update wallet balance
+   * @param {object} walletData - Wallet data object
+   */
+  async updateWalletBalance(walletData) {
+    try {
+      const balance = await this.web3.eth.getBalance(walletData.address);
+      const balanceInEth = this.web3.utils.fromWei(balance, 'ether');
+      
+      walletData.balance = balanceInEth;
+      walletData.balanceWei = balance;
+      walletData.lastUpdated = new Date().toISOString();
+
+      console.log(`💰 Balance updated: ${balanceInEth} ETH`);
+      
+    } catch (error) {
+      console.error('❌ Failed to update balance:', error);
+      walletData.balance = '0';
+      walletData.balanceWei = '0';
+    }
+  }
+
+  /**
+   * Get wallet by user ID
+   * @param {string} userId - User's Firebase UID
+   * @returns {object|null} - Wallet data or null
+   */
+  getWallet(userId) {
+    return this.walletCache.get(userId) || null;
+  }
+
+  /**
+   * Send transaction
+   * @param {string} userId - User ID
+   * @param {string} toAddress - Recipient address
+   * @param {string} amount - Amount in ETH
+   * @returns {object} - Transaction result
+   */
+  async sendTransaction(userId, toAddress, amount) {
+    try {
+      const walletData = this.walletCache.get(userId);
+      if (!walletData) {
+        throw new Error('Wallet not found. Please recover wallet first.');
+      }
+
+      const wallet = new ethers.Wallet(walletData.privateKey, this.provider);
+      
+      // Convert amount to Wei
+      const amountWei = ethers.parseEther(amount);
+      
+      // Get gas price and estimate gas
+      const gasPrice = await this.provider.getFeeData();
+      const gasLimit = await wallet.estimateGas({
+        to: toAddress,
+        value: amountWei
+      });
+
+      // Create transaction
+      const transaction = {
+        to: toAddress,
+        value: amountWei,
+        gasLimit: gasLimit,
+        gasPrice: gasPrice.gasPrice
+      };
+
+      // Send transaction
+      const txResponse = await wallet.sendTransaction(transaction);
+      
+      console.log(`📤 Transaction sent: ${txResponse.hash}`);
+      
+      return {
+        success: true,
+        transactionHash: txResponse.hash,
+        from: walletData.address,
+        to: toAddress,
+        amount: amount,
+        gasUsed: gasLimit.toString(),
+        gasPrice: gasPrice.gasPrice.toString()
+      };
+
+    } catch (error) {
+      console.error('❌ Transaction failed:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get transaction history
+   * @param {string} userId - User ID
+   * @returns {array} - Transaction history
+   */
+  async getTransactionHistory(userId) {
+    try {
+      const walletData = this.walletCache.get(userId);
+      if (!walletData) {
+        return [];
+      }
+
+      // Note: For full transaction history, you'd need to use Etherscan API
+      // This is a basic implementation
+      const latestBlock = await this.web3.eth.getBlockNumber();
+      const transactions = [];
+
+      // Get recent transactions (last 10 blocks)
+      for (let i = 0; i < 10; i++) {
+        try {
+          const block = await this.web3.eth.getBlock(latestBlock - i, true);
+          if (block && block.transactions) {
+            const userTxs = block.transactions.filter(tx => 
+              tx.from === walletData.address || tx.to === walletData.address
+            );
+            transactions.push(...userTxs);
+          }
+        } catch (blockError) {
+          // Skip block if error
+          continue;
+        }
+      }
+
+      return transactions;
+
+    } catch (error) {
+      console.error('❌ Failed to get transaction history:', error);
+      return [];
+    }
+  }
+
+  /**
+   * Encrypt sensitive data for storage
+   * @param {string} data - Data to encrypt
+   * @param {string} userId - User ID for encryption key
+   * @returns {string} - Encrypted data
+   */
+  encryptSensitiveData(data, userId) {
+    const encryptionKey = crypto.createHash('sha256').update(`${userId}-${process.env.WALLET_SECRET}`).digest('hex');
+    return CryptoJS.AES.encrypt(data, encryptionKey).toString();
+  }
+
+  /**
+   * Decrypt sensitive data
+   * @param {string} encryptedData - Encrypted data
+   * @param {string} userId - User ID for decryption key
+   * @returns {string} - Decrypted data
+   */
+  decryptSensitiveData(encryptedData, userId) {
+    const encryptionKey = crypto.createHash('sha256').update(`${userId}-${process.env.WALLET_SECRET}`).digest('hex');
+    const bytes = CryptoJS.AES.decrypt(encryptedData, encryptionKey);
+    return bytes.toString(CryptoJS.enc.Utf8);
+  }
+
+  /**
+   * Generate real blockchain ID from wallet address
+   * @param {string} walletAddress - Ethereum wallet address
+   * @returns {string} - Real blockchain ID
+   */
+  generateRealBlockchainId(walletAddress) {
+    // Use the actual Ethereum address as blockchain ID
+    return walletAddress;
+  }
+}
+
+module.exports = new WalletService();

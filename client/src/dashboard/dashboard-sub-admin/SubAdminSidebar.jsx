@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../../utils/auth';
+import { useAuth } from '../../contexts/AuthContext';
+import toast from 'react-hot-toast';
 import DashboardSelector from '../../components/DashboardSelector';
 import { 
   FiHome, 
@@ -22,7 +23,28 @@ import {
 const SubAdminSidebar = ({ activeTab, setActiveTab }) => {
   const [isOpen, setIsOpen] = useState(false);
   const navigate = useNavigate();
-  const { isAuthenticated, logout, user } = useAuth();
+  const { logout } = useAuth();
+  
+  // Check authentication from localStorage
+  const isAuthenticated = () => {
+    const token = localStorage.getItem('token');
+    const userData = localStorage.getItem('userData');
+    return !!(token && userData);
+  };
+  
+  // Get current user from localStorage
+  const getCurrentUser = () => {
+    try {
+      const userData = localStorage.getItem('userData');
+      return userData ? JSON.parse(userData) : null;
+    } catch (error) {
+      console.error('Error parsing user data:', error);
+      return null;
+    }
+  };
+  
+  const user = getCurrentUser();
+  const userIsAuthenticated = isAuthenticated();
 
   const menuItems = [
     { id: 'dashboard', label: 'Dashboard', icon: FiHome, useTab: true },
@@ -45,14 +67,23 @@ const SubAdminSidebar = ({ activeTab, setActiveTab }) => {
   };
 
   const handleLogout = async () => {
-    try {
-      await logout();
+    const loadingToast = toast.loading('Signing you out...', {
+      position: 'top-center'
+    });
+    
+    // Call logout function (clears localStorage)
+    logout();
+    
+    toast.dismiss();
+    toast.success('Logged out successfully!', {
+      position: 'top-center',
+      duration: 2000
+    });
+    
+    setTimeout(() => {
       navigate('/login');
       setIsOpen(false);
-    } catch (error) {
-      console.error('Logout error:', error);
-      alert('Failed to logout. Please try again.');
-    }
+    }, 1000);
   };
 
   const handleLogin = () => {
@@ -140,17 +171,19 @@ const SubAdminSidebar = ({ activeTab, setActiveTab }) => {
 
           {/* User Profile & Auth Button */}
           <div className="p-4 border-t border-gray-200">
-            {isAuthenticated ? (
+            {userIsAuthenticated ? (
               <>
                 <div className="flex items-center space-x-3 mb-4">
                   <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-full flex items-center justify-center">
                     <span className="text-white font-semibold text-sm">
-                      {user?.displayName ? user.displayName.charAt(0).toUpperCase() : 'P'}
+                      {user?.name ? user.name.charAt(0).toUpperCase() : 
+                       user?.fullName ? user.fullName.charAt(0).toUpperCase() : 
+                       user?.displayName ? user.displayName.charAt(0).toUpperCase() : 'P'}
                     </span>
                   </div>
                   <div>
                     <p className="text-sm font-medium text-gray-800">
-                      {user?.displayName || 'Officer Smith'}
+                      {user?.name || user?.fullName || user?.displayName || 'Officer Smith'}
                     </p>
                     <p className="text-xs text-gray-500">
                       Police Sub-Admin

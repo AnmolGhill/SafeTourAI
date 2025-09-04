@@ -4,6 +4,7 @@ const { db, auth } = require('../config/firebase');
 const { verifyFirebaseToken, requireAdmin, requireSubAdmin } = require('../middleware/auth');
 const emailService = require('../services/emailService');
 const logger = require('../utils/logger');
+const blockchainService = require('../services/blockchainService');
 
 const router = express.Router();
 
@@ -177,11 +178,13 @@ router.post('/users/:uid/approve', verifyFirebaseToken, requireAdmin, [
       res.json({ message: 'User rejected successfully' });
     }
 
-    logger.info(`User ${action}d: ${uid} by admin ${req.user.uid}`);
+    console.log(`User ${action}d: ${uid} by admin ${req.user.uid}`);
 
   } catch (error) {
-    logger.error('User approval error:', error);
-    res.status(500).json({ error: 'Failed to process user approval' });
+    logger.errorWithContext(error, req, { operation: 'userApproval' });
+    if (!res.headersSent) {
+      res.status(500).json({ error: 'Failed to process user approval' });
+    }
   }
 });
 
@@ -284,33 +287,7 @@ router.post('/kyc/:uid/review', verifyFirebaseToken, requireAdmin, [
       updateData.rejectionReason = rejectionReason;
     }
 
-    // If approved, generate blockchain ID
-    if (action === 'approve') {
-      try {
-        const blockchainService = require('../services/blockchainService');
-        const blockchainId = await blockchainService.generateBlockchainId(uid, kycData);
-        updateData.blockchainId = blockchainId;
-        
-        // Update user's blockchain ID
-        await db.collection('users').doc(uid).update({
-          blockchainId,
-          kycStatus: 'approved'
-        });
-
-        // Send approval email
-        await emailService.sendKYCApproval(userData.email, userData.name, blockchainId);
-        
-        logger.info(`Blockchain ID generated for user ${uid}: ${blockchainId}`);
-      } catch (blockchainError) {
-        logger.error('Blockchain ID generation failed:', blockchainError);
-        updateData.blockchainId = null;
-      }
-    } else {
-      // Send rejection email
-      await emailService.sendKYCRejection(userData.email, userData.name, rejectionReason);
-    }
-
-    // Update KYC document
+    // Update KYC document first
     await db.collection('kyc').doc(uid).update(updateData);
 
     // Update user's KYC status
@@ -318,17 +295,89 @@ router.post('/kyc/:uid/review', verifyFirebaseToken, requireAdmin, [
       kycStatus: updateData.status
     });
 
+    // If approved, generate blockchain ID asynchronously
+    if (action === 'approve') {
+      // Generate REAL blockchain ID immediately (no temporary ID)
+      console.log(`🚀 Generating REAL blockchain ID for user: ${uid}`);
+      const realBlockchainId = await blockchainService.generateBlockchainId(uid, kycData, userData.email);
+      
+      // Update with REAL blockchain ID
+      await db.collection('kyc').doc(uid).update({
+        blockchainId: realBlockchainId
+      });
+      
+      await db.collection('users').doc(uid).update({
+        blockchainId: realBlockchainId,
+        kycStatus: 'approved'
+      });
+
+      // Send approval email with real blockchain ID
+      try {
+        console.log(`📧 Sending KYC approval email to: ${userData.email}`);
+        await emailService.sendKYCApproval(userData.email, userData.name, realBlockchainId);
+        console.log(`✅ KYC approval process completed for user: ${uid}`);
+      } catch (emailError) {
+        console.log(`❌ Email sending failed for user: ${uid}`);
+        console.error(emailError);
+        logger.errorWithContext(emailError, req, { operation: 'approvalEmail' });
+      }
+      
+      updateData.blockchainId = realBlockchainId;
+    } else {
+      // Send rejection email asynchronously
+      setImmediate(async () => {
+        try {
+          await emailService.sendKYCRejection(userData.email, userData.name, rejectionReason);
+        } catch (emailError) {
+          logger.errorWithContext(emailError, req, { operation: 'rejectionEmail' });
+        }
+      });
+    }
+
     res.json({
       message: `KYC ${action}d successfully`,
       status: updateData.status,
       blockchainId: updateData.blockchainId
     });
 
-    logger.info(`KYC ${action}d for user ${uid} by admin ${req.user.uid}`);
+    console.log(`KYC ${action}d for user ${uid} by admin ${req.user.uid}`);
 
   } catch (error) {
-    logger.error('KYC review error:', error);
-    res.status(500).json({ error: 'KYC review failed', details: error.message });
+    logger.errorWithContext(error, req, { operation: 'kycReview' });
+    if (!res.headersSent) {
+      res.status(500).json({ error: 'KYC review failed', details: error.message });
+    }
+  }
+});
+
+// Get KYC document URLs for viewing (Admin/SubAdmin)
+router.get('/kyc/:uid/documents', verifyFirebaseToken, requireSubAdmin, async (req, res) => {
+  try {
+    const { uid } = req.params;
+    
+    const kycDoc = await db.collection('kyc').doc(uid).get();
+    
+    if (!kycDoc.exists) {
+      return res.status(404).json({ error: 'KYC application not found' });
+    }
+    
+    const kycData = kycDoc.data();
+    
+    if (!kycData.documents) {
+      return res.status(404).json({ error: 'No documents found for this KYC application' });
+    }
+    
+    res.json({
+      documents: kycData.documents,
+      uid: uid,
+      status: kycData.status
+    });
+    
+  } catch (error) {
+    logger.errorWithContext(error, req, { operation: 'getKycDocuments' });
+    if (!res.headersSent) {
+      res.status(500).json({ error: 'Failed to fetch KYC documents' });
+    }
   }
 });
 

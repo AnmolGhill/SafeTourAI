@@ -301,12 +301,6 @@ const SettingsPanel = () => {
               </span>
             </div>
             <div className="flex justify-between">
-              <span className="text-gray-600">Last Login:</span>
-              <span className="text-gray-900">
-                {profile.lastLogin ? new Date(profile.lastLogin).toLocaleDateString() : 'N/A'}
-              </span>
-            </div>
-            <div className="flex justify-between">
               <span className="text-gray-600">Email Verified:</span>
               <span className={`font-medium ${profile.isEmailVerified ? 'text-green-600' : 'text-red-600'}`}>
                 {profile.isEmailVerified ? 'Yes' : 'No'}

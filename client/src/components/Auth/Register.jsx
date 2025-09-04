@@ -2,12 +2,11 @@ import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { EyeIcon, EyeSlashIcon } from '@heroicons/react/24/outline';
 import CountryCodeSelector from './CountryCodeSelector';
-import { useAuthNotifications } from '../Notifications/NotificationHooks';
+import toast from 'react-hot-toast';
 import LoadingSpinner from '../LoadingSpinner';
 
 const Register = () => {
   const navigate = useNavigate();
-  const { showAuthSuccess, showAuthError, showAuthInfo } = useAuthNotifications();
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -101,7 +100,10 @@ const Register = () => {
       // Show first validation error
       const firstError = Object.values(errors)[0];
       if (firstError) {
-        showAuthError(firstError);
+        toast.error(firstError, {
+          position: 'top-center',
+          duration: 4000
+        });
       }
       return;
     }
@@ -109,7 +111,9 @@ const Register = () => {
     setIsLoading(true);
     
     try {
-      showAuthInfo('Creating your account...');
+      const loadingToast = toast.loading('Creating your account...', {
+        position: 'top-center'
+      });
       
       const userData = {
         name: formData.name.trim(),
@@ -124,7 +128,8 @@ const Register = () => {
       }
       
       // Direct API call to backend
-      const response = await fetch('http://localhost:5000/api/auth/register', {
+      const BASE_URL = import.meta.env.REACT_APP_BASE_URL || 'http://localhost:5000';
+      const response = await fetch(`${BASE_URL}/api/auth/register`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -135,7 +140,11 @@ const Register = () => {
       const result = await response.json();
 
       if (response.ok && result.success) {
-        showAuthSuccess(result.message);
+        toast.dismiss();
+        toast.success(result.message, {
+          position: 'top-center',
+          duration: 3000
+        });
         
         // Store user data for role-based routing
         localStorage.setItem('userData', JSON.stringify({
@@ -169,11 +178,19 @@ const Register = () => {
         stack: error.stack
       });
       
+      toast.dismiss();
+      
       // Handle network errors specifically
       if (error.message.includes('Failed to fetch') || error.message.includes('ERR_CONNECTION_REFUSED')) {
-        showAuthError('Cannot connect to server. Please make sure the backend is running on port 5000.');
+        toast.error('Cannot connect to server. Please make sure the backend is running on port 5000.', {
+          position: 'top-center',
+          duration: 5000
+        });
       } else {
-        showAuthError(error.message || 'Registration failed. Please try again.');
+        toast.error(error.message || 'Registration failed. Please try again.', {
+          position: 'top-center',
+          duration: 4000
+        });
       }
     } finally {
       setIsLoading(false);

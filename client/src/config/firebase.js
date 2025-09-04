@@ -1,10 +1,22 @@
-// Firebase is completely disabled for frontend - using backend-only authentication
-// All Firebase functionality is handled by the backend server
+// Firebase client configuration for sign-in tracking
+import { initializeApp } from 'firebase/app';
+import { getAuth } from 'firebase/auth';
 
-console.log('🚫 Firebase disabled - frontend uses backend-only authentication');
+const firebaseConfig = {
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY || "AIzaSyDummy",
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || "safetourai-project.firebaseapp.com",
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || "safetourai-project",
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || "safetourai-project.appspot.com",
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID || "123456789",
+  appId: import.meta.env.VITE_FIREBASE_APP_ID || "1:123456789:web:dummy"
+};
 
-// Export null values to maintain compatibility with existing imports
-export const auth = null;
-export const db = null;
-export const storage = null;
-export default null;
+// Initialize Firebase
+const app = initializeApp(firebaseConfig);
+
+// Initialize Firebase Authentication and get a reference to the service
+export const auth = getAuth(app);
+
+console.log('🔥 Firebase client initialized for authentication tracking');
+
+export default app;

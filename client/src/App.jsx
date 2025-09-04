@@ -1,13 +1,12 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-
-// Context Providers
-import { NotificationProvider } from './components/Notifications';
+import { Toaster } from 'react-hot-toast';
 
 // Auth Components
 import Login from './components/Auth/Login';
 import Register from './components/Auth/Register';
 import OTPVerification from './components/Auth/OTPVerification';
+import ForgotPassword from './components/Auth/ForgotPassword';
 import ProtectedRoute from './components/Auth/ProtectedRoute';
 
 // Dashboard Components
@@ -66,6 +65,9 @@ import ErrorBoundary from './components/ErrorBoundary';
 import ResponderPanel from './components/Responder/ResponderPanel';
 import SettingsPanel from './components/Settings/SettingsPanel';
 
+// Wallet Component
+import Wallet from './components/Wallet/Wallet';
+
 // CSS
 import './App.css';
 import './styles/dashboard.css';
@@ -73,8 +75,7 @@ import './styles/dashboard.css';
 function App() {
   return (
     <ErrorBoundary>
-      <NotificationProvider>
-        <Router>
+      <Router>
             <div className="App">
               <Routes>
               {/* Public Routes */}
@@ -82,6 +83,7 @@ function App() {
               <Route path="/login" element={<Login />} />
               <Route path="/register" element={<Register />} />
               <Route path="/verify-otp" element={<OTPVerification />} />
+              <Route path="/forgot-password" element={<ForgotPassword />} />
 
               {/* Protected Routes */}
               <Route path="/dashboard" element={
@@ -201,6 +203,11 @@ function App() {
               } />
 
               {/* Utility Routes */}
+              <Route path="/wallet" element={
+                <ProtectedRoute>
+                  <Wallet />
+                </ProtectedRoute>
+              } />
               <Route path="/digital-id" element={
                 <ProtectedRoute>
                   <DigitalID />
@@ -282,8 +289,41 @@ function App() {
             </Routes>
           </div>
         </Router>
-      </NotificationProvider>
-    </ErrorBoundary>
+        <Toaster
+          position="top-center"
+          reverseOrder={false}
+          gutter={8}
+          toastOptions={{
+            duration: 3000,
+            style: {
+              background: '#fff',
+              color: '#363636',
+              borderRadius: '8px',
+              border: '1px solid #e5e7eb',
+              padding: '12px 16px',
+              fontSize: '14px',
+              boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
+            },
+            success: {
+              duration: 2000,
+              iconTheme: {
+                primary: '#10b981',
+                secondary: '#fff',
+              },
+            },
+            error: {
+              duration: 4000,
+              iconTheme: {
+                primary: '#ef4444',
+                secondary: '#fff',
+              },
+            },
+            loading: {
+              duration: Infinity,
+            },
+          }}
+        />
+      </ErrorBoundary>
   );
 }
 
