@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { useAuthNotifications } from '../Notifications/NotificationHooks';
-import { useNotifications } from '../Notifications';
+import toast from 'react-hot-toast';
 
 const OTPVerification = () => {
   const [otp, setOtp] = useState('');
@@ -11,11 +10,6 @@ const OTPVerification = () => {
   const [canResend, setCanResend] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
-  const { showAuthSuccess, showAuthError, showAuthInfo } = useAuthNotifications();
-  const { notify } = useNotifications();
-  const showError = (message) => notify.error('Error', message);
-  const showSuccess = (message) => notify.success('Success', message);
-  const showInfo = (message) => notify.info('Info', message);
 
   useEffect(() => {
     // Get email from navigation state or localStorage
@@ -60,19 +54,27 @@ const OTPVerification = () => {
     e.preventDefault();
     
     if (!email) {
-      showError('Please enter your email');
+      toast.error('Please enter your email', {
+        position: 'top-center',
+        duration: 3000
+      });
       return;
     }
     
     if (otp.length !== 6) {
-      showError('Please enter the complete 6-digit OTP');
+      toast.error('Please enter the complete 6-digit OTP', {
+        position: 'top-center',
+        duration: 3000
+      });
       return;
     }
 
     setIsLoading(true);
 
     try {
-      showAuthInfo('Verifying OTP...');
+      const loadingToast = toast.loading('Verifying OTP...', {
+        position: 'top-center'
+      });
       
       // Direct API call to backend
       const BASE_URL = import.meta.env.REACT_APP_BASE_URL || 'http://localhost:5000';
@@ -90,7 +92,11 @@ const OTPVerification = () => {
       const result = await response.json();
       
       if (response.ok && result.success) {
-        showAuthSuccess('Email verified successfully!');
+        toast.dismiss(loadingToast);
+        toast.success('Email verified successfully!', {
+          position: 'top-center',
+          duration: 2000
+        });
         
         // Firebase client-side auth is disabled - using backend-only authentication
         console.log('🔑 Using backend-only authentication - Firebase client disabled');
@@ -113,13 +119,17 @@ const OTPVerification = () => {
               navigate('/dashboard-user', { replace: true });
               break;
           }
-        }, 100);
+        }, 1000);
       } else {
         throw new Error(result.message || 'Invalid OTP. Please try again.');
       }
     } catch (error) {
       console.error('OTP verification error:', error);
-      showAuthError(error.message || 'OTP verification failed. Please try again.');
+      toast.dismiss();
+      toast.error(error.message || 'OTP verification failed. Please try again.', {
+        position: 'top-center',
+        duration: 3000
+      });
     } finally {
       setIsLoading(false);
     }
@@ -127,14 +137,19 @@ const OTPVerification = () => {
 
   const handleResendOtp = async () => {
     if (!email) {
-      showError('Please enter your email first');
+      toast.error('Please enter your email first', {
+        position: 'top-center',
+        duration: 3000
+      });
       return;
     }
 
     setIsLoading(true);
 
     try {
-      showAuthInfo('Sending new OTP...');
+      const loadingToast = toast.loading('Sending new OTP...', {
+        position: 'top-center'
+      });
       
       // Direct API call to backend
       const BASE_URL = import.meta.env.REACT_APP_BASE_URL || 'http://localhost:5000';
@@ -151,7 +166,11 @@ const OTPVerification = () => {
       const result = await response.json();
       
       if (response.ok && result.success) {
-        showAuthSuccess('New OTP sent successfully!');
+        toast.dismiss(loadingToast);
+        toast.success('New OTP sent successfully!', {
+          position: 'top-center',
+          duration: 2000
+        });
         setTimer(300);
         setCanResend(false);
         setOtp('');
@@ -160,7 +179,11 @@ const OTPVerification = () => {
       }
     } catch (error) {
       console.error('Resend OTP error:', error);
-      showAuthError(error.message || 'Failed to resend OTP. Please try again.');
+      toast.dismiss();
+      toast.error(error.message || 'Failed to resend OTP. Please try again.', {
+        position: 'top-center',
+        duration: 3000
+      });
     } finally {
       setIsLoading(false);
     }

@@ -273,8 +273,12 @@ router.post('/kyc/:uid/review', verifyFirebaseToken, requireAdmin, [
     const kycData = kycDoc.data();
     const userData = userDoc.data();
     
-    if (kycData.status === 'approved' || kycData.status === 'rejected') {
-      return res.status(400).json({ error: 'KYC already reviewed' });
+    if (kycData.status === 'approved') {
+      return res.status(400).json({ error: 'KYC already approved' });
+    }
+    
+    if (kycData.status === 'rejected') {
+      return res.status(400).json({ error: 'KYC already rejected' });
     }
 
     const updateData = {

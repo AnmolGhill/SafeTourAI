@@ -5,12 +5,17 @@ import {
   FiClock, 
   FiExternalLink,
   FiCopy,
-  FiRefreshCw
+  FiRefreshCw,
+  FiUser,
+  FiShield
 } from 'react-icons/fi';
+import { kycAPI } from '../../config/api';
 
 const BlockchainPanel = () => {
   const [transactions, setTransactions] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [kycStatus, setKycStatus] = useState(null);
+  const [blockchainId, setBlockchainId] = useState(null);
 
   // Mock blockchain transaction data
   const mockTransactions = [
@@ -63,7 +68,20 @@ const BlockchainPanel = () => {
 
   useEffect(() => {
     setTransactions(mockTransactions);
+    fetchKYCStatus();
   }, []);
+
+  const fetchKYCStatus = async () => {
+    try {
+      const response = await kycAPI.getStatus();
+      if (response.data.success) {
+        setKycStatus(response.data.data.kycStatus);
+        setBlockchainId(response.data.data.blockchainId);
+      }
+    } catch (error) {
+      console.error('Error fetching KYC status:', error);
+    }
+  };
 
   const refreshTransactions = async () => {
     setLoading(true);
@@ -124,7 +142,7 @@ const BlockchainPanel = () => {
               </div>
               <div>
                 <h2 className="text-xl font-semibold text-gray-800">Blockchain Verification</h2>
-                <p className="text-sm text-gray-600">Latest emergency-related blockchain transactions</p>
+                <p className="text-sm text-gray-600">Your digital identity and blockchain transactions</p>
               </div>
             </div>
             
@@ -140,6 +158,73 @@ const BlockchainPanel = () => {
             </button>
           </div>
         </div>
+
+        {/* Blockchain ID Section */}
+        {kycStatus === 'approved' && blockchainId && (
+          <div className="p-6 border-b border-gray-200 bg-gradient-to-r from-green-50 to-blue-50">
+            <div className="flex items-center space-x-4">
+              <div className="p-3 bg-green-100 rounded-lg">
+                <FiShield className="text-green-600 text-2xl" />
+              </div>
+              <div className="flex-1">
+                <h3 className="text-lg font-semibold text-gray-800 flex items-center space-x-2">
+                  <span>Your Blockchain ID</span>
+                  <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                    ✅ KYC Verified
+                  </span>
+                </h3>
+                <div className="flex items-center space-x-3 mt-2">
+                  <code className="text-sm font-mono bg-white px-3 py-2 rounded border text-gray-800">
+                    {blockchainId}
+                  </code>
+                  <button
+                    onClick={() => copyToClipboard(blockchainId)}
+                    className="flex items-center space-x-1 text-blue-600 hover:text-blue-800 text-sm"
+                  >
+                    <FiCopy />
+                    <span>Copy</span>
+                  </button>
+                </div>
+                <p className="text-sm text-gray-600 mt-2">
+                  This is your unique Ethereum wallet address generated after KYC approval. Use it for secure transactions.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* KYC Status for non-approved users */}
+        {kycStatus !== 'approved' && (
+          <div className="p-6 border-b border-gray-200 bg-gradient-to-r from-yellow-50 to-orange-50">
+            <div className="flex items-center space-x-4">
+              <div className="p-3 bg-yellow-100 rounded-lg">
+                <FiUser className="text-yellow-600 text-2xl" />
+              </div>
+              <div className="flex-1">
+                <h3 className="text-lg font-semibold text-gray-800 flex items-center space-x-2">
+                  <span>Blockchain ID Status</span>
+                  <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                    kycStatus === 'submitted' ? 'bg-yellow-100 text-yellow-800' :
+                    kycStatus === 'rejected' ? 'bg-red-100 text-red-800' :
+                    'bg-gray-100 text-gray-800'
+                  }`}>
+                    {kycStatus === 'submitted' ? '⏳ Under Review' :
+                     kycStatus === 'rejected' ? '❌ Rejected' :
+                     '📋 KYC Required'}
+                  </span>
+                </h3>
+                <p className="text-sm text-gray-600 mt-2">
+                  {kycStatus === 'submitted' ? 
+                    'Your KYC is under review. Blockchain ID will be generated after approval.' :
+                    kycStatus === 'rejected' ?
+                    'Your KYC was rejected. Please resubmit with correct documents.' :
+                    'Complete KYC verification to get your unique blockchain ID and wallet access.'
+                  }
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Transactions List */}
         <div className="divide-y divide-gray-100">
