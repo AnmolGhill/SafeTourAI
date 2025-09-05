@@ -31,9 +31,15 @@ app.use(compression());
 // Request timeout middleware
 app.use(requestTimeout(30000)); // 30 second timeout
 
-// CORS configuration - allow all origins for development
+// CORS configuration - allow all origins for development and production
 app.use(cors({
-  origin: ['http://localhost:3000', 'http://127.0.0.1:3000', 'http://localhost:3001'],
+  origin: [
+    'http://localhost:3000', 
+    'http://127.0.0.1:3000', 
+    'http://localhost:3001',
+    'https://safetourai.onrender.com',
+    'https://safetourai-frontend.onrender.com'
+  ],
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin'],
@@ -88,6 +94,25 @@ app.get('/health', (req, res) => {
       message: 'Health check failed'
     });
   }
+});
+
+// Root route for deployment health checks
+app.get('/', (req, res) => {
+  res.status(200).json({
+    message: 'SafeTourAI Backend API',
+    status: 'running',
+    version: '1.0.0',
+    timestamp: new Date().toISOString(),
+    endpoints: {
+      health: '/health',
+      api: '/api/*'
+    }
+  });
+});
+
+// Favicon route to prevent 404 errors
+app.get('/favicon.ico', (req, res) => {
+  res.status(204).end();
 });
 
 // API routes
