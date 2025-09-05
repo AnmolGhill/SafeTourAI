@@ -51,11 +51,13 @@ app.use(cors({
       console.log('CORS blocked origin:', origin);
       callback(new Error('Not allowed by CORS'));
     }
+
   },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin'],
-  optionsSuccessStatus: 200
+  optionsSuccessStatus: 200,
+  preflightContinue: false
 }));
 
 // Rate limiting

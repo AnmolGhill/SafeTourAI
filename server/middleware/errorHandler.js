@@ -131,51 +131,71 @@ const sendErrorProd = (err, req, res) => {
 
 // Global error handling middleware
 const globalErrorHandler = (err, req, res, next) => {
-  err.statusCode = err.statusCode || 500;
-  err.status = err.status || 'error';
+  let error = { ...err };
+  error.message = err.message;
 
-  // Log all errors
+  // Log error details
   console.error('Global error handler triggered:', {
-    message: err.message,
-    statusCode: err.statusCode,
-    code: err.code,
+    message: error.message,
+    statusCode: error.statusCode,
+    code: error.code,
     path: req.originalUrl,
     method: req.method,
     ip: req.ip,
     userAgent: req.get('User-Agent'),
-    stack: err.stack
+    stack: error.stack
   });
 
-  let error = { ...err };
-  error.message = err.message;
+  // Default error values
+  let message = error.message || 'Internal Server Error';
+  let statusCode = error.statusCode || 500;
+  let code = error.code || 'INTERNAL_ERROR';
 
   // Handle specific error types
-  if (error.name === 'CastError') error = handleCastErrorDB(error);
-  if (error.code === 11000) error = handleDuplicateFieldsDB(error);
-  if (error.name === 'ValidationError') error = handleValidationErrorDB(error);
-  if (error.name === 'JsonWebTokenError') error = handleJWTError();
-  if (error.name === 'TokenExpiredError') error = handleJWTExpiredError();
-  if (error.code && error.code.startsWith('auth/')) error = handleFirebaseError(error);
-
-  // Handle rate limiting errors
-  if (err.code === 'LIMIT_FILE_SIZE') {
-    error = new AppError('File too large', 413, 'FILE_TOO_LARGE');
+  if (err.name === 'ValidationError') {
+    message = 'Validation Error';
+    statusCode = 400;
+    code = 'VALIDATION_ERROR';
   }
 
-  // Handle JSON parsing errors
-  if (err.type === 'entity.parse.failed') {
-    error = new AppError('Invalid JSON format', 400, 'INVALID_JSON');
+  if (err.name === 'CastError') {
+    message = 'Resource not found';
+    statusCode = 404;
+    code = 'RESOURCE_NOT_FOUND';
   }
 
-  // Handle request timeout
-  if (err.code === 'ETIMEDOUT' || err.code === 'ECONNRESET') {
-    error = new AppError('Request timeout', 408, 'REQUEST_TIMEOUT');
+  // Duplicate key error
+  if (err.code === 11000) {
+    message = 'Duplicate field value entered';
+    statusCode = 400;
+    code = 'DUPLICATE_ERROR';
   }
 
-  if (process.env.NODE_ENV === 'development') {
-    sendErrorDev(error, req, res);
-  } else {
-    sendErrorProd(error, req, res);
+  // JWT errors
+  if (err.name === 'JsonWebTokenError') {
+    message = 'Invalid token';
+    statusCode = 401;
+    code = 'INVALID_TOKEN';
+  }
+
+  if (err.name === 'TokenExpiredError') {
+    message = 'Token expired';
+    statusCode = 401;
+    code = 'TOKEN_EXPIRED';
+  }
+
+  // Ensure response is sent as JSON with proper headers
+  try {
+    res.status(statusCode).json({
+      success: false,
+      error: message,
+      code: code,
+      ...(process.env.NODE_ENV === 'development' && { stack: err.stack })
+    });
+  } catch (responseError) {
+    console.error('❌ Failed to send error response:', responseError);
+    // Fallback response
+    res.status(500).end('Internal Server Error');
   }
 };
 
