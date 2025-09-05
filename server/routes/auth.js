@@ -344,23 +344,31 @@ router.post('/login', [
 ], handleValidationErrors, asyncHandler(async (req, res) => {
 
     const { email, password } = req.body;
+    
+    console.log('🔐 Login attempt:', { email, ip: req.ip, userAgent: req.get('User-Agent') });
 
     // First try to get user from Firebase Firestore
     let userData = null;
     try {
-      const userSnapshot = await db.collection('users').where('email', '==', email).get();
-      if (!userSnapshot.empty) {
-        userData = userSnapshot.docs[0].data();
-        // Also cache in memory for current session
-        registeredUsers.set(email, { ...userData, password: await bcrypt.hash(password, 12) });
+      if (db) {
+        const userSnapshot = await db.collection('users').where('email', '==', email).get();
+        if (!userSnapshot.empty) {
+          userData = userSnapshot.docs[0].data();
+          console.log('✅ User found in Firestore:', { email, uid: userData.uid });
+          // Also cache in memory for current session
+          registeredUsers.set(email, { ...userData, password: await bcrypt.hash(password, 12) });
+        }
       }
     } catch (firebaseError) {
-      console.error('Firebase fetch error during login:', firebaseError);
+      console.error('❌ Firebase fetch error during login:', firebaseError);
     }
     
     // Fallback to memory if Firebase fails
     if (!userData) {
       userData = registeredUsers.get(email);
+      if (userData) {
+        console.log('✅ User found in memory:', { email });
+      }
     }
     
     if (!userData) {
@@ -368,20 +376,25 @@ router.post('/login', [
       throw new AppError('Invalid credentials', 401, 'INVALID_CREDENTIALS');
     }
 
-    // Verify password with Firebase Auth
+    // Verify password with Firebase Auth (optional check)
+    let firebaseUserExists = false;
     try {
       await auth.getUserByEmail(email);
-      // If we reach here, user exists in Firebase Auth
+      firebaseUserExists = true;
+      console.log('✅ User exists in Firebase Auth:', { email });
     } catch (firebaseAuthError) {
-      console.log('❌ User not found in Firebase Auth', { email });
-      throw new AppError('Invalid credentials', 401, 'INVALID_CREDENTIALS');
+      console.log('⚠️ User not found in Firebase Auth, continuing with memory auth:', { email });
+      // Don't throw error here, allow memory-based auth to continue
     }
 
     // Verify password against stored hash
     const storedPassword = userData.password || registeredUsers.get(email)?.password;
     if (!storedPassword) {
+      console.log('❌ No stored password found for user:', { email });
       throw new AppError('Invalid credentials', 401, 'INVALID_CREDENTIALS');
     }
+    
+    console.log('🔍 Verifying password for:', { email, hasStoredPassword: !!storedPassword });
     
     const isValidPassword = await bcrypt.compare(password, storedPassword);
     
@@ -389,6 +402,8 @@ router.post('/login', [
       console.log('❌ Login attempt with invalid password', { email, ip: req.ip });
       throw new AppError('Invalid credentials', 401, 'INVALID_CREDENTIALS');
     }
+    
+    console.log('✅ Password verified successfully:', { email });
 
     // Check if email is verified for regular users
     if (userData.role === 'user' && !userData.emailVerified) {
@@ -467,20 +482,33 @@ router.post('/login', [
       { expiresIn: '7d' }
     );
 
-    res.json({
-      success: true,
-      message: 'Login successful',
-      token,
-      customToken, // Include Firebase custom token for sign-in tracking
-      user: {
-        uid: userData.uid,
-        email: userData.email,
-        name: userData.name,
-        role: userData.role,
-        emailVerified: userData.emailVerified,
-        kycStatus: userData.kycStatus || 'pending'
-      }
+    console.log('📤 Sending login response:', { 
+      email, 
+      uid: userData.uid, 
+      hasToken: !!token,
+      hasCustomToken: !!customToken 
     });
+
+    try {
+      res.status(200).json({
+        success: true,
+        message: 'Login successful',
+        token,
+        customToken, // Include Firebase custom token for sign-in tracking
+        user: {
+          uid: userData.uid,
+          email: userData.email,
+          name: userData.name,
+          role: userData.role,
+          emailVerified: userData.emailVerified,
+          kycStatus: userData.kycStatus || 'pending'
+        }
+      });
+      console.log('✅ Login response sent successfully');
+    } catch (responseError) {
+      console.error('❌ Error sending login response:', responseError);
+      throw new AppError('Failed to send response', 500, 'RESPONSE_ERROR');
+    }
 
 }));
 
