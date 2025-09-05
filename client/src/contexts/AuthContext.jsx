@@ -20,9 +20,16 @@ export function AuthProvider({ children }) {
     return unsubscribe;
   }, []);
 
+  const logout = () => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('userData');
+    setCurrentUser(null);
+  };
+
   const value = {
     currentUser,
-    setCurrentUser
+    setCurrentUser,
+    logout
   };
 
   return (
