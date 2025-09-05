@@ -19,7 +19,7 @@ npm run dev
 ```
 
 4. **Access the app:**
-Open http://localhost:3000 in your browser
+Open the application in your browser
 
 ## Firebase Configuration
 
@@ -36,7 +36,7 @@ REACT_APP_FIREBASE_MESSAGING_SENDER_ID=your_messaging_sender_id
 REACT_APP_FIREBASE_APP_ID=your_app_id
 
 # Backend API URL (without trailing slash)
-REACT_APP_BASE_URL=http://localhost:5000
+VITE_BASE_URL=https://safetourai.onrender.com
 ```
 
 ### Firebase Setup Instructions
@@ -72,5 +72,5 @@ REACT_APP_BASE_URL=http://localhost:5000
 - Check browser console for detailed error messages
 
 **Backend connection issues:**
-- Ensure backend server is running on http://localhost:5000
-- Check `VITE_API_BASE_URL` in `.env` file
+- Ensure backend server is running
+- Check `VITE_BASE_URL` in `.env` file

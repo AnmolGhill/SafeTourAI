@@ -28,7 +28,7 @@ const ForgotPassword = () => {
     setLoading(true);
 
     try {
-      const BASE_URL = import.meta.env.REACT_APP_BASE_URL || 'http://localhost:5000';
+      const BASE_URL = import.meta.env.VITE_BASE_URL ;
       const response = await fetch(`${BASE_URL}/api/auth/forgot-password`, {
         method: 'POST',
         headers: {
@@ -68,7 +68,7 @@ const ForgotPassword = () => {
     setLoading(true);
 
     try {
-      const BASE_URL = import.meta.env.REACT_APP_BASE_URL || 'http://localhost:5000';
+      const BASE_URL = import.meta.env.VITE_BASE_URL ;
       const response = await fetch(`${BASE_URL}/api/auth/reset-password`, {
         method: 'POST',
         headers: {
