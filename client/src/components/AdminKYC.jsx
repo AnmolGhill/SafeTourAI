@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import './AdminKYC.css';
-import { adminAPI } from '../config/api';
+import { kycAPI, downloadKYCDocument, adminAPI } from '../config/api';
 
 const AdminKYC = () => {
   const [pendingKYC, setPendingKYC] = useState([]);
@@ -24,7 +24,13 @@ const AdminKYC = () => {
       setPendingKYC(response.data || []);
     } catch (error) {
       console.error('Error fetching pending KYC:', error);
-      alert('Failed to fetch pending KYC applications');
+      if (error.message.includes('Authentication failed')) {
+        alert('Session expired. Please login again.');
+        // Redirect to login
+        window.location.href = '/login';
+      } else {
+        alert('Failed to fetch pending KYC applications');
+      }
     } finally {
       setLoading(false);
     }
@@ -43,13 +49,63 @@ const AdminKYC = () => {
       });
     } catch (error) {
       console.error('Error fetching statistics:', error);
-      setStatistics({
-        total: 0,
-        submitted: 0,
-        verified: 0,
-        rejected: 0,
-        blockchainVerified: 0
-      });
+      if (error.message.includes('Authentication failed')) {
+        alert('Session expired. Please login again.');
+        window.location.href = '/login';
+      } else {
+        setStatistics({
+          total: 0,
+          submitted: 0,
+          verified: 0,
+          rejected: 0,
+          blockchainVerified: 0
+        });
+      }
+    }
+  };
+
+  const handleViewDocument = async (userId) => {
+    try {
+      const response = await adminAPI.getKYCDocuments(userId);
+      if (response.data.success) {
+        const documents = response.data.documents;
+        
+        // Create a modal or new window to display documents
+        if (documents.document) {
+          window.open(documents.document, '_blank');
+        }
+        if (documents.selfie) {
+          window.open(documents.selfie, '_blank');
+        }
+      }
+    } catch (error) {
+      console.error('Error viewing documents:', error);
+      alert('Failed to load documents');
+    }
+  };
+
+  const handleDownloadDocument = async (userId) => {
+    try {
+      const response = await adminAPI.getKYCDocuments(userId);
+      if (response.data.success) {
+        const documents = response.data.documents;
+        const metadata = response.data.documentMetadata;
+        
+        // Download documents using the utility function
+        if (documents.document) {
+          const fileName = metadata.document?.fileName || 'kyc_document.pdf';
+          await downloadKYCDocument(documents.document, fileName);
+        }
+        if (documents.selfie) {
+          const fileName = metadata.selfie?.fileName || 'kyc_selfie.jpg';
+          await downloadKYCDocument(documents.selfie, fileName);
+        }
+        
+        alert('Documents downloaded successfully!');
+      }
+    } catch (error) {
+      console.error('Error downloading documents:', error);
+      alert('Failed to download documents');
     }
   };
 
@@ -59,7 +115,7 @@ const AdminKYC = () => {
       const response = await adminAPI.reviewKYC(userId, action, reason);
       
       if (action === 'approve') {
-        alert(`KYC approved successfully!${response.data?.blockchainId ? `\nBlockchain ID: ${response.data.blockchainId}` : ''}`);
+        alert(`KYC approved successfully!${response.data?.blockchainId ? `\nReal Blockchain ID Generated: ${response.data.blockchainId}` : ''}`);
       } else {
         alert('KYC rejected successfully!');
       }
@@ -273,20 +329,19 @@ const AdminKYC = () => {
                           <span className="doc-type">{docType.replace('_', ' ').toUpperCase()}</span>
                           <div className="doc-actions">
                             <button 
-                              onClick={() => window.open(docUrl, '_blank')}
+                              onClick={() => handleViewDocument(selectedUser.uid)}
                               className="view-doc-btn"
                               title="View Document"
                             >
                               👁️ View
                             </button>
-                            <a 
-                              href={docUrl} 
-                              download
+                            <button 
+                              onClick={() => handleDownloadDocument(selectedUser.uid)}
                               className="download-doc-btn"
                               title="Download Document"
                             >
                               📥 Download
-                            </a>
+                            </button>
                           </div>
                         </div>
                       ))}

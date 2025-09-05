@@ -1,10 +1,13 @@
 // Get base URL from environment variables and append /api
-const BASE_URL = import.meta.env.REACT_APP_BASE_URL || 'http://localhost:5000';
+const BASE_URL = import.meta.env.VITE_BASE_URL || 'http://localhost:5000';
 const API_BASE_URL = `${BASE_URL}/api`;
 
 // Helper function to get auth headers
 const getAuthHeaders = () => {
   const token = localStorage.getItem('token');
+  if (!token) {
+    console.warn('No authentication token found');
+  }
   return {
     'Content-Type': 'application/json',
     ...(token && { 'Authorization': `Bearer ${token}` })
@@ -185,11 +188,19 @@ export const emergencyAPI = {
 export const adminAPI = {
   async getPendingKYCs() {
     try {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        throw new Error('Authentication token not found');
+      }
+
       const response = await fetch(`${API_BASE_URL}/kyc/admin/pending`, {
         headers: getAuthHeaders()
       });
 
       if (!response.ok) {
+        if (response.status === 401) {
+          throw new Error('Authentication failed - please login again');
+        }
         throw new Error(`HTTP error! status: ${response.status}`);
       }
 
@@ -227,11 +238,19 @@ export const adminAPI = {
 
   async getKYCStats() {
     try {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        throw new Error('Authentication token not found');
+      }
+
       const response = await fetch(`${API_BASE_URL}/kyc/admin/stats`, {
         headers: getAuthHeaders()
       });
 
       if (!response.ok) {
+        if (response.status === 401) {
+          throw new Error('Authentication failed - please login again');
+        }
         throw new Error(`HTTP error! status: ${response.status}`);
       }
 
@@ -241,6 +260,64 @@ export const adminAPI = {
       console.error('Get KYC stats error:', error);
       throw error;
     }
+  },
+
+  async getKYCDocuments(uid) {
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        throw new Error('Authentication token not found');
+      }
+
+      const response = await fetch(`${API_BASE_URL}/kyc/admin/documents/${uid}`, {
+        headers: getAuthHeaders()
+      });
+
+      if (!response.ok) {
+        if (response.status === 401) {
+          throw new Error('Authentication failed - please login again');
+        }
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const result = await response.json();
+      return { data: result };
+    } catch (error) {
+      console.error('Get KYC documents error:', error);
+      throw error;
+    }
+  }
+};
+
+// Utility function to download KYC documents
+export const downloadKYCDocument = async (documentUrl, fileName) => {
+  try {
+    if (documentUrl.startsWith('data:')) {
+      // Handle base64 data URLs
+      const link = document.createElement('a');
+      link.href = documentUrl;
+      link.download = fileName;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    } else {
+      // Handle regular URLs
+      const response = await fetch(documentUrl);
+      if (!response.ok) throw new Error('Download failed');
+      
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = fileName;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+    }
+  } catch (error) {
+    console.error('Download error:', error);
+    throw error;
   }
 };
 

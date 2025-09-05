@@ -79,11 +79,14 @@ router.post('/submit', verifyFirebaseToken, upload.fields([
       }
     }
 
-    // Upload files to Firebase Storage (with fallback)
+    // Store files with proper fallback mechanism
     const documentUrls = {};
+    const documentData = {};
 
     try {
-      const bucket = storage.bucket();
+      // Try Firebase Storage first
+      const bucketName = process.env.FIREBASE_PROJECT_ID + '.appspot.com';
+      const bucket = storage.bucket(bucketName);
       
       if (req.files.document && req.files.document[0]) {
         const documentFile = req.files.document[0];
@@ -96,8 +99,19 @@ router.post('/submit', verifyFirebaseToken, upload.fields([
           },
         });
         
-        await documentFileRef.makePublic();
-        documentUrls.document = `https://storage.googleapis.com/${bucket.name}/${documentFileName}`;
+        // Get signed URL instead of making public
+        const [signedUrl] = await documentFileRef.getSignedUrl({
+          action: 'read',
+          expires: Date.now() + 365 * 24 * 60 * 60 * 1000, // 1 year
+        });
+        
+        documentUrls.document = signedUrl;
+        documentData.document = {
+          fileName: documentFile.originalname,
+          mimeType: documentFile.mimetype,
+          size: documentFile.size,
+          storagePath: documentFileName
+        };
       }
 
       if (req.files.selfie && req.files.selfie[0]) {
@@ -111,17 +125,46 @@ router.post('/submit', verifyFirebaseToken, upload.fields([
           },
         });
         
-        await selfieFileRef.makePublic();
-        documentUrls.selfie = `https://storage.googleapis.com/${bucket.name}/${selfieFileName}`;
+        // Get signed URL instead of making public
+        const [signedUrl] = await selfieFileRef.getSignedUrl({
+          action: 'read',
+          expires: Date.now() + 365 * 24 * 60 * 60 * 1000, // 1 year
+        });
+        
+        documentUrls.selfie = signedUrl;
+        documentData.selfie = {
+          fileName: selfieFile.originalname,
+          mimeType: selfieFile.mimetype,
+          size: selfieFile.size,
+          storagePath: selfieFileName
+        };
       }
     } catch (storageError) {
       logger.errorWithContext(storageError, req, { operation: 'fileUpload' });
-      // Continue without file uploads for now
+      
+      // Fallback: Store file data as base64 in Firestore for admin viewing
       if (req.files.document && req.files.document[0]) {
-        documentUrls.document = `placeholder_document_${req.user.uid}`;
+        const documentFile = req.files.document[0];
+        const base64Data = documentFile.buffer.toString('base64');
+        documentUrls.document = `data:${documentFile.mimetype};base64,${base64Data}`;
+        documentData.document = {
+          fileName: documentFile.originalname,
+          mimeType: documentFile.mimetype,
+          size: documentFile.size,
+          storageType: 'base64_fallback'
+        };
       }
+      
       if (req.files.selfie && req.files.selfie[0]) {
-        documentUrls.selfie = `placeholder_selfie_${req.user.uid}`;
+        const selfieFile = req.files.selfie[0];
+        const base64Data = selfieFile.buffer.toString('base64');
+        documentUrls.selfie = `data:${selfieFile.mimetype};base64,${base64Data}`;
+        documentData.selfie = {
+          fileName: selfieFile.originalname,
+          mimeType: selfieFile.mimetype,
+          size: selfieFile.size,
+          storageType: 'base64_fallback'
+        };
       }
     }
 
@@ -144,6 +187,7 @@ router.post('/submit', verifyFirebaseToken, upload.fields([
       governmentIdNumber,
       consentGiven: true,
       documents: documentUrls,
+      documentMetadata: documentData,
       status: 'submitted',
       submittedAt: new Date().toISOString(),
       reviewedAt: null,
@@ -160,11 +204,14 @@ router.post('/submit', verifyFirebaseToken, upload.fields([
     });
 
     console.log(`KYC submitted for user: ${req.user.uid}`);
+    console.log(`Documents stored: ${Object.keys(documentUrls).join(', ')}`);
+    console.log(`Document metadata: ${JSON.stringify(documentData, null, 2)}`);
 
     return res.status(201).json({
       message: 'KYC submitted successfully',
       status: 'submitted',
-      submittedAt: kycData.submittedAt
+      submittedAt: kycData.submittedAt,
+      documentsUploaded: Object.keys(documentUrls)
     });
 
   } catch (error) {
@@ -270,81 +317,36 @@ router.get('/admin/pending', verifyFirebaseToken, requireAdmin, async (req, res)
   }
 });
 
-// Admin: Review KYC application
-router.post('/admin/review/:uid', verifyFirebaseToken, requireAdmin, [
-  body('action').isIn(['approve', 'reject']),
-  body('rejectionReason').optional().trim()
-], async (req, res) => {
+// Remove duplicate KYC review route - handled in admin.js
+
+// Admin: Get KYC documents for viewing
+router.get('/admin/documents/:userId', verifyFirebaseToken, requireAdmin, async (req, res) => {
   try {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({ errors: errors.array() });
-    }
-
-    const { uid } = req.params;
-    const { action, rejectionReason } = req.body;
-
-    const kycDoc = await db.collection('kyc').doc(uid).get();
+    const { userId } = req.params;
     
+    const kycDoc = await db.collection('kyc').doc(userId).get();
     if (!kycDoc.exists) {
-      return res.status(404).json({ error: 'KYC application not found' });
+      return res.status(404).json({ error: 'KYC not found' });
     }
 
     const kycData = kycDoc.data();
     
-    if (kycData.status === 'approved' || kycData.status === 'rejected') {
-      return res.status(400).json({ error: 'KYC already reviewed' });
-    }
-
-    const updateData = {
-      status: action === 'approve' ? 'approved' : 'rejected',
-      reviewedAt: new Date().toISOString(),
-      reviewedBy: req.user.uid
-    };
-
-    if (action === 'reject' && rejectionReason) {
-      updateData.rejectionReason = rejectionReason;
-    }
-
-    // If approved, generate blockchain ID
-    if (action === 'approve') {
-      try {
-        const blockchainId = await blockchainService.generateBlockchainId(uid, kycData);
-        updateData.blockchainId = blockchainId;
-        
-        // Update user's blockchain ID
-        await db.collection('users').doc(uid).update({
-          blockchainId,
-          kycStatus: 'approved'
-        });
-        
-        console.log(`Blockchain ID generated for user ${uid}: ${blockchainId}`);
-      } catch (blockchainError) {
-        logger.errorWithContext(blockchainError, req, { operation: 'blockchainIdGeneration', uid });
-        // Continue with approval but without blockchain ID
-        updateData.blockchainId = null;
-      }
-    }
-
-    // Update KYC document
-    await db.collection('kyc').doc(uid).update(updateData);
-
-    // Update user's KYC status
-    await db.collection('users').doc(uid).update({
-      kycStatus: updateData.status
-    });
-
+    // Return document URLs and metadata for admin viewing
     res.json({
-      message: `KYC ${action}d successfully`,
-      status: updateData.status,
-      blockchainId: updateData.blockchainId
+      success: true,
+      documents: kycData.documents || {},
+      documentMetadata: kycData.documentMetadata || {},
+      userInfo: {
+        fullName: kycData.fullName,
+        governmentIdType: kycData.governmentIdType,
+        status: kycData.status,
+        submittedAt: kycData.submittedAt
+      }
     });
-
-    console.log(`KYC ${action}d for user ${uid} by admin ${req.user.uid}`);
 
   } catch (error) {
-    logger.errorWithContext(error, req, { operation: 'kycReview', uid });
-    res.status(500).json({ error: 'KYC review failed', details: error.message });
+    logger.errorWithContext(error, req, { operation: 'getKYCDocuments' });
+    res.status(500).json({ error: 'Failed to get KYC documents' });
   }
 });
 

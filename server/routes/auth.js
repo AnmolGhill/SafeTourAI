@@ -105,9 +105,9 @@ router.post('/register', [
         verified: false
       });
 
-      // Try to send OTP email
+      // Try to send OTP email with role priority
       try {
-        await emailService.sendOTP(email, otp, name);
+        await emailService.sendOTP(email, otp, name, role);
         console.log('📱 OTP sent successfully', { email, role });
       } catch (emailError) {
         console.error('Email service error:', emailError);

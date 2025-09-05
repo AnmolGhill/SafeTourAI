@@ -8,8 +8,11 @@ import {
   FiCheck,
   FiAlertCircle,
   FiRefreshCw,
-  FiCamera
+  FiCamera,
+  FiLink
 } from 'react-icons/fi';
+import { BiWallet } from 'react-icons/bi';
+import { kycAPI } from '../config/api';
 import QRScanner from './QRScanner';
 
 const DigitalID = () => {
@@ -19,73 +22,63 @@ const DigitalID = () => {
   const [copied, setCopied] = useState(false);
   const [qrCodeVisible, setQrCodeVisible] = useState(false);
   const [scannerOpen, setScannerOpen] = useState(false);
-  const [userData, setUserData] = useState({
-    fullName: 'John Doe',
-    email: 'john.doe@example.com',
-    nationality: 'American',
-    dateOfBirth: '1995-06-15',
-    kycVerified: true,
-    registrationDate: '2024-01-15'
-  });
+  const [userData, setUserData] = useState(null);
+  const [walletConnected, setWalletConnected] = useState(false);
+  const [walletAddress, setWalletAddress] = useState(null);
 
   useEffect(() => {
-    // Fetch digital ID from backend
-    const fetchDigitalID = async () => {
-      setLoading(true);
-      
-      try {
-        const token = localStorage.getItem('token');
-        if (!token) {
-          setKycStatus('pending');
-          setLoading(false);
-          return;
-        }
-
-        const response = await fetch('/api/blockchain/digital-id', {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json'
-          }
-        });
-
-        if (!response.ok) {
-          console.error('API response not ok:', response.status, response.statusText);
-          setKycStatus('pending');
-          return;
-        }
-
-        // Check if response is actually JSON
-        const contentType = response.headers.get('content-type');
-        if (!contentType || !contentType.includes('application/json')) {
-          console.error('Response is not JSON, got:', contentType);
-          const textResponse = await response.text();
-          console.error('Response text:', textResponse);
-          setKycStatus('pending');
-          return;
-        }
-
-        const data = await response.json();
-        
-        if (data.success) {
-          setDigitalID(data.digitalId);
-          // Map KYC status: 'approved' -> 'verified' for consistency
-          setKycStatus(data.kycStatus === 'approved' ? 'verified' : data.kycStatus || 'pending');
-          setUserData(data.userData);
-        } else {
-          // Map KYC status properly
-          const mappedStatus = data.kycStatus === 'approved' ? 'verified' : data.kycStatus || 'pending';
-          setKycStatus(mappedStatus);
-        }
-      } catch (error) {
-        console.error('Error fetching digital ID:', error);
-        setKycStatus('pending');
-      }
-      
-      setLoading(false);
-    };
-
     fetchDigitalID();
+    loadUserData();
   }, []);
+
+  const loadUserData = () => {
+    try {
+      const storedUserData = localStorage.getItem('userData');
+      if (storedUserData) {
+        setUserData(JSON.parse(storedUserData));
+      }
+    } catch (error) {
+      console.error('Error loading user data:', error);
+    }
+  };
+
+  const fetchDigitalID = async () => {
+    setLoading(true);
+    
+    try {
+      const response = await kycAPI.getStatus();
+      if (response.data.success) {
+        const kycData = response.data.data;
+        
+        // Map KYC status: 'approved' -> 'verified' for consistency
+        const mappedStatus = kycData.kycStatus === 'approved' ? 'verified' : kycData.kycStatus || 'pending';
+        setKycStatus(mappedStatus);
+        
+        if (mappedStatus === 'verified' && kycData.blockchainId) {
+          // Create digital ID from KYC data
+          setDigitalID({
+            id: kycData.blockchainId,
+            blockchainId: kycData.blockchainId,
+            status: 'Active',
+            createdAt: kycData.reviewedAt || new Date().toISOString(),
+            network: 'Ethereum Mainnet',
+            contractAddress: '0x742d35Cc6634C0532925a3b8D8C9C4e5c4e4c4e4',
+            tokenId: kycData.blockchainId?.slice(-8),
+            blockchainHash: `0x${kycData.blockchainId?.slice(2)}${Date.now().toString(16)}`
+          });
+          
+          // Set wallet address from blockchain ID
+          setWalletAddress(kycData.blockchainId);
+          setWalletConnected(true);
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching KYC status:', error);
+      setKycStatus('pending');
+    }
+    
+    setLoading(false);
+  };
 
   const handleScanResult = (scannedData) => {
     console.log('Scanned Digital ID:', scannedData);
@@ -99,10 +92,34 @@ const DigitalID = () => {
     setTimeout(() => setCopied(false), 2000);
   };
 
+  const connectWallet = async () => {
+    try {
+      if (typeof window.ethereum !== 'undefined') {
+        const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+        if (accounts.length > 0) {
+          setWalletAddress(accounts[0]);
+          setWalletConnected(true);
+          console.log('Wallet connected:', accounts[0]);
+        }
+      } else {
+        alert('Please install MetaMask or another Ethereum wallet to connect');
+      }
+    } catch (error) {
+      console.error('Error connecting wallet:', error);
+      alert('Failed to connect wallet');
+    }
+  };
+
+  const disconnectWallet = () => {
+    setWalletConnected(false);
+    setWalletAddress(null);
+  };
+
   const downloadID = () => {
     const idData = {
       ...digitalID,
       userData: userData,
+      walletAddress: walletAddress,
       downloadedAt: new Date().toISOString()
     };
     
@@ -262,31 +279,48 @@ const DigitalID = () => {
                 <div className="flex items-center space-x-3 mb-4">
                   <FiUser className="w-8 h-8 text-gray-400" />
                   <div>
-                    <h3 className="text-lg font-semibold text-gray-800">{userData.fullName}</h3>
-                    <p className="text-sm text-gray-600">{userData.nationality}</p>
+                    <h3 className="text-lg font-semibold text-gray-800">{userData?.name || userData?.fullName || 'User'}</h3>
+                    <p className="text-sm text-gray-600">{userData?.role || 'SafeTour Member'}</p>
                   </div>
                 </div>
                 
                 <div className="space-y-3">
                   <div className="flex justify-between">
                     <span className="text-sm text-gray-600">Email:</span>
-                    <span className="text-sm font-medium">{userData.email}</span>
+                    <span className="text-sm font-medium">{userData?.email || 'N/A'}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-sm text-gray-600">Date of Birth:</span>
-                    <span className="text-sm font-medium">{userData.dateOfBirth}</span>
+                    <span className="text-sm text-gray-600">Role:</span>
+                    <span className="text-sm font-medium capitalize">{userData?.role || 'User'}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-sm text-gray-600">Blockchain ID:</span>
-                    <span className="text-sm font-medium font-mono">{digitalID?.blockchainId}</span>
+                    <div className="flex items-center space-x-2">
+                      <span className="text-sm font-medium font-mono">{digitalID?.blockchainId?.slice(0, 10)}...{digitalID?.blockchainId?.slice(-8)}</span>
+                      <button
+                        onClick={() => copyToClipboard(digitalID?.blockchainId)}
+                        className="text-blue-600 hover:text-blue-800"
+                      >
+                        <FiCopy className="w-3 h-3" />
+                      </button>
+                    </div>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-sm text-gray-600">Status:</span>
-                    <span className="text-sm font-medium text-green-600">{digitalID?.status}</span>
+                    <span className="text-sm font-medium text-green-600 flex items-center space-x-1">
+                      <FiShield className="w-3 h-3" />
+                      <span>{digitalID?.status}</span>
+                    </span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-sm text-gray-600">Created:</span>
                     <span className="text-sm font-medium">{digitalID?.createdAt ? new Date(digitalID.createdAt).toLocaleDateString() : 'N/A'}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-sm text-gray-600">Wallet:</span>
+                    <span className={`text-sm font-medium ${walletConnected ? 'text-green-600' : 'text-gray-500'}`}>
+                      {walletConnected ? '✅ Connected' : '❌ Not Connected'}
+                    </span>
                   </div>
                 </div>
               </div>
@@ -363,6 +397,71 @@ const DigitalID = () => {
           </div>
         </div>
 
+        {/* Wallet Connection Section */}
+        <div className="bg-white rounded-lg shadow-lg p-6">
+          <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
+            <BiWallet className="w-5 h-5 mr-2 text-blue-600" />
+            Wallet Connection
+          </h3>
+          
+          {walletConnected ? (
+            <div className="space-y-4">
+              <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h4 className="font-semibold text-green-800">Wallet Connected</h4>
+                    <p className="text-sm text-green-600 font-mono">{walletAddress?.slice(0, 10)}...{walletAddress?.slice(-8)}</p>
+                  </div>
+                  <button
+                    onClick={disconnectWallet}
+                    className="px-3 py-1 bg-red-100 text-red-700 rounded text-sm hover:bg-red-200 transition-colors"
+                  >
+                    Disconnect
+                  </button>
+                </div>
+              </div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="bg-gray-50 p-3 rounded-lg text-center">
+                  <FiShield className="w-6 h-6 mx-auto text-green-600 mb-2" />
+                  <p className="text-sm font-medium">Secure</p>
+                  <p className="text-xs text-gray-600">Blockchain Protected</p>
+                </div>
+                <div className="bg-gray-50 p-3 rounded-lg text-center">
+                  <FiLink className="w-6 h-6 mx-auto text-blue-600 mb-2" />
+                  <p className="text-sm font-medium">Connected</p>
+                  <p className="text-xs text-gray-600">Real-time Sync</p>
+                </div>
+                <div className="bg-gray-50 p-3 rounded-lg text-center">
+                  <FiCheck className="w-6 h-6 mx-auto text-green-600 mb-2" />
+                  <p className="text-sm font-medium">Verified</p>
+                  <p className="text-xs text-gray-600">KYC Approved</p>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="text-center space-y-4">
+              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                <BiWallet className="w-12 h-12 mx-auto text-yellow-600 mb-3" />
+                <h4 className="font-semibold text-yellow-800 mb-2">Connect Your Wallet</h4>
+                <p className="text-sm text-yellow-700 mb-4">
+                  Connect your Ethereum wallet to access your blockchain ID and enable secure transactions.
+                </p>
+                <button
+                  onClick={connectWallet}
+                  className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
+                >
+                  Connect Wallet
+                </button>
+              </div>
+              
+              <p className="text-xs text-gray-500">
+                Your blockchain ID: <code className="bg-gray-100 px-2 py-1 rounded">{digitalID?.blockchainId}</code>
+              </p>
+            </div>
+          )}
+        </div>
+
         {/* Actions */}
         <div className="bg-white rounded-lg shadow-lg p-6">
           <h3 className="text-lg font-semibold text-gray-800 mb-4">Actions</h3>
@@ -392,7 +491,7 @@ const DigitalID = () => {
             </button>
             
             <button
-              onClick={() => copyToClipboard(digitalID.id)}
+              onClick={() => copyToClipboard(digitalID?.id || digitalID?.blockchainId)}
               className="flex items-center justify-center space-x-2 px-4 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
             >
               <FiShare2 className="w-4 h-4" />

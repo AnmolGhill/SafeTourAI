@@ -21,10 +21,17 @@ class EmailService {
         host: process.env.SMTP_HOST || 'smtp.gmail.com',
         port: parseInt(process.env.SMTP_PORT) || 587,
         secure: false,
+        pool: true, // Enable connection pooling
+        maxConnections: 5, // Limit concurrent connections
+        maxMessages: 100, // Messages per connection
+        rateLimit: 14, // Messages per second
         auth: {
           user: process.env.EMAIL_USER,
           pass: process.env.EMAIL_PASSWORD
-        }
+        },
+        connectionTimeout: 10000, // 10 seconds timeout
+        greetingTimeout: 5000, // 5 seconds greeting timeout
+        socketTimeout: 30000 // 30 seconds socket timeout
       });
 
       // Email service initialized successfully
@@ -34,79 +41,68 @@ class EmailService {
   }
 
   /**
-   * Send OTP email
+   * Send OTP email with optimized delivery
    * @param {string} email - Recipient email
    * @param {string} otp - OTP code
    * @param {string} name - User name
+   * @param {string} role - User role (for priority handling)
    */
-  async sendOTP(email, otp, name) {
+  async sendOTP(email, otp, name, role = 'user') {
+    const startTime = Date.now();
+    
     try {
+      // Simplified HTML for faster processing
+      const isAdmin = role === 'admin' || role === 'subadmin';
+      const priority = isAdmin ? 'high' : 'normal';
+      
       const mailOptions = {
         from: `SafeTourAI <${process.env.EMAIL_USER}>`,
         to: email,
-        subject: 'SafeTourAI - Email Verification OTP',
-        html: `
-          <!DOCTYPE html>
-          <html>
-          <head>
-            <style>
-              body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
-              .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-              .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
-              .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px; }
-              .otp-box { background: #fff; border: 2px dashed #667eea; padding: 20px; text-align: center; margin: 20px 0; border-radius: 10px; }
-              .otp-code { font-size: 32px; font-weight: bold; color: #667eea; letter-spacing: 5px; }
-              .footer { text-align: center; margin-top: 20px; color: #666; font-size: 12px; }
-              .warning { background: #fff3cd; border: 1px solid #ffeaa7; padding: 15px; border-radius: 5px; margin: 20px 0; }
-            </style>
-          </head>
-          <body>
-            <div class="container">
-              <div class="header">
-                <h1>SafeTourAI</h1>
-                <p>Email Verification Required</p>
-              </div>
-              <div class="content">
-                <h2>Hello ${name}!</h2>
-                <p>Thank you for registering with SafeTourAI. To complete your registration, please verify your email address using the OTP code below:</p>
-                
-                <div class="otp-box">
-                  <p>Your verification code is:</p>
-                  <div class="otp-code">${otp}</div>
-                </div>
-                
-                <div class="warning">
-                  <strong>Important:</strong>
-                  <ul>
-                    <li>This OTP is valid for ${process.env.OTP_EXPIRY_MINUTES || 10} minutes only</li>
-                    <li>Do not share this code with anyone</li>
-                    <li>If you didn't request this, please ignore this email</li>
-                  </ul>
-                </div>
-                
-                <p>Once verified, you'll have access to all SafeTourAI features including:</p>
-                <ul>
-                  <li>🛡️ Advanced safety monitoring</li>
-                  <li>🆔 KYC verification for blockchain digital ID</li>
-                  <li>🚨 Emergency SOS features</li>
-                  <li>📍 Real-time location sharing</li>
-                </ul>
-              </div>
-              <div class="footer">
-                <p>© 2024 SafeTourAI. All rights reserved.</p>
-                <p>This is an automated message, please do not reply.</p>
-              </div>
+        subject: `SafeTourAI - ${isAdmin ? 'Admin ' : ''}Email Verification OTP`,
+        priority: priority,
+        html: isAdmin ? `
+          <div style="font-family:Arial,sans-serif;max-width:500px;margin:0 auto;padding:20px;background:#f5f5f5;">
+            <div style="background:#667eea;color:white;padding:20px;text-align:center;border-radius:8px 8px 0 0;">
+              <h1 style="margin:0;">SafeTourAI Admin</h1>
+              <p style="margin:5px 0 0 0;">Email Verification</p>
             </div>
-          </body>
-          </html>
+            <div style="background:white;padding:30px;border-radius:0 0 8px 8px;">
+              <h2>Hello ${name}!</h2>
+              <p>Your admin verification code:</p>
+              <div style="background:#f8f9ff;border:2px solid #667eea;padding:15px;text-align:center;margin:20px 0;border-radius:8px;">
+                <div style="font-size:28px;font-weight:bold;color:#667eea;letter-spacing:3px;">${otp}</div>
+              </div>
+              <p style="color:#666;font-size:14px;">Valid for ${process.env.OTP_EXPIRY_MINUTES || 10} minutes. Do not share this code.</p>
+            </div>
+          </div>
+        ` : `
+          <div style="font-family:Arial,sans-serif;max-width:500px;margin:0 auto;padding:20px;background:#f5f5f5;">
+            <div style="background:#667eea;color:white;padding:20px;text-align:center;border-radius:8px 8px 0 0;">
+              <h1 style="margin:0;">SafeTourAI</h1>
+              <p style="margin:5px 0 0 0;">Email Verification</p>
+            </div>
+            <div style="background:white;padding:30px;border-radius:0 0 8px 8px;">
+              <h2>Hello ${name}!</h2>
+              <p>Your verification code:</p>
+              <div style="background:#f8f9ff;border:2px solid #667eea;padding:15px;text-align:center;margin:20px 0;border-radius:8px;">
+                <div style="font-size:28px;font-weight:bold;color:#667eea;letter-spacing:3px;">${otp}</div>
+              </div>
+              <p style="color:#666;font-size:14px;">Valid for ${process.env.OTP_EXPIRY_MINUTES || 10} minutes.</p>
+            </div>
+          </div>
         `
       };
 
       await this.transporter.sendMail(mailOptions);
-      console.log(`📧 OTP email sent successfully to: ${email}`);
+      const endTime = Date.now();
+      const duration = endTime - startTime;
+      
+      console.log(`📧 OTP email sent successfully to: ${email} (${duration}ms) ${isAdmin ? '[ADMIN PRIORITY]' : ''}`);
 
     } catch (error) {
-      console.error('❌ Failed to send OTP email:', error);
+      const endTime = Date.now();
+      const duration = endTime - startTime;
+      console.error(`❌ Failed to send OTP email to ${email} after ${duration}ms:`, error);
       throw new Error('Failed to send verification email');
     }
   }
