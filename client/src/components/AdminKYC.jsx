@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from 'react';
+import { useAuth } from '../utils/auth';
+import toast from 'react-hot-toast';
 import './AdminKYC.css';
 import { kycAPI, downloadKYCDocument, adminAPI } from '../config/api';
 
@@ -66,46 +68,136 @@ const AdminKYC = () => {
 
   const handleViewDocument = async (userId) => {
     try {
+      setLoading(true);
       const response = await adminAPI.getKYCDocuments(userId);
-      if (response.data.success) {
-        const documents = response.data.documents;
-        
-        // Create a modal or new window to display documents
-        if (documents.document) {
-          window.open(documents.document, '_blank');
+      
+      if (!response?.data?.success) {
+        throw new Error(response?.data?.error || 'Failed to load documents');
+      }
+      
+      const documents = response.data.documents || {};
+      const metadata = response.data.documentMetadata || {};
+      let hasDocuments = false;
+      
+      // Try to open documents in new tabs
+      if (documents.document) {
+        try {
+          const tab = window.open('', '_blank');
+          if (tab) {
+            tab.location.href = documents.document;
+            hasDocuments = true;
+          } else {
+            console.warn('Pop-up was blocked. Please allow pop-ups for this site.');
+            // Fallback to download if popup is blocked
+            const fileName = metadata?.document?.fileName || 'kyc_document.pdf';
+            await downloadKYCDocument(documents.document, fileName);
+            hasDocuments = true;
+          }
+        } catch (error) {
+          console.error('Error opening document:', error);
+          // If opening fails, try to download instead
+          const fileName = metadata?.document?.fileName || 'kyc_document.pdf';
+          await downloadKYCDocument(documents.document, fileName);
+          hasDocuments = true;
         }
-        if (documents.selfie) {
-          window.open(documents.selfie, '_blank');
+      }
+      
+      if (documents.selfie) {
+        try {
+          const tab = window.open('', '_blank');
+          if (tab) {
+            tab.location.href = documents.selfie;
+            hasDocuments = true;
+          } else {
+            console.warn('Pop-up was blocked. Please allow pop-ups for this site.');
+            // Fallback to download if popup is blocked
+            const fileName = metadata?.selfie?.fileName || 'kyc_selfie.jpg';
+            await downloadKYCDocument(documents.selfie, fileName);
+            hasDocuments = true;
+          }
+        } catch (error) {
+          console.error('Error opening selfie:', error);
+          // If opening fails, try to download instead
+          const fileName = metadata?.selfie?.fileName || 'kyc_selfie.jpg';
+          await downloadKYCDocument(documents.selfie, fileName);
+          hasDocuments = true;
         }
+      }
+      
+      if (!hasDocuments) {
+        toast.warning('No documents found for this user', {
+          position: 'top-center',
+          duration: 3000
+        });
       }
     } catch (error) {
       console.error('Error viewing documents:', error);
-      alert('Failed to load documents');
+      toast.error('Failed to load KYC data: ' + error.message, {
+        position: 'top-center',
+        duration: 4000
+      });
+    } finally {
+      setLoading(false);
     }
   };
 
   const handleDownloadDocument = async (userId) => {
     try {
+      setLoading(true);
       const response = await adminAPI.getKYCDocuments(userId);
       if (response.data.success) {
         const documents = response.data.documents;
-        const metadata = response.data.documentMetadata;
+        const metadata = response.data.documentMetadata || {};
+        let downloadedCount = 0;
         
         // Download documents using the utility function
         if (documents.document) {
           const fileName = metadata.document?.fileName || 'kyc_document.pdf';
-          await downloadKYCDocument(documents.document, fileName);
-        }
-        if (documents.selfie) {
-          const fileName = metadata.selfie?.fileName || 'kyc_selfie.jpg';
-          await downloadKYCDocument(documents.selfie, fileName);
+          try {
+            await downloadKYCDocument(documents.document, fileName);
+            downloadedCount++;
+          } catch (error) {
+            console.error('Error downloading document:', error);
+            // Continue with other downloads even if one fails
+          }
         }
         
-        alert('Documents downloaded successfully!');
+        if (documents.selfie) {
+          const fileName = metadata.selfie?.fileName || 'kyc_selfie.jpg';
+          try {
+            await downloadKYCDocument(documents.selfie, fileName);
+            downloadedCount++;
+          } catch (error) {
+            console.error('Error downloading selfie:', error);
+            // Continue with other downloads even if one fails
+          }
+        }
+        
+        if (downloadedCount > 0) {
+          toast.success(`Successfully downloaded ${downloadedCount} file(s)`, {
+            position: 'top-center',
+            duration: 3000
+          });
+        } else {
+          toast.warning('No documents were downloaded. Please try again or contact support.', {
+            position: 'top-center',
+            duration: 4000
+          });
+        }
+      } else {
+        toast.error('Failed to download documents: ' + (response.data.error || 'Unknown error'), {
+          position: 'top-center',
+          duration: 4000
+        });
       }
     } catch (error) {
       console.error('Error downloading documents:', error);
-      alert('Failed to download documents');
+      toast.error('Failed to download KYC data: ' + error.message, {
+        position: 'top-center',
+        duration: 4000
+      });
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -115,9 +207,15 @@ const AdminKYC = () => {
       const response = await adminAPI.reviewKYC(userId, action, reason);
       
       if (action === 'approve') {
-        alert(`KYC approved successfully!${response.data?.blockchainId ? `\nReal Blockchain ID Generated: ${response.data.blockchainId}` : ''}`);
+        toast.success('KYC approved successfully!' + (response.data?.blockchainId ? `\nReal Blockchain ID Generated: ${response.data.blockchainId}` : ''), {
+          position: 'top-center',
+          duration: 3000
+        });
       } else {
-        alert('KYC rejected successfully!');
+        toast.success('KYC rejected successfully!', {
+          position: 'top-center',
+          duration: 3000
+        });
       }
       
       // Refresh data
@@ -128,7 +226,10 @@ const AdminKYC = () => {
       setRejectionReason('');
     } catch (error) {
       console.error(`Error ${action}ing KYC:`, error);
-      alert(`Failed to ${action} KYC: ${error.message}`);
+      toast.error('Failed to approve KYC: ' + error.message, {
+        position: 'top-center',
+        duration: 4000
+      });
     } finally {
       setLoading(false);
     }
@@ -216,12 +317,36 @@ const AdminKYC = () => {
       <div className="kyc-table-container">
         <div className="table-header">
           <h2>Pending KYC Submissions</h2>
-          <button onClick={fetchPendingKYC} className="refresh-btn">
-            🔄 Refresh
+          <button onClick={fetchPendingKYC} className="refresh-btn" disabled={loading}>
+            {loading ? (
+              <span className="loading-text">
+                <div className="button-spinner"></div>
+                Loading...
+              </span>
+            ) : (
+              '🔄 Refresh'
+            )}
           </button>
         </div>
 
-        {pendingKYC.length === 0 ? (
+        {loading ? (
+          <div className="admin-loading">
+            <div className="loading-animation">
+              <div className="loading-spinner">
+                <div className="spinner-ring"></div>
+                <div className="spinner-ring"></div>
+                <div className="spinner-ring"></div>
+              </div>
+              <h3>🔍 Loading KYC submissions...</h3>
+              <p>Fetching pending verification requests</p>
+              <div className="loading-steps">
+                <div className="step active">📋 Retrieving KYC data</div>
+                <div className="step">📊 Loading statistics</div>
+                <div className="step">🔄 Updating dashboard</div>
+              </div>
+            </div>
+          </div>
+        ) : pendingKYC.length === 0 ? (
           <div className="no-data">
             <p>No pending KYC submissions</p>
           </div>
@@ -388,7 +513,14 @@ const AdminKYC = () => {
                 className={actionType === 'approve' ? 'confirm-approve-btn' : 'confirm-reject-btn'}
                 disabled={loading}
               >
-                {loading ? 'Processing...' : `Confirm ${actionType === 'approve' ? 'Approval' : 'Rejection'}`}
+                {loading ? (
+                  <span className="loading-text">
+                    <div className="button-spinner"></div>
+                    {actionType === 'approve' ? 'Approving & Creating Blockchain ID...' : 'Processing Rejection...'}
+                  </span>
+                ) : (
+                  `Confirm ${actionType === 'approve' ? 'Approval' : 'Rejection'}`
+                )}
               </button>
             </div>
           </div>

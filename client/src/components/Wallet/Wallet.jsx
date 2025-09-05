@@ -13,6 +13,7 @@ import {
   FiKey,
   FiAlertTriangle
 } from 'react-icons/fi';
+import { walletAPI } from '../../config/api';
 
 const Wallet = () => {
   const [wallet, setWallet] = useState(null);
@@ -35,27 +36,11 @@ const Wallet = () => {
   const initializeWallet = async () => {
     try {
       setLoading(true);
-      const token = localStorage.getItem('token');
       
-      if (!token) {
-        console.error('No auth token found');
-        return;
-      }
-
-      // Create/recover wallet
-      const response = await fetch('/api/wallet/create', {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        if (data.success) {
-          setWallet(data.wallet);
-          setBalance(data.wallet.balance);
-        }
+      const response = await walletAPI.createWallet();
+      if (response.data && response.data.success) {
+        setWallet(response.data.wallet);
+        setBalance(response.data.wallet.balance);
       }
     } catch (error) {
       console.error('Error initializing wallet:', error);
@@ -66,19 +51,9 @@ const Wallet = () => {
 
   const fetchTransactions = async () => {
     try {
-      const token = localStorage.getItem('token');
-      const response = await fetch('/api/wallet/transactions', {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        if (data.success) {
-          setTransactions(data.transactions);
-        }
+      const response = await walletAPI.getTransactions();
+      if (response.data && response.data.success) {
+        setTransactions(response.data.transactions);
       }
     } catch (error) {
       console.error('Error fetching transactions:', error);
@@ -87,20 +62,9 @@ const Wallet = () => {
 
   const refreshBalance = async () => {
     try {
-      const token = localStorage.getItem('token');
-      const response = await fetch('/api/wallet/refresh-balance', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        if (data.success) {
-          setBalance(data.balance);
-        }
+      const response = await walletAPI.refreshBalance();
+      if (response.data && response.data.success) {
+        setBalance(response.data.balance);
       }
     } catch (error) {
       console.error('Error refreshing balance:', error);
@@ -109,19 +73,9 @@ const Wallet = () => {
 
   const fetchSeedPhrase = async () => {
     try {
-      const token = localStorage.getItem('token');
-      const response = await fetch('/api/wallet/seed-phrase', {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        if (data.success) {
-          setSeedPhrase(data.seedPhrase);
-        }
+      const response = await walletAPI.getSeedPhrase();
+      if (response.data && response.data.success) {
+        setSeedPhrase(response.data.seedPhrase);
       }
     } catch (error) {
       console.error('Error fetching seed phrase:', error);
@@ -131,37 +85,19 @@ const Wallet = () => {
   const sendTransaction = async () => {
     try {
       setSendLoading(true);
-      const token = localStorage.getItem('token');
       
-      const response = await fetch('/api/wallet/send', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          toAddress: sendAddress,
-          amount: sendAmount
-        })
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        if (data.success) {
-          alert(`Transaction sent! Hash: ${data.transaction.transactionHash}`);
-          setSendAmount('');
-          setSendAddress('');
-          setShowSendModal(false);
-          refreshBalance();
-          fetchTransactions();
-        }
-      } else {
-        const errorData = await response.json();
-        alert(`Transaction failed: ${errorData.error}`);
+      const response = await walletAPI.sendTransaction(sendAddress, sendAmount);
+      if (response.data && response.data.success) {
+        alert(`Transaction sent! Hash: ${response.data.transaction.transactionHash}`);
+        setSendAmount('');
+        setSendAddress('');
+        setShowSendModal(false);
+        refreshBalance();
+        fetchTransactions();
       }
     } catch (error) {
       console.error('Error sending transaction:', error);
-      alert('Transaction failed');
+      alert(`Transaction failed: ${error.message}`);
     } finally {
       setSendLoading(false);
     }

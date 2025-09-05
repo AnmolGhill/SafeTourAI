@@ -3,6 +3,7 @@ const multer = require('multer');
 const { body, validationResult } = require('express-validator');
 const { db, storage } = require('../config/firebase');
 const { verifyFirebaseToken, requireAdmin } = require('../middleware/auth');
+const { statusLimiter } = require('../middleware/rateLimiter');
 const blockchainService = require('../services/blockchainService');
 const logger = require('../utils/logger');
 
@@ -221,7 +222,7 @@ router.post('/submit', verifyFirebaseToken, upload.fields([
 });
 
 // Get KYC status
-router.get('/status', verifyFirebaseToken, async (req, res) => {
+router.get('/status', statusLimiter, verifyFirebaseToken, async (req, res) => {
   try {
     const kycDoc = await db.collection('kyc').doc(req.user.uid).get();
     

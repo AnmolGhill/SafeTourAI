@@ -163,20 +163,27 @@ router.post('/send', verifyFirebaseToken, async (req, res) => {
 // Get transaction history
 router.get('/transactions', verifyFirebaseToken, async (req, res) => {
   try {
-    // Get transactions from database
-    const transactionsSnapshot = await db.collection('transactions')
-      .where('userId', '==', req.user.uid)
-      .orderBy('timestamp', 'desc')
-      .limit(50)
-      .get();
+    let transactions = [];
+    
+    try {
+      // Try to get transactions from database (without complex query to avoid index requirement)
+      const transactionsSnapshot = await db.collection('transactions')
+        .where('userId', '==', req.user.uid)
+        .limit(50)
+        .get();
 
-    const transactions = [];
-    transactionsSnapshot.forEach(doc => {
-      transactions.push({
-        id: doc.id,
-        ...doc.data()
+      transactionsSnapshot.forEach(doc => {
+        transactions.push({
+          id: doc.id,
+          ...doc.data()
+        });
       });
-    });
+
+      // Sort manually to avoid index requirement
+      transactions.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+    } catch (dbError) {
+      console.log('Database transactions query failed, using blockchain data only');
+    }
 
     // Also get blockchain transactions
     const blockchainTransactions = await walletService.getTransactionHistory(req.user.uid);

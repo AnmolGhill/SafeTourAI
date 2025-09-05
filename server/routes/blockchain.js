@@ -86,6 +86,54 @@ router.get('/digital-id', verifyFirebaseToken, async (req, res) => {
 // Get QR code data for digital ID
 router.get('/digital-id/qr', verifyFirebaseToken, async (req, res) => {
   try {
+    // First, ensure the user has a digital ID by checking and loading it if needed
+    const userDoc = await db.collection('users').doc(req.user.uid).get();
+    
+    if (!userDoc.exists) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    const userData = userDoc.data();
+    
+    if (!userData.blockchainId || userData.kycStatus !== 'approved') {
+      return res.status(404).json({ 
+        error: 'Digital ID not found. Complete KYC verification first.',
+        kycStatus: userData.kycStatus || 'pending'
+      });
+    }
+
+    // Check if digital ID exists in hashmap, if not, load it
+    let digitalIdResult = blockchainService.getDigitalIdentity(req.user.uid);
+    
+    if (!digitalIdResult.success && userData.blockchainId) {
+      console.log(`🔄 Loading digital ID into hashmap for QR generation: ${userData.blockchainId}`);
+      
+      // Get KYC data
+      const kycDoc = await db.collection('kyc').doc(req.user.uid).get();
+      const kycData = kycDoc.exists ? kycDoc.data() : {};
+      
+      // Create digital ID data for hashmap
+      const digitalIdData = {
+        blockchainId: userData.blockchainId,
+        uid: req.user.uid,
+        fullName: kycData.fullName || userData.name,
+        governmentIdNumber: kycData.governmentIdNumber || '',
+        createdAt: kycData.reviewedAt || new Date().toISOString(),
+        status: 'active',
+        verificationLevel: 'Level 3 - Full KYC',
+        network: 'SafeTour Blockchain',
+        contractAddress: '0x742d35Cc6634C0532925a3b8D404fddF4f0c1234',
+        tokenId: Math.floor(Math.random() * 1000000),
+        expiryDate: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString(),
+        hashMapKey: require('crypto').createHash('sha256').update(`${req.user.uid}-${userData.blockchainId}`).digest('hex')
+      };
+      
+      // Store in hashmap
+      blockchainService.digitalIdHashMap.set(digitalIdData.hashMapKey, digitalIdData);
+      console.log(`✅ Digital ID loaded into hashmap for QR generation: ${userData.blockchainId}`);
+    }
+
+    // Now generate QR code data
     const qrData = blockchainService.generateQRCodeData(req.user.uid);
     
     if (!qrData) {

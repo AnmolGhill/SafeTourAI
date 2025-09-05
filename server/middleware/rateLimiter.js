@@ -50,7 +50,13 @@ const authLimiter = createRateLimiter({
 // API rate limiter
 const apiLimiter = createRateLimiter({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100 // limit each IP to 100 requests per windowMs
+  max: 300 // limit each IP to 300 requests per windowMs
+});
+
+// Lenient limiter for status checking endpoints
+const statusLimiter = createRateLimiter({
+  windowMs: 5 * 60 * 1000, // 5 minutes
+  max: 200 // limit each IP to 200 requests per 5 minutes
 });
 
 // Strict limiter for sensitive operations
@@ -64,5 +70,6 @@ module.exports = {
   createRateLimiter,
   authLimiter,
   apiLimiter,
+  statusLimiter,
   strictLimiter
 };

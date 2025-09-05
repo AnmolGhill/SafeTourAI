@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from 'react';
+import { useAuth } from '../utils/auth';
+import toast from 'react-hot-toast';
 import './KYCVerification.css';
 import { kycAPI } from '../config/api';
 
@@ -34,10 +36,12 @@ const KYCVerification = () => {
   }, []);
 
   const fetchKYCStatus = async () => {
+    setLoading(true);
     try {
       const token = localStorage.getItem('token');
       if (!token) {
         console.log('No auth token found, user not logged in');
+        setKycStatus('not_submitted');
         return;
       }
 
@@ -51,6 +55,8 @@ const KYCVerification = () => {
       console.error('Error fetching KYC status:', error);
       // Set default status if error
       setKycStatus('not_submitted');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -132,20 +138,53 @@ const KYCVerification = () => {
 
       if (response.data.success) {
         setKycStatus('submitted');
-        alert('KYC information submitted successfully! Please wait for verification.');
+        toast.success('KYC submitted successfully! Your application is now under review.', {
+          position: 'top-center',
+          duration: 4000
+        });
         // Refresh KYC status to get updated data
         await fetchKYCStatus();
       } else {
-        alert(response.data.message || 'Failed to submit KYC information');
+        toast.error(response.data.message || 'Failed to submit KYC information', {
+          position: 'top-center',
+          duration: 4000
+        });
       }
     } catch (error) {
       console.error('Error submitting KYC:', error);
       const errorMessage = error.message || 'An error occurred while submitting KYC information';
-      alert(errorMessage);
+      toast.error(errorMessage, {
+        position: 'top-center',
+        duration: 4000
+      });
     } finally {
       setLoading(false);
     }
   };
+
+  // Loading state with animation
+  if (loading && kycStatus === null) {
+    return (
+      <div className="kyc-container">
+        <div className="kyc-loading">
+          <div className="loading-animation">
+            <div className="loading-spinner">
+              <div className="spinner-ring"></div>
+              <div className="spinner-ring"></div>
+              <div className="spinner-ring"></div>
+            </div>
+            <h2>🔍 Verifying KYC status and generating Digital ID...</h2>
+            <p>Please wait while we check your verification status</p>
+            <div className="loading-steps">
+              <div className="step active">📋 Checking KYC submission</div>
+              <div className="step">⏳ Verifying documents</div>
+              <div className="step">⛓️ Generating blockchain ID</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   if (kycStatus === 'approved') {
     return (
@@ -448,7 +487,7 @@ const KYCVerification = () => {
             className="submit-btn"
             disabled={loading}
           >
-            {loading ? 'Submitting...' : 'Submit KYC & Create Blockchain ID'}
+{loading ? 'Submitting...' : 'Submit KYC & Create Blockchain ID'}
           </button>
         </div>
       </form>
