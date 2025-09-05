@@ -321,9 +321,167 @@ export const downloadKYCDocument = async (documentUrl, fileName) => {
   }
 };
 
+// Blockchain API
+export const blockchainAPI = {
+  async getDigitalID() {
+    try {
+      const response = await fetch(`${API_BASE_URL}/blockchain/digital-id`, {
+        headers: getAuthHeaders()
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const result = await response.json();
+      return { data: result };
+    } catch (error) {
+      console.error('Get digital ID error:', error);
+      throw error;
+    }
+  },
+
+  async getQRCodeData() {
+    try {
+      const response = await fetch(`${API_BASE_URL}/blockchain/digital-id/qr`, {
+        headers: getAuthHeaders()
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const result = await response.json();
+      return { data: result };
+    } catch (error) {
+      console.error('Get QR code data error:', error);
+      throw error;
+    }
+  },
+
+  async verifyBlockchainID(blockchainId) {
+    try {
+      const response = await fetch(`${API_BASE_URL}/blockchain/verify`, {
+        method: 'POST',
+        headers: getAuthHeaders(),
+        body: JSON.stringify({ blockchainId })
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const result = await response.json();
+      return { data: result };
+    } catch (error) {
+      console.error('Verify blockchain ID error:', error);
+      throw error;
+    }
+  }
+};
+
+// Wallet API
+export const walletAPI = {
+  async createWallet() {
+    try {
+      const response = await fetch(`${API_BASE_URL}/wallet/create`, {
+        headers: getAuthHeaders()
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const result = await response.json();
+      return { data: result };
+    } catch (error) {
+      console.error('Create wallet error:', error);
+      throw error;
+    }
+  },
+
+  async getTransactions() {
+    try {
+      const response = await fetch(`${API_BASE_URL}/wallet/transactions`, {
+        headers: getAuthHeaders()
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const result = await response.json();
+      return { data: result };
+    } catch (error) {
+      console.error('Get transactions error:', error);
+      throw error;
+    }
+  },
+
+  async refreshBalance() {
+    try {
+      const response = await fetch(`${API_BASE_URL}/wallet/refresh-balance`, {
+        method: 'POST',
+        headers: getAuthHeaders()
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const result = await response.json();
+      return { data: result };
+    } catch (error) {
+      console.error('Refresh balance error:', error);
+      throw error;
+    }
+  },
+
+  async getSeedPhrase() {
+    try {
+      const response = await fetch(`${API_BASE_URL}/wallet/seed-phrase`, {
+        headers: getAuthHeaders()
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const result = await response.json();
+      return { data: result };
+    } catch (error) {
+      console.error('Get seed phrase error:', error);
+      throw error;
+    }
+  },
+
+  async sendTransaction(toAddress, amount) {
+    try {
+      const response = await fetch(`${API_BASE_URL}/wallet/send`, {
+        method: 'POST',
+        headers: getAuthHeaders(),
+        body: JSON.stringify({ toAddress, amount })
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
+      }
+
+      const result = await response.json();
+      return { data: result };
+    } catch (error) {
+      console.error('Send transaction error:', error);
+      throw error;
+    }
+  }
+};
+
 export default {
   kycAPI,
   usersAPI,
   emergencyAPI,
-  adminAPI
+  adminAPI,
+  blockchainAPI,
+  walletAPI
 };

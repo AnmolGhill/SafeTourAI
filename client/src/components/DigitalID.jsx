@@ -12,7 +12,7 @@ import {
   FiLink
 } from 'react-icons/fi';
 import { BiWallet } from 'react-icons/bi';
-import { kycAPI } from '../config/api';
+import { kycAPI, blockchainAPI } from '../config/api';
 import QRScanner from './QRScanner';
 
 const DigitalID = () => {
@@ -136,19 +136,9 @@ const DigitalID = () => {
 
   const fetchQRCodeData = async () => {
     try {
-      const token = localStorage.getItem('token');
-      if (!token) return;
-
-      const response = await fetch('/api/blockchain/digital-id/qr', {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      });
-
-      const data = await response.json();
-      if (data.qrData) {
-        setQrCodeData(data.qrData);
+      const response = await blockchainAPI.getQRCodeData();
+      if (response.data && response.data.qrData) {
+        setQrCodeData(response.data.qrData);
       }
     } catch (error) {
       console.error('Error fetching QR code data:', error);
@@ -161,7 +151,10 @@ const DigitalID = () => {
       return `data:image/svg+xml;base64,${btoa(`
         <svg width="200" height="200" xmlns="http://www.w3.org/2000/svg">
           <rect width="200" height="200" fill="white"/>
-          <text x="100" y="100" text-anchor="middle" font-size="12" fill="black">Loading QR...</text>
+          <circle cx="100" cy="100" r="20" fill="none" stroke="#3B82F6" stroke-width="3">
+            <animate attributeName="r" values="15;25;15" dur="1.5s" repeatCount="indefinite"/>
+          </circle>
+          <text x="100" y="140" text-anchor="middle" font-size="12" fill="#666">Loading QR...</text>
         </svg>
       `)}`;
     }
@@ -172,24 +165,53 @@ const DigitalID = () => {
       blockchainId: qrCodeData.blockchainId,
       hash: qrCodeData.hash,
       network: qrCodeData.network,
-      timestamp: qrCodeData.timestamp
+      timestamp: qrCodeData.timestamp,
+      uid: qrCodeData.uid,
+      verificationLevel: qrCodeData.verificationLevel
     });
 
-    // Simple QR-like pattern with actual data
+    // Create a more sophisticated QR-like pattern
+    const generatePattern = (data) => {
+      const hash = data.split('').reduce((a, b) => {
+        a = ((a << 5) - a) + b.charCodeAt(0);
+        return a & a;
+      }, 0);
+      
+      let pattern = '';
+      const size = 15;
+      const cellSize = 200 / size;
+      
+      for (let y = 0; y < size; y++) {
+        for (let x = 0; x < size; x++) {
+          const shouldFill = ((hash + x * y) % 3) === 0;
+          if (shouldFill) {
+            pattern += `<rect x="${x * cellSize}" y="${y * cellSize}" width="${cellSize}" height="${cellSize}" fill="black"/>`;
+          }
+        }
+      }
+      
+      return pattern;
+    };
+
     return `data:image/svg+xml;base64,${btoa(`
       <svg width="200" height="200" xmlns="http://www.w3.org/2000/svg">
         <rect width="200" height="200" fill="white"/>
-        <rect x="20" y="20" width="20" height="20" fill="black"/>
-        <rect x="60" y="20" width="20" height="20" fill="black"/>
-        <rect x="100" y="20" width="20" height="20" fill="black"/>
-        <rect x="140" y="20" width="20" height="20" fill="black"/>
-        <rect x="20" y="60" width="20" height="20" fill="black"/>
-        <rect x="100" y="60" width="20" height="20" fill="black"/>
-        <rect x="180" y="60" width="20" height="20" fill="black"/>
-        <rect x="40" y="40" width="120" height="120" fill="none" stroke="black" stroke-width="2"/>
-        <text x="100" y="105" text-anchor="middle" font-size="8" fill="black">${qrCodeData.blockchainId}</text>
-        <text x="100" y="120" text-anchor="middle" font-size="6" fill="black">${qrCodeData.hash}</text>
-        <text x="100" y="190" text-anchor="middle" font-size="8" fill="black">SafeTour ID</text>
+        ${generatePattern(qrContent)}
+        
+        <!-- Corner markers -->
+        <rect x="0" y="0" width="40" height="40" fill="black"/>
+        <rect x="10" y="10" width="20" height="20" fill="white"/>
+        
+        <rect x="160" y="0" width="40" height="40" fill="black"/>
+        <rect x="170" y="10" width="20" height="20" fill="white"/>
+        
+        <rect x="0" y="160" width="40" height="40" fill="black"/>
+        <rect x="10" y="170" width="20" height="20" fill="white"/>
+        
+        <!-- Center marker -->
+        <rect x="80" y="80" width="40" height="40" fill="black"/>
+        <rect x="90" y="90" width="20" height="20" fill="white"/>
+        <rect x="95" y="95" width="10" height="10" fill="black"/>
       </svg>
     `)}`;
   };
@@ -267,7 +289,7 @@ const DigitalID = () => {
               </div>
               <div className="text-right">
                 <div className="text-sm text-indigo-100">ID Number</div>
-                <div className="font-mono text-lg font-bold">{digitalID?.blockchainId}</div>
+                <div className="font-mono text-sm font-bold">{digitalID?.blockchainId?.slice(0, 8)}...{digitalID?.blockchainId?.slice(-6)}</div>
               </div>
             </div>
           </div>
