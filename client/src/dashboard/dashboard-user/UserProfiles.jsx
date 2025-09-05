@@ -91,7 +91,7 @@ const UserProfiles = () => {
       if (user && token) {
         try {
           // Fetch complete profile from backend
-          const BASE_URL = import.meta.env.REACT_APP_BASE_URL || 'http://localhost:5000';
+          const BASE_URL = import.meta.env.VITE_BASE_URL ;
           const response = await fetch(`${BASE_URL}/api/user/profile`, {
             method: 'GET',
             headers: {
@@ -137,7 +137,7 @@ const UserProfiles = () => {
       setIsLoading(true);
       
       // Save profile to backend Firebase
-      const BASE_URL = (typeof process !== 'undefined' && process.env?.REACT_APP_BASE_URL) || 'http://localhost:5000';
+      const BASE_URL = import.meta.env.VITE_BASE_URL ;
       const response = await fetch(`${BASE_URL}/api/user/profile`, {
         method: 'PUT',
         headers: {

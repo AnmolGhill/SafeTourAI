@@ -77,7 +77,7 @@ const OTPVerification = () => {
       });
       
       // Direct API call to backend
-      const BASE_URL = import.meta.env.REACT_APP_BASE_URL || 'http://localhost:5000';
+      const BASE_URL = import.meta.env.VITE_BASE_URL ;
       const response = await fetch(`${BASE_URL}/api/auth/verify-otp`, {
         method: 'POST',
         headers: {
@@ -152,7 +152,7 @@ const OTPVerification = () => {
       });
       
       // Direct API call to backend
-      const BASE_URL = import.meta.env.REACT_APP_BASE_URL || 'http://localhost:5000';
+      const BASE_URL = import.meta.env.VITE_BASE_URL ;
       const response = await fetch(`${BASE_URL}/api/auth/resend-otp`, {
         method: 'POST',
         headers: {
