@@ -42,7 +42,7 @@ app.use(cors({
       'http://127.0.0.1:3000', 
       'http://localhost:3001',
       'https://safetourai.onrender.com',
-      'https://safetourai-frontend.onrender.com'
+      'https://safetourai.vercel.app'
     ];
     
     if (allowedOrigins.indexOf(origin) !== -1) {
