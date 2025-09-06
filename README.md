@@ -424,3 +424,9 @@ For support and questions:
 ---
 
 **SafeTourAI** - Making tourism safer through blockchain technology and digital identity verification.
+
+# SafeTour AI
+
+[![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
+
+A Smart Tourist Safety Monitoring & Incident Response System built with AI, Blockchain, and Geo-Fencing.
