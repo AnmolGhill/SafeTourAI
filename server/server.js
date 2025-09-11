@@ -15,11 +15,17 @@ const { sanitizeInputMiddleware } = require('./utils/validation');
 
 // Import routes
 const authRoutes = require('./routes/auth');
-const kycRoutes = require('./routes/kyc');
-const userRoutes = require('./routes/user');
-const blockchainRoutes = require('./routes/blockchain');
 const adminRoutes = require('./routes/admin');
+const blockchainRoutes = require('./routes/blockchain');
+const kycRoutes = require('./routes/kyc');
+const emergencyRoutes = require('./routes/emergency');
+const locationRoutes = require('./routes/location');
+const notificationsRoutes = require('./routes/notifications');
+const mapsRoutes = require('./routes/maps');
+const weatherRoutes = require('./routes/weather');
 const walletRoutes = require('./routes/wallet');
+const geminiRoutes = require('./routes/gemini');
+const userRoutes = require('./routes/user');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -136,6 +142,12 @@ app.use('/api/user', userRoutes);
 app.use('/api/blockchain', blockchainRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/wallet', walletRoutes);
+app.use('/api/gemini', geminiRoutes);
+app.use('/api/location', locationRoutes);
+app.use('/api/emergency', emergencyRoutes);
+app.use('/api/notifications', notificationsRoutes);
+app.use('/api/maps', mapsRoutes);
+app.use('/api/weather', weatherRoutes);
 
 // 404 handler
 app.use('*', (req, res, next) => {
@@ -168,6 +180,18 @@ const server = app.listen(PORT, () => {
   console.log('🔐 Wallet: HD Deterministic (BIP39)');
   console.log('💎 Tokens: ETH + ERC-20');
   console.log('🚀 Provider: Infura Production');
+  
+  console.log('\n🤖 ========== GEMINI AI ==========');
+  if (process.env.GEMINI_API_KEY) {
+    console.log('✅ Gemini API Key: Configured');
+    console.log('🧠 AI Model: gemini-pro');
+    console.log('🛡️ SafeTourAI Assistant: Ready');
+    console.log('📍 Endpoints: /api/gemini/chat, /api/gemini/health');
+  } else {
+    console.log('❌ Gemini API Key: Not configured');
+    console.log('⚠️  Add GEMINI_API_KEY to .env file');
+    console.log('📖 See GEMINI_SETUP.md for instructions');
+  }
   
   console.log('\n✅ All services ready!\n');
 });

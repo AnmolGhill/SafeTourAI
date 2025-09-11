@@ -129,18 +129,16 @@ const QuickActions = () => {
     <div className="mb-6">
       <h2 className="text-xl font-semibold text-gray-800 mb-4">Quick Emergency Actions</h2>
       
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="quick-actions-grid">
         {actions.map((action) => {
           const Icon = action.icon;
-          const isLoading = loading[action.id];
-          
           return (
             <button
               key={action.id}
-              onClick={action.onClick}
-              disabled={isLoading}
+              onClick={() => action.onClick()}
+              disabled={loading[action.id]}
               className={`
-                ${action.bgColor} ${action.hoverColor} ${action.textColor}
+                quick-action-btn ${action.bgColor} ${action.hoverColor} ${action.textColor}
                 p-6 rounded-xl shadow-lg hover:shadow-xl
                 transition-all duration-300 transform hover:-translate-y-1
                 disabled:opacity-50 disabled:cursor-not-allowed
@@ -153,23 +151,17 @@ const QuickActions = () => {
               
               <div className="relative z-10">
                 <div className="flex items-center justify-center mb-4">
-                  {isLoading ? (
+                  {loading[action.id] ? (
                     <FiLoader className="text-4xl animate-spin" />
                   ) : (
                     <Icon className="text-4xl" />
                   )}
                 </div>
                 
-                <h3 className="text-lg font-bold mb-2">{action.title}</h3>
-                <p className="text-sm opacity-90">{action.description}</p>
-                
-                {isLoading && (
-                  <div className="mt-3">
-                    <div className="w-full bg-white bg-opacity-30 rounded-full h-2">
-                      <div className="bg-white h-2 rounded-full animate-pulse"></div>
-                    </div>
-                  </div>
-                )}
+                <div className="text-center">
+                  <h3 className="font-bold text-lg mb-2">{action.title}</h3>
+                  <p className="text-sm opacity-90">{action.description}</p>
+                </div>
               </div>
             </button>
           );

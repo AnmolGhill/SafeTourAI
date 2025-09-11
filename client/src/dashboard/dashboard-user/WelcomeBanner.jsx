@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { FiCheckCircle, FiAlertTriangle, FiClock } from 'react-icons/fi';
 
-const WelcomeBanner = ({ userName = "John Doe" }) => {
+const WelcomeBanner = ({ userName = "User" }) => {
   const [currentTime, setCurrentTime] = useState(new Date());
   const [systemStatus, setSystemStatus] = useState('active'); // 'active' or 'emergency'
 
