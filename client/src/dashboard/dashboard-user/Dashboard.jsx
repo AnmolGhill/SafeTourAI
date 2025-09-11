@@ -3,16 +3,21 @@ import Sidebar from './Sidebar';
 import Navbar from './Navbar';
 import WelcomeBanner from './WelcomeBanner';
 import StatsCards from './StatsCards';
+import SafetyScoreCard from './SafetyScoreCard';
 import QuickActions from './QuickActions';
 import ActivityFeed from './ActivityFeed';
 import BlockchainPanel from './BlockchainPanel';
 import AnalyticsChart from './AnalyticsChart';
-import ResponderWidget from './ResponderWidget';
+import ServicesWidget from './ServicesWidget';
 import UserProfiles from './UserProfiles';
+import SafeTourChatbot from './SafeTourChatbot';
+import ChatbotPage from './ChatbotPage';
+import SmartWatch from './SmartWatch';
 import EmergencyPanel from '../../components/Emergency/EmergencyPanel';
 import ResponderPanel from '../../components/Responder/ResponderPanel';
 import AnalyticsPanel from '../../components/Analytics/AnalyticsPanel';
 import SettingsPanel from '../../components/Settings/SettingsPanel';
+import LocationDebugger from '../../components/LocationDebugger';
 
 const Dashboard = () => {
   const [activeTab, setActiveTab] = useState('dashboard');
@@ -44,8 +49,9 @@ const Dashboard = () => {
                 <ActivityFeed />
               </div>
               <div>
+                <SafetyScoreCard />
                 <BlockchainPanel />
-                <ResponderWidget />
+                <ServicesWidget />
               </div>
             </div>
             <AnalyticsChart />
@@ -64,12 +70,18 @@ const Dashboard = () => {
         );
       case 'profile':
         return <UserProfiles />;
+      case 'chatbot':
+        return <ChatbotPage />;
+      case 'smartwatch':
+        return <SmartWatch />;
       case 'blockchain':
         return <BlockchainPanel />;
       case 'analytics':
         return <AnalyticsPanel />;
       case 'settings':
         return <SettingsPanel />;
+      case 'location-debug':
+        return <LocationDebugger />;
       default:
         return (
           <div className="card text-center animate-fadeIn">
@@ -82,27 +94,16 @@ const Dashboard = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Sidebar */}
-      <Sidebar 
-        activeTab={activeTab} 
-        setActiveTab={setActiveTab}
-        isOpen={sidebarOpen}
-        setIsOpen={setSidebarOpen}
-      />
-      
-      {/* Main Content Area */}
-      <div className="main-content">
-        {/* Top Navbar */}
-        <Navbar 
-          sidebarOpen={sidebarOpen}
-          setSidebarOpen={setSidebarOpen}
-        />
-        
-        {/* Main Content */}
-        <main className="content-area">
+      <Navbar />
+      <div className="flex">
+        <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} isOpen={sidebarOpen} setIsOpen={setSidebarOpen} />
+        <main className="mobile-dashboard-content flex-1 lg:ml-64">
           {renderContent()}
         </main>
       </div>
+      
+      {/* Floating Chatbot - Only for dashboard-user */}
+      <SafeTourChatbot activeTab={activeTab} setActiveTab={setActiveTab} />
     </div>
   );
 };

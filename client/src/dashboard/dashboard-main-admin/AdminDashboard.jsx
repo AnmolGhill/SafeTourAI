@@ -12,6 +12,7 @@ import SystemSettings from './SystemSettings';
 import DatabaseManagement from './DatabaseManagement';
 import AuditLogs from './AuditLogs';
 import AdminKYC from '../../components/AdminKYC';
+import UserProfiles from '../dashboard-user/UserProfiles';
 
 const AdminDashboard = () => {
   const [activeTab, setActiveTab] = useState('dashboard');
@@ -66,6 +67,8 @@ const AdminDashboard = () => {
             <p className="text-gray-600">Manage system backups and data recovery options.</p>
           </div>
         );
+      case 'profile':
+        return <UserProfiles />;
       default:
         return (
           <div className="card text-center animate-fadeIn">
@@ -92,6 +95,7 @@ const AdminDashboard = () => {
         <AdminNavbar 
           sidebarOpen={sidebarOpen}
           setSidebarOpen={setSidebarOpen}
+          onProfileClick={() => setActiveTab('profile')}
         />
         
         {/* Main Content */}

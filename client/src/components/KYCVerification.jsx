@@ -3,6 +3,7 @@ import { useAuth } from '../utils/auth';
 import toast from 'react-hot-toast';
 import './KYCVerification.css';
 import { kycAPI } from '../config/api';
+import { FiLoader } from 'react-icons/fi';
 
 const KYCVerification = () => {
   const [formData, setFormData] = useState({
@@ -28,6 +29,7 @@ const KYCVerification = () => {
 
   const [kycStatus, setKycStatus] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [dataLoading, setDataLoading] = useState(true);
   const [errors, setErrors] = useState({});
   const [blockchainData, setBlockchainData] = useState(null);
 
@@ -36,7 +38,7 @@ const KYCVerification = () => {
   }, []);
 
   const fetchKYCStatus = async () => {
-    setLoading(true);
+    setDataLoading(true);
     try {
       const token = localStorage.getItem('token');
       if (!token) {
@@ -56,7 +58,7 @@ const KYCVerification = () => {
       // Set default status if error
       setKycStatus('not_submitted');
     } finally {
-      setLoading(false);
+      setDataLoading(false);
     }
   };
 
@@ -162,28 +164,82 @@ const KYCVerification = () => {
     }
   };
 
-  // Loading state with animation
-  if (loading && kycStatus === null) {
-    return (
-      <div className="kyc-container">
-        <div className="kyc-loading">
-          <div className="loading-animation">
-            <div className="loading-spinner">
-              <div className="spinner-ring"></div>
-              <div className="spinner-ring"></div>
-              <div className="spinner-ring"></div>
+  // Loading skeleton component
+  const LoadingSkeleton = () => (
+    <div className="min-h-screen bg-gray-50 p-6">
+      <div className="max-w-4xl mx-auto">
+        {/* Header Skeleton */}
+        <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-6 mb-6">
+          <div className="text-center">
+            <div className="h-8 bg-gray-200 rounded-lg w-80 mx-auto mb-2 animate-pulse"></div>
+            <div className="h-4 bg-gray-200 rounded-lg w-96 mx-auto animate-pulse"></div>
+          </div>
+        </div>
+
+        {/* Form Sections Skeleton */}
+        <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-6">
+          <div className="space-y-8">
+            {/* Basic Identity Section */}
+            <div className="space-y-4">
+              <div className="h-6 bg-gray-200 rounded-lg w-48 animate-pulse"></div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {[1, 2, 3, 4].map((item) => (
+                  <div key={item} className="space-y-2">
+                    <div className="h-4 bg-gray-200 rounded w-32 animate-pulse"></div>
+                    <div className="h-12 bg-gray-200 rounded-lg animate-pulse"></div>
+                  </div>
+                ))}
+              </div>
             </div>
-            <h2>🔍 Verifying KYC status and generating Digital ID...</h2>
-            <p>Please wait while we check your verification status</p>
-            <div className="loading-steps">
-              <div className="step active">📋 Checking KYC submission</div>
-              <div className="step">⏳ Verifying documents</div>
-              <div className="step">⛓️ Generating blockchain ID</div>
+
+            {/* Address Section */}
+            <div className="space-y-4">
+              <div className="h-6 bg-gray-200 rounded-lg w-40 animate-pulse"></div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {[1, 2, 3, 4, 5, 6].map((item) => (
+                  <div key={item} className="space-y-2">
+                    <div className="h-4 bg-gray-200 rounded w-24 animate-pulse"></div>
+                    <div className="h-12 bg-gray-200 rounded-lg animate-pulse"></div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Government ID Section */}
+            <div className="space-y-4">
+              <div className="h-6 bg-gray-200 rounded-lg w-52 animate-pulse"></div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {[1, 2, 3, 4].map((item) => (
+                  <div key={item} className="space-y-2">
+                    <div className="h-4 bg-gray-200 rounded w-28 animate-pulse"></div>
+                    <div className="h-12 bg-gray-200 rounded-lg animate-pulse"></div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Submit Button Skeleton */}
+            <div className="flex justify-center">
+              <div className="h-12 bg-gray-200 rounded-lg w-64 animate-pulse"></div>
             </div>
           </div>
         </div>
+
+        {/* Loading indicator */}
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-xl p-8 flex flex-col items-center space-y-4">
+            <FiLoader className="w-8 h-8 text-blue-600 animate-spin" />
+            <p className="text-gray-700 font-medium">Loading KYC verification...</p>
+            <p className="text-gray-500 text-sm">Checking your verification status</p>
+          </div>
+        </div>
       </div>
-    );
+    </div>
+  );
+
+  // Show loading skeleton while data is being fetched
+  if (dataLoading) {
+    return <LoadingSkeleton />;
   }
 
   if (kycStatus === 'approved') {

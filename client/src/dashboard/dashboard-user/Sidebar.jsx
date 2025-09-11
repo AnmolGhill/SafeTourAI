@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import toast from 'react-hot-toast';
@@ -19,13 +19,22 @@ import {
   FiUserCheck,
   FiCreditCard,
   FiFileText,
-  FiDollarSign as FiWallet
+  FiDollarSign as FiWallet,
+  FiMessageCircle,
+  FiWatch
 } from 'react-icons/fi';
 
 const Sidebar = ({ activeTab, setActiveTab }) => {
   const [isOpen, setIsOpen] = useState(false);
   const navigate = useNavigate();
   const { logout } = useAuth();
+  
+  // Listen for toggle events from navbar
+  useEffect(() => {
+    const handleToggle = () => setIsOpen(!isOpen);
+    window.addEventListener('toggleSidebar', handleToggle);
+    return () => window.removeEventListener('toggleSidebar', handleToggle);
+  }, [isOpen]);
   
   // Check authentication from localStorage
   const isAuthenticated = () => {
@@ -51,6 +60,8 @@ const Sidebar = ({ activeTab, setActiveTab }) => {
   const menuItems = [
     { id: 'dashboard', label: 'Dashboard', icon: FiHome, route: '/dashboard-user', useTab: true },
     { id: 'profile', label: 'User Profiles', icon: FiUser, route: '/profile', useTab: true },
+    { id: 'chatbot', label: 'SafeTour Chatbot', icon: FiMessageCircle, route: '/chatbot', useTab: true },
+    { id: 'smartwatch', label: 'SmartWatch Connect', icon: FiWatch, route: '/smartwatch', useTab: true },
     { id: 'wallet', label: 'Crypto Wallet', icon: FiWallet, route: '/wallet', useTab: false },
     { id: 'digital-id', label: 'Digital ID', icon: FiCreditCard, route: '/digital-id', useTab: false },
     { id: 'kyc', label: 'KYC Verification', icon: FiFileText, route: '/kyc', useTab: false },
@@ -99,13 +110,6 @@ const Sidebar = ({ activeTab, setActiveTab }) => {
 
   return (
     <>
-      {/* Mobile Menu Button */}
-      <button
-        className="lg:hidden fixed top-4 left-4 z-50 p-2 bg-blue-600 text-white rounded-lg shadow-lg"
-        onClick={() => setIsOpen(!isOpen)}
-      >
-        {isOpen ? <FiX className="w-5 h-5" /> : <FiMenu className="w-5 h-5" />}
-      </button>
 
       {/* Overlay for mobile */}
       {isOpen && (

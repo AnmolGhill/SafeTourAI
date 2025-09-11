@@ -54,7 +54,7 @@ export const kycAPI = {
 
   async getStatus() {
     try {
-      const response = await fetch(`${API_BASE_URL}/kyc/status`, {
+      const response = await fetch(`${API_BASE_URL}/user/kyc-status`, {
         headers: getAuthHeaders()
       });
 
@@ -67,8 +67,15 @@ export const kycAPI = {
         data: {
           success: true,
           data: {
-            kycStatus: result.status,
+            kycStatus: result.kycStatus,
             blockchainId: result.blockchainId,
+            verificationLevel: result.verificationLevel,
+            digitalIdActive: result.digitalIdActive,
+            digitalIdCreated: result.digitalIdCreated,
+            securityScore: result.securityScore,
+            securityLevel: result.securityLevel,
+            emergencyContactsCount: result.emergencyContactsCount,
+            emergencyContactsConfigured: result.emergencyContactsConfigured,
             submittedAt: result.submittedAt,
             reviewedAt: result.reviewedAt,
             rejectionReason: result.rejectionReason
@@ -82,8 +89,11 @@ export const kycAPI = {
         data: {
           success: true,
           data: {
-            kycStatus: 'not_submitted',
-            blockchainId: null
+            kycStatus: 'not_started',
+            blockchainId: null,
+            digitalIdActive: false,
+            securityScore: 0,
+            emergencyContactsCount: 0
           }
         }
       };

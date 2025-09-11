@@ -13,61 +13,72 @@ import { kycAPI } from '../../config/api';
 
 const BlockchainPanel = () => {
   const [transactions, setTransactions] = useState([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [kycStatus, setKycStatus] = useState(null);
   const [blockchainId, setBlockchainId] = useState(null);
+  const [blockchainStats, setBlockchainStats] = useState({
+    networkStatus: 'active',
+    totalRecords: 0,
+    verifiedToday: 0
+  });
 
-  // Mock blockchain transaction data
-  const mockTransactions = [
-    {
-      id: 'TXN_001234_ABC123',
-      userId: 'USR_567890_DEF456',
-      eventType: 'Emergency Created',
-      status: 'verified',
-      timestamp: new Date(Date.now() - 10 * 60 * 1000),
-      blockHash: '0x1a2b3c4d5e6f7890abcdef1234567890',
-      blockNumber: 12345
-    },
-    {
-      id: 'TXN_001235_ABC124',
-      userId: 'USR_567891_DEF457',
-      eventType: 'Location Updated',
-      status: 'verified',
-      timestamp: new Date(Date.now() - 25 * 60 * 1000),
-      blockHash: '0x2b3c4d5e6f7890abcdef1234567890ab',
-      blockNumber: 12344
-    },
-    {
-      id: 'TXN_001236_ABC125',
-      userId: 'USR_567892_DEF458',
-      eventType: 'Alert Sent',
-      status: 'pending',
-      timestamp: new Date(Date.now() - 40 * 60 * 1000),
-      blockHash: '0x3c4d5e6f7890abcdef1234567890abcd',
-      blockNumber: 12343
-    },
-    {
-      id: 'TXN_001237_ABC126',
-      userId: 'USR_567893_DEF459',
-      eventType: 'Safe Check-in',
-      status: 'verified',
-      timestamp: new Date(Date.now() - 55 * 60 * 1000),
-      blockHash: '0x4d5e6f7890abcdef1234567890abcdef',
-      blockNumber: 12342
-    },
-    {
-      id: 'TXN_001238_ABC127',
-      userId: 'USR_567894_DEF460',
-      eventType: 'Emergency Resolved',
-      status: 'verified',
-      timestamp: new Date(Date.now() - 70 * 60 * 1000),
-      blockHash: '0x5e6f7890abcdef1234567890abcdef12',
-      blockNumber: 12341
+  // Fetch real blockchain transactions from API
+  const fetchBlockchainTransactions = async () => {
+    setLoading(true);
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/blockchain/transactions`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        if (data.success) {
+          setTransactions(data.transactions || []);
+        } else {
+          setTransactions([]);
+          console.error('API returned error:', data.error);
+        }
+      } else {
+        setTransactions([]);
+        console.error('Failed to fetch blockchain transactions:', response.status);
+      }
+    } catch (error) {
+      console.error('Error fetching blockchain transactions:', error);
+      setTransactions([]);
+    } finally {
+      setLoading(false);
     }
-  ];
+  };
+
+  // Fetch real blockchain statistics
+  const fetchBlockchainStats = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/blockchain/stats`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        if (data.success) {
+          setBlockchainStats(data.stats);
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching blockchain stats:', error);
+    }
+  };
 
   useEffect(() => {
-    setTransactions(mockTransactions);
+    fetchBlockchainTransactions();
+    fetchBlockchainStats();
     fetchKYCStatus();
   }, []);
 
@@ -84,12 +95,7 @@ const BlockchainPanel = () => {
   };
 
   const refreshTransactions = async () => {
-    setLoading(true);
-    // Simulate API call
-    setTimeout(() => {
-      setTransactions([...mockTransactions]);
-      setLoading(false);
-    }, 1000);
+    await fetchBlockchainTransactions();
   };
 
   const copyToClipboard = (text) => {
@@ -131,66 +137,53 @@ const BlockchainPanel = () => {
   };
 
   return (
-    <div className="mb-6">
+    <div className="blockchain-panel mb-6" style={{ minHeight: '400px' }}>
+      <div className="flex items-center justify-between mb-4">
+        <h2 className="text-xl font-semibold text-gray-800">Blockchain Verification</h2>
+        <button
+          onClick={refreshTransactions}
+          disabled={loading}
+          className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg 
+                   hover:bg-blue-700 transition-colors duration-200 text-sm font-medium disabled:opacity-50"
+        >
+          <FiRefreshCw className={loading ? 'animate-spin' : ''} />
+          <span>{loading ? 'Loading...' : 'Refresh'}</span>
+        </button>
+      </div>
+
       <div className="bg-white rounded-xl shadow-lg border border-gray-200">
-        {/* Header */}
+        {/* KYC Approved Section */}
+        {kycStatus === 'approved' && blockchainId && (
         <div className="p-6 border-b border-gray-200">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-3">
-              <div className="p-2 bg-blue-100 rounded-lg">
-                <FiLink className="text-blue-600 text-xl" />
-              </div>
-              <div>
-                <h2 className="text-xl font-semibold text-gray-800">Blockchain Verification</h2>
-                <p className="text-sm text-gray-600">Your digital identity and blockchain transactions</p>
-              </div>
+          <div className="flex items-center space-x-4">
+            <div className="p-3 bg-green-100 rounded-lg">
+              <FiShield className="text-green-600 text-2xl" />
             </div>
-            
-            <button
-              onClick={refreshTransactions}
-              disabled={loading}
-              className="flex items-center space-x-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 
-                       text-white rounded-lg transition-colors duration-200 text-sm font-medium 
-                       disabled:opacity-50"
-            >
-              <FiRefreshCw className={`${loading ? 'animate-spin' : ''}`} />
-              <span>Refresh</span>
-            </button>
+            <div className="flex-1">
+              <h3 className="text-lg font-semibold text-gray-800 flex items-center space-x-2">
+                <span>Your Blockchain ID</span>
+                <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                  ✅ KYC Verified
+                </span>
+              </h3>
+              <div className="flex items-center space-x-3 mt-2">
+                <code className="text-sm font-mono bg-white px-3 py-2 rounded border text-gray-800">
+                  {blockchainId}
+                </code>
+                <button
+                  onClick={() => copyToClipboard(blockchainId)}
+                  className="flex items-center space-x-1 text-blue-600 hover:text-blue-800 text-sm"
+                >
+                  <FiCopy />
+                  <span>Copy</span>
+                </button>
+              </div>
+              <p className="text-sm text-gray-600 mt-2">
+                This is your unique Ethereum wallet address generated after KYC approval. Use it for secure transactions.
+              </p>
+            </div>
           </div>
         </div>
-
-        {/* Blockchain ID Section */}
-        {kycStatus === 'approved' && blockchainId && (
-          <div className="p-6 border-b border-gray-200 bg-gradient-to-r from-green-50 to-blue-50">
-            <div className="flex items-center space-x-4">
-              <div className="p-3 bg-green-100 rounded-lg">
-                <FiShield className="text-green-600 text-2xl" />
-              </div>
-              <div className="flex-1">
-                <h3 className="text-lg font-semibold text-gray-800 flex items-center space-x-2">
-                  <span>Your Blockchain ID</span>
-                  <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                    ✅ KYC Verified
-                  </span>
-                </h3>
-                <div className="flex items-center space-x-3 mt-2">
-                  <code className="text-sm font-mono bg-white px-3 py-2 rounded border text-gray-800">
-                    {blockchainId}
-                  </code>
-                  <button
-                    onClick={() => copyToClipboard(blockchainId)}
-                    className="flex items-center space-x-1 text-blue-600 hover:text-blue-800 text-sm"
-                  >
-                    <FiCopy />
-                    <span>Copy</span>
-                  </button>
-                </div>
-                <p className="text-sm text-gray-600 mt-2">
-                  This is your unique Ethereum wallet address generated after KYC approval. Use it for secure transactions.
-                </p>
-              </div>
-            </div>
-          </div>
         )}
 
         {/* KYC Status for non-approved users */}
@@ -228,7 +221,46 @@ const BlockchainPanel = () => {
 
         {/* Transactions List */}
         <div className="divide-y divide-gray-100">
-          {transactions.map((transaction) => {
+          {loading ? (
+          // Loading skeleton for transactions
+          <div className="space-y-4 p-4">
+            {[1, 2, 3].map((item) => (
+              <div key={item} className="animate-pulse">
+                <div className="flex items-center space-x-3 mb-3">
+                  <div className="w-10 h-10 bg-gray-200 rounded-lg"></div>
+                  <div className="flex-1">
+                    <div className="h-4 bg-gray-200 rounded w-32 mb-2"></div>
+                    <div className="h-3 bg-gray-200 rounded w-20"></div>
+                  </div>
+                  <div className="w-16 h-6 bg-gray-200 rounded-full"></div>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="h-3 bg-gray-200 rounded"></div>
+                  <div className="h-3 bg-gray-200 rounded"></div>
+                </div>
+                <div className="h-3 bg-gray-200 rounded w-3/4 mt-2"></div>
+              </div>
+            ))}
+          </div>
+        ) : transactions.length === 0 ? (
+          // Empty state
+          <div className="p-8 text-center">
+            <div className="w-16 h-16 mx-auto mb-4 bg-gray-100 rounded-full flex items-center justify-center">
+              <FiLink className="w-8 h-8 text-gray-400" />
+            </div>
+            <h3 className="text-lg font-medium text-gray-800 mb-2">No Blockchain Transactions</h3>
+            <p className="text-gray-600 mb-4">
+              No blockchain transactions found for your account. Complete KYC verification to start recording transactions.
+            </p>
+            <button
+              onClick={refreshTransactions}
+              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+            >
+              Refresh Transactions
+            </button>
+          </div>
+        ) : (
+          transactions.map((transaction) => {
             const StatusIcon = getStatusIcon(transaction.status);
             
             return (
@@ -252,7 +284,7 @@ const BlockchainPanel = () => {
                       {transaction.status === 'verified' ? '✅ Verified' : '❌ Pending'}
                     </span>
                     <p className="text-xs text-gray-500 mt-1">
-                      {transaction.timestamp.toLocaleTimeString()}
+                      {new Date(transaction.timestamp).toLocaleTimeString()}
                     </p>
                   </div>
                 </div>
@@ -299,7 +331,8 @@ const BlockchainPanel = () => {
                 </div>
               </div>
             );
-          })}
+          })
+        )}
         </div>
 
         {/* Footer */}
@@ -325,10 +358,12 @@ const BlockchainPanel = () => {
       <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-4">
         <div className="bg-white p-4 rounded-lg shadow border border-gray-200">
           <div className="flex items-center space-x-3">
-            <div className="w-3 h-3 bg-green-400 rounded-full animate-pulse"></div>
+            <div className={`w-3 h-3 rounded-full ${blockchainStats.networkStatus === 'active' ? 'bg-green-400 animate-pulse' : 'bg-red-400'}`}></div>
             <div>
               <p className="text-sm text-gray-600">Network Status</p>
-              <p className="font-semibold text-green-600">Active</p>
+              <p className={`font-semibold ${blockchainStats.networkStatus === 'active' ? 'text-green-600' : 'text-red-600'}`}>
+                {blockchainStats.networkStatus === 'active' ? 'Active' : 'Inactive'}
+              </p>
             </div>
           </div>
         </div>
@@ -338,7 +373,7 @@ const BlockchainPanel = () => {
             <FiLink className="text-blue-600" />
             <div>
               <p className="text-sm text-gray-600">Total Records</p>
-              <p className="font-semibold text-gray-800">1,234</p>
+              <p className="font-semibold text-gray-800">{blockchainStats.totalRecords}</p>
             </div>
           </div>
         </div>
@@ -348,7 +383,7 @@ const BlockchainPanel = () => {
             <FiCheckCircle className="text-green-600" />
             <div>
               <p className="text-sm text-gray-600">Verified Today</p>
-              <p className="font-semibold text-gray-800">47</p>
+              <p className="font-semibold text-gray-800">{blockchainStats.verifiedToday}</p>
             </div>
           </div>
         </div>

@@ -12,61 +12,53 @@ const ResponderWidget = () => {
   const [responders, setResponders] = useState([]);
   const [loading, setLoading] = useState(false);
 
-  // Mock responder data
-  const mockResponders = [
-    {
-      id: 'RSP_001',
-      name: 'Dr. Sarah Johnson',
-      location: 'Downtown Medical Center',
-      distance: '0.8 km',
-      status: 'available',
-      specialization: 'Emergency Medicine',
-      responseTime: '3 min',
-      rating: 4.9
-    },
-    {
-      id: 'RSP_002',
-      name: 'Officer Mike Chen',
-      location: 'Central Police Station',
-      distance: '1.2 km',
-      status: 'available',
-      specialization: 'Law Enforcement',
-      responseTime: '5 min',
-      rating: 4.8
-    },
-    {
-      id: 'RSP_003',
-      name: 'Paramedic Lisa Davis',
-      location: 'Fire Station 12',
-      distance: '2.1 km',
-      status: 'busy',
-      specialization: 'Emergency Medical',
-      responseTime: '7 min',
-      rating: 4.7
-    },
-    {
-      id: 'RSP_004',
-      name: 'Firefighter Tom Wilson',
-      location: 'Fire Station 8',
-      distance: '2.8 km',
-      status: 'available',
-      specialization: 'Fire & Rescue',
-      responseTime: '8 min',
-      rating: 4.9
+  // Fetch real responders from API
+  const fetchResponders = async () => {
+    setLoading(true);
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        setResponders([]);
+        setLoading(false);
+        return;
+      }
+
+      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/emergency/responders`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        if (data.success) {
+          setResponders(data.responders || []);
+        } else {
+          setResponders([]);
+          console.error('API returned error:', data.error);
+        }
+      } else {
+        setResponders([]);
+        console.error('Failed to fetch responders:', response.status);
+      }
+    } catch (error) {
+      console.error('Error fetching responders:', error);
+      setResponders([]);
+    } finally {
+      setLoading(false);
     }
-  ];
+  };
 
   useEffect(() => {
-    setResponders(mockResponders);
+    fetchResponders();
+    // Set up polling for real-time updates every 60 seconds
+    const interval = setInterval(fetchResponders, 60000);
+    return () => clearInterval(interval);
   }, []);
 
   const refreshResponders = async () => {
-    setLoading(true);
-    // Simulate API call
-    setTimeout(() => {
-      setResponders([...mockResponders]);
-      setLoading(false);
-    }, 1000);
+    await fetchResponders();
   };
 
   const getStatusColor = (status) => {

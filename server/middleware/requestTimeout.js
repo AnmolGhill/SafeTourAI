@@ -2,40 +2,27 @@ const logger = require('../utils/logger');
 const { AppError } = require('./errorHandler');
 
 // Request timeout middleware
-const requestTimeout = (timeoutMs = 30000) => {
+const requestTimeout = (timeout = 60000) => { // Increased to 60 seconds for API calls
   return (req, res, next) => {
-    const timeout = setTimeout(() => {
+    const timer = setTimeout(() => {
       if (!res.headersSent) {
-        // Use console.warn as fallback if logger.warn is not available
-        if (typeof logger.warn === 'function') {
-          logger.warn('Request timeout:', {
-            path: req.originalUrl,
-            method: req.method,
-            ip: req.ip,
-            timeout: timeoutMs
-          });
-        } else {
-          console.warn('Request timeout:', {
-            path: req.originalUrl,
-            method: req.method,
-            ip: req.ip,
-            timeout: timeoutMs
-          });
-        }
-        
-        const error = new AppError('Request timeout', 408, 'REQUEST_TIMEOUT');
-        next(error);
+        console.log('⏰ Request timeout for:', req.method, req.path);
+        res.status(408).json({
+          success: false,
+          error: 'Request timeout',
+          code: 'REQUEST_TIMEOUT'
+        });
       }
-    }, timeoutMs);
+    }, timeout);
 
     // Clear timeout when response finishes
     res.on('finish', () => {
-      clearTimeout(timeout);
+      clearTimeout(timer);
     });
 
     // Clear timeout when response closes
     res.on('close', () => {
-      clearTimeout(timeout);
+      clearTimeout(timer);
     });
 
     next();

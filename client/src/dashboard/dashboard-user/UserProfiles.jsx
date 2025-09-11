@@ -8,71 +8,66 @@ import {
   FiHeart, 
   FiShield, 
   FiSettings,
-  FiEdit3
+  FiEdit3,
+  FiLoader
 } from 'react-icons/fi';
 
 const UserProfiles = () => {
   const [editMode, setEditMode] = useState(false);
   const [activeSection, setActiveSection] = useState('basic');
   const [isLoading, setIsLoading] = useState(false);
+  const [dataLoading, setDataLoading] = useState(true);
 
-  const [userProfile, setUserProfile] = useState({
-    fullName: 'John Doe',
-    age: 28,
-    dateOfBirth: '1995-06-15',
-    gender: 'Male',
-    contactNumber: '+1 234 567 8900',
-    email: 'john.doe@example.com',
-    nationality: 'American',
-    occupation: 'Software Engineer',
-    address: '123 Main St, New York, NY 10001',
-    riskScore: 85,
-    emergencyContacts: [
-      { name: 'Jane Doe', phone: '+1 234 567 8901', relation: 'Spouse', email: 'jane.doe@example.com' },
-      { name: 'Robert Doe', phone: '+1 234 567 8902', relation: 'Father', email: 'robert.doe@example.com' }
-    ],
-    predictiveAlerts: true,
-    smartRecommendations: true,
+  // Initialize with empty values to prevent auto-fill issues
+  const getInitialProfileState = () => ({
+    fullName: '',
+    age: '',
+    dateOfBirth: '',
+    gender: '',
+    contactNumber: '',
+    email: '',
+    nationality: '',
+    occupation: '',
+    address: '',
+    riskScore: 0,
+    emergencyContacts: [],
+    predictiveAlerts: false,
+    smartRecommendations: false,
     behaviorAnalysis: false,
-    voiceAssistant: true,
-    aiLearningLevel: 'Moderate',
-    aiNotificationFreq: 'Normal',
-    safetyTips: [
-      'Keep emergency contacts updated and accessible',
-      'Share your location with trusted contacts when traveling',
-      'Carry backup identification and emergency cash',
-      'Research local emergency numbers for your destination',
-      'Avoid traveling alone after 10 PM',
-      'Share live location during long trips'
-    ],
-    bloodGroup: 'O+',
-    allergies: 'Peanuts, Shellfish',
-    medicalConditions: 'None',
-    disabilities: 'None',
-    medications: 'Aspirin 81mg daily',
-    doctorName: 'Dr. Smith',
-    doctorPhone: '+1-555-0130',
-    healthInsurance: 'BlueCross #HC123456',
-    medicalHistory: 'Appendectomy 2018, No major surgeries',
-    chronicConditions: 'None',
-    mentalHealthConditions: 'None',
-    vaccinationStatus: 'Up to date - COVID, Flu, Hepatitis',
-    organDonor: true,
-    medicalAlerts: 'None',
-    emergencyMedicalPreference: 'Nearest Hospital',
-    mobilityAids: 'None',
+    voiceAssistant: false,
+    aiLearningLevel: '',
+    aiNotificationFreq: '',
+    safetyTips: [],
+    bloodGroup: '',
+    allergies: '',
+    medicalConditions: '',
+    disabilities: '',
+    medications: '',
+    doctorName: '',
+    doctorPhone: '',
+    healthInsurance: '',
+    medicalHistory: '',
+    chronicConditions: '',
+    mentalHealthConditions: '',
+    vaccinationStatus: '',
+    organDonor: false,
+    medicalAlerts: '',
+    emergencyMedicalPreference: '',
+    mobilityAids: '',
     visionImpairment: false,
     hearingImpairment: false,
-    sosPreference: 'Button',
-    privacySettings: 'Family Only',
-    blockchainConsent: true,
+    sosPreference: '',
+    privacySettings: '',
+    blockchainConsent: false,
     disabilitySupport: false,
-    safeWord: 'RAINBOW',
-    travelInsurance: 'Policy #INS123456',
-    travelStyle: 'Adventure',
-    dietaryRestrictions: 'Vegetarian',
-    accommodationPreference: 'Hotel'
+    safeWord: '',
+    travelInsurance: '',
+    travelStyle: '',
+    dietaryRestrictions: '',
+    accommodationPreference: ''
   });
+
+  const [userProfile, setUserProfile] = useState(getInitialProfileState);
 
   const sections = [
     { id: 'basic', label: 'Basic Info', icon: FiUser },
@@ -88,11 +83,12 @@ const UserProfiles = () => {
   // Load user data from backend on component mount
   useEffect(() => {
     const loadUserProfile = async () => {
-      if (user && token) {
+      if (user?.uid && token) {
         try {
+          setDataLoading(true);
+          
           // Fetch complete profile from backend
-          const BASE_URL = import.meta.env.VITE_BASE_URL ;
-          const response = await fetch(`${BASE_URL}/api/user/profile`, {
+          const response = await fetch('/api/user/profile', {
             method: 'GET',
             headers: {
               'Authorization': `Bearer ${token}`,
@@ -102,19 +98,85 @@ const UserProfiles = () => {
 
           if (response.ok) {
             const result = await response.json();
-            // Merge backend data with defaults
-            setUserProfile(prev => ({
-              ...prev,
-              ...result.user,
-              fullName: result.user.name || result.user.fullName || prev.fullName,
-              email: result.user.email || prev.email,
-            }));
+            
+            // Profile API has all the data we need
+            console.log('📊 Profile API Response:', result);
+            
+            // Only update fields that have actual values from the server
+            const updatedProfile = { ...getInitialProfileState() };
+            
+            // Only set values if they exist and are not empty
+            if (result.user.fullName || result.user.name) {
+              updatedProfile.fullName = result.user.fullName || result.user.name;
+            }
+            if (result.user.email) updatedProfile.email = result.user.email;
+            if (result.user.phone || result.user.contactNumber) {
+              updatedProfile.contactNumber = result.user.phone || result.user.contactNumber;
+            }
+            if (result.user.age) updatedProfile.age = result.user.age;
+            if (result.user.dateOfBirth) updatedProfile.dateOfBirth = result.user.dateOfBirth;
+            if (result.user.gender) updatedProfile.gender = result.user.gender;
+            if (result.user.nationality) updatedProfile.nationality = result.user.nationality;
+            if (result.user.address) updatedProfile.address = result.user.address;
+            if (result.user.occupation) updatedProfile.occupation = result.user.occupation;
+            if (result.user.blockchainId) updatedProfile.blockchainId = result.user.blockchainId;
+            if (result.user.kycStatus) updatedProfile.kycStatus = result.user.kycStatus;
+            
+            // Medical and emergency data - handle both array and object formats
+            if (result.user.emergencyContacts) {
+              if (Array.isArray(result.user.emergencyContacts)) {
+                updatedProfile.emergencyContacts = result.user.emergencyContacts;
+              } else if (typeof result.user.emergencyContacts === 'object') {
+                // Convert object format to array format
+                updatedProfile.emergencyContacts = Object.values(result.user.emergencyContacts);
+              } else {
+                updatedProfile.emergencyContacts = [];
+              }
+            }
+            if (result.user.bloodGroup) updatedProfile.bloodGroup = result.user.bloodGroup;
+            if (result.user.allergies) updatedProfile.allergies = result.user.allergies;
+            if (result.user.medicalConditions) updatedProfile.medicalConditions = result.user.medicalConditions;
+            if (result.user.medications) updatedProfile.medications = result.user.medications;
+            if (result.user.doctorName) updatedProfile.doctorName = result.user.doctorName;
+            if (result.user.doctorPhone) updatedProfile.doctorPhone = result.user.doctorPhone;
+            if (result.user.healthInsurance) updatedProfile.healthInsurance = result.user.healthInsurance;
+            if (result.user.medicalHistory) updatedProfile.medicalHistory = result.user.medicalHistory;
+            if (result.user.chronicConditions) updatedProfile.chronicConditions = result.user.chronicConditions;
+            if (result.user.mentalHealthConditions) updatedProfile.mentalHealthConditions = result.user.mentalHealthConditions;
+            if (result.user.vaccinationStatus) updatedProfile.vaccinationStatus = result.user.vaccinationStatus;
+            if (result.user.medicalAlerts) updatedProfile.medicalAlerts = result.user.medicalAlerts;
+            if (result.user.emergencyMedicalPreference) updatedProfile.emergencyMedicalPreference = result.user.emergencyMedicalPreference;
+            if (result.user.mobilityAids) updatedProfile.mobilityAids = result.user.mobilityAids;
+            
+            // Boolean values - only set if explicitly defined
+            if (typeof result.user.organDonor === 'boolean') updatedProfile.organDonor = result.user.organDonor;
+            if (typeof result.user.visionImpairment === 'boolean') updatedProfile.visionImpairment = result.user.visionImpairment;
+            if (typeof result.user.hearingImpairment === 'boolean') updatedProfile.hearingImpairment = result.user.hearingImpairment;
+            if (typeof result.user.predictiveAlerts === 'boolean') updatedProfile.predictiveAlerts = result.user.predictiveAlerts;
+            if (typeof result.user.smartRecommendations === 'boolean') updatedProfile.smartRecommendations = result.user.smartRecommendations;
+            if (typeof result.user.behaviorAnalysis === 'boolean') updatedProfile.behaviorAnalysis = result.user.behaviorAnalysis;
+            if (typeof result.user.voiceAssistant === 'boolean') updatedProfile.voiceAssistant = result.user.voiceAssistant;
+            if (typeof result.user.blockchainConsent === 'boolean') updatedProfile.blockchainConsent = result.user.blockchainConsent;
+            if (typeof result.user.disabilitySupport === 'boolean') updatedProfile.disabilitySupport = result.user.disabilitySupport;
+            
+            // Preference fields
+            if (result.user.aiLearningLevel) updatedProfile.aiLearningLevel = result.user.aiLearningLevel;
+            if (result.user.aiNotificationFreq) updatedProfile.aiNotificationFreq = result.user.aiNotificationFreq;
+            if (result.user.sosPreference) updatedProfile.sosPreference = result.user.sosPreference;
+            if (result.user.privacySettings) updatedProfile.privacySettings = result.user.privacySettings;
+            if (result.user.safeWord) updatedProfile.safeWord = result.user.safeWord;
+            if (result.user.travelInsurance) updatedProfile.travelInsurance = result.user.travelInsurance;
+            if (result.user.travelStyle) updatedProfile.travelStyle = result.user.travelStyle;
+            if (result.user.dietaryRestrictions) updatedProfile.dietaryRestrictions = result.user.dietaryRestrictions;
+            if (result.user.accommodationPreference) updatedProfile.accommodationPreference = result.user.accommodationPreference;
+            
+            setUserProfile(updatedProfile);
           } else {
             // Fallback to basic user data if profile fetch fails
             setUserProfile(prev => ({
               ...prev,
-              fullName: user.name || prev.fullName,
-              email: user.email || prev.email,
+              fullName: user.displayName || user.name || '',
+              email: user.email || '',
             }));
           }
         } catch (error) {
@@ -122,42 +184,62 @@ const UserProfiles = () => {
           // Fallback to basic user data
           setUserProfile(prev => ({
             ...prev,
-            fullName: user.name || prev.fullName,
-            email: user.email || prev.email,
+            fullName: user.displayName || user.name || '',
+            email: user.email || '',
           }));
+        } finally {
+          setDataLoading(false);
         }
+      } else {
+        setDataLoading(false);
       }
     };
 
     loadUserProfile();
-  }, [user, token]);
+  }, [user?.uid, token]);
 
   const handleSave = async () => {
     try {
       setIsLoading(true);
       
+      // Validate emergency contacts before saving
+      const validEmergencyContacts = userProfile.emergencyContacts.filter(contact => 
+        contact.name && contact.name.trim() !== '' && 
+        contact.phone && contact.phone.trim() !== ''
+      );
+      
+      // Prepare profile data with validated emergency contacts as array (not object)
+      const profileToSave = {
+        ...userProfile,
+        emergencyContacts: validEmergencyContacts // Ensure this is always an array
+      };
+      
+      console.log('Saving profile with emergency contacts:', profileToSave.emergencyContacts);
+      
       // Save profile to backend Firebase
-      const BASE_URL = import.meta.env.VITE_BASE_URL ;
-      const response = await fetch(`${BASE_URL}/api/user/profile`, {
+      const response = await fetch('/api/user/profile', {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify({
-          profile: userProfile
+          profile: profileToSave
         })
       });
 
       if (!response.ok) {
-        throw new Error('Failed to save profile');
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to save profile');
       }
 
       const result = await response.json();
-      console.log('Profile saved to Firebase:', result);
+      console.log('Profile saved successfully:', result);
       
+      // Update local state with saved data
+      setUserProfile(profileToSave);
       setEditMode(false);
-      alert('✅ Profile updated successfully!');
+      alert(`✅ Profile updated successfully! ${validEmergencyContacts.length} emergency contacts saved.`);
     } catch (error) {
       console.error('Failed to save profile:', error);
       alert('❌ Failed to save profile: ' + error.message);
@@ -186,7 +268,7 @@ const UserProfiles = () => {
           <input
             type="number"
             value={userProfile.age}
-            onChange={(e) => setUserProfile(prev => ({ ...prev, age: parseInt(e.target.value) }))}
+            onChange={(e) => setUserProfile(prev => ({ ...prev, age: e.target.value ? parseInt(e.target.value) : '' }))}
             disabled={!editMode}
             className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 disabled:bg-gray-50"
           />
@@ -211,6 +293,7 @@ const UserProfiles = () => {
             disabled={!editMode}
             className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 disabled:bg-gray-50"
           >
+            <option value="">Select Gender</option>
             <option value="Male">Male</option>
             <option value="Female">Female</option>
             <option value="Other">Other</option>
@@ -244,7 +327,7 @@ const UserProfiles = () => {
           <label className="block text-sm font-medium text-gray-700 mb-2">Nationality</label>
           <input
             type="text"
-            value={userProfile.nationality || 'American'}
+            value={userProfile.nationality || ''}
             onChange={(e) => setUserProfile(prev => ({ ...prev, nationality: e.target.value }))}
             disabled={!editMode}
             className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 disabled:bg-gray-50"
@@ -255,7 +338,7 @@ const UserProfiles = () => {
           <label className="block text-sm font-medium text-gray-700 mb-2">Occupation</label>
           <input
             type="text"
-            value={userProfile.occupation || 'Software Engineer'}
+            value={userProfile.occupation || ''}
             onChange={(e) => setUserProfile(prev => ({ ...prev, occupation: e.target.value }))}
             disabled={!editMode}
             className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 disabled:bg-gray-50"
@@ -371,17 +454,37 @@ const UserProfiles = () => {
             ))}
             
             {editMode && (
-              <button
-                onClick={() => {
-                  setUserProfile(prev => ({
-                    ...prev,
-                    emergencyContacts: [...prev.emergencyContacts, { name: '', phone: '', relation: 'Friend', email: '' }]
-                  }));
-                }}
-                className="w-full py-3 border-2 border-dashed border-gray-300 rounded-lg text-gray-600 hover:border-blue-500 hover:text-blue-600 transition-colors"
-              >
-                + Add Emergency Contact
-              </button>
+              <div className="space-y-3">
+                <button
+                  onClick={() => {
+                    setUserProfile(prev => ({
+                      ...prev,
+                      emergencyContacts: [...prev.emergencyContacts, { name: '', phone: '', relation: 'Friend', email: '' }]
+                    }));
+                  }}
+                  className="w-full py-3 border-2 border-dashed border-gray-300 rounded-lg text-gray-600 hover:border-blue-500 hover:text-blue-600 transition-colors"
+                >
+                  + Add Emergency Contact
+                </button>
+                
+                {userProfile.emergencyContacts.length > 0 && (
+                  <div className="flex justify-end">
+                    <button
+                      onClick={() => {
+                        const lastIndex = userProfile.emergencyContacts.length - 1;
+                        const newContacts = userProfile.emergencyContacts.slice(0, lastIndex);
+                        setUserProfile(prev => ({
+                          ...prev,
+                          emergencyContacts: newContacts
+                        }));
+                      }}
+                      className="px-4 py-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors text-sm"
+                    >
+                      Remove Last Contact
+                    </button>
+                  </div>
+                )}
+              </div>
             )}
             
             {/* Important Information Note */}
@@ -955,7 +1058,7 @@ const UserProfiles = () => {
                 <label className="block text-sm font-medium text-gray-700 mb-2">AI Learning Level</label>
                 {editMode ? (
                   <select
-                    value={userProfile.aiLearningLevel || 'Moderate'}
+                    value={userProfile.aiLearningLevel || 'Basic'}
                     onChange={(e) => setUserProfile(prev => ({ ...prev, aiLearningLevel: e.target.value }))}
                     className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
                   >
@@ -1022,7 +1125,7 @@ const UserProfiles = () => {
                   <label className="block text-sm font-medium text-gray-700 mb-2">Travel Style</label>
                   {editMode ? (
                     <select
-                      value={userProfile.travelStyle || 'Adventure'}
+                      value={userProfile.travelStyle || ''}
                       onChange={(e) => setUserProfile(prev => ({ ...prev, travelStyle: e.target.value }))}
                       className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                     >
@@ -1045,7 +1148,7 @@ const UserProfiles = () => {
                   <label className="block text-sm font-medium text-gray-700 mb-2">Accommodation Preference</label>
                   {editMode ? (
                     <select
-                      value={userProfile.accommodationPref || 'Hotel'}
+                      value={userProfile.accommodationPref || ''}
                       onChange={(e) => setUserProfile(prev => ({ ...prev, accommodationPref: e.target.value }))}
                       className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                     >
@@ -1124,7 +1227,7 @@ const UserProfiles = () => {
                   <label className="block text-sm font-medium text-gray-700 mb-2">Time Zone Preference</label>
                   {editMode ? (
                     <select
-                      value={userProfile.timeZonePref || 'Local time'}
+                      value={userProfile.timeZonePref || ''}
                       onChange={(e) => setUserProfile(prev => ({ ...prev, timeZonePref: e.target.value }))}
                       className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                     >
@@ -1256,83 +1359,155 @@ const UserProfiles = () => {
     }
   };
 
+  // Loading skeleton component
+  const LoadingSkeleton = () => (
+    <div className="min-h-screen bg-gray-50 p-6">
+      <div className="max-w-7xl mx-auto">
+        {/* Header Skeleton */}
+        <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-6 mb-6">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <div className="h-8 bg-gray-200 rounded-lg w-48 mb-2 animate-pulse"></div>
+              <div className="h-4 bg-gray-200 rounded-lg w-80 animate-pulse"></div>
+            </div>
+            <div className="mt-4 sm:mt-0">
+              <div className="h-12 bg-gray-200 rounded-lg w-32 animate-pulse"></div>
+            </div>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+          {/* Sidebar Skeleton */}
+          <div className="lg:col-span-1">
+            <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-4">
+              <div className="space-y-2">
+                {[1, 2, 3, 4, 5, 6].map((item) => (
+                  <div key={item} className="h-12 bg-gray-200 rounded-lg animate-pulse"></div>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* Content Skeleton */}
+          <div className="lg:col-span-3">
+            <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-6">
+              <div className="space-y-6">
+                <div className="h-6 bg-gray-200 rounded-lg w-40 animate-pulse"></div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {[1, 2, 3, 4, 5, 6].map((item) => (
+                    <div key={item} className="space-y-2">
+                      <div className="h-4 bg-gray-200 rounded w-24 animate-pulse"></div>
+                      <div className="h-12 bg-gray-200 rounded-lg animate-pulse"></div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Loading indicator */}
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-xl p-8 flex flex-col items-center space-y-4">
+            <FiLoader className="w-8 h-8 text-blue-600 animate-spin" />
+            <p className="text-gray-700 font-medium">Loading your profile...</p>
+            <p className="text-gray-500 text-sm">Fetching data from database</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+
+  // Show loading skeleton while data is being fetched
+  if (dataLoading) {
+    return <LoadingSkeleton />;
+  }
+
   return (
-    <div className="min-h-screen bg-gray-100 p-6">
-      <div className="max-w-6xl mx-auto">
+    <div className="min-h-screen bg-gray-50 p-6">
+      <div className="max-w-7xl mx-auto">
         {/* Header */}
-        <div className="bg-white rounded-xl shadow-lg p-6 mb-6">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-4">
-              <div className="w-16 h-16 bg-gradient-to-br from-blue-600 to-teal-500 rounded-full flex items-center justify-center">
-                <FiUser className="w-8 h-8 text-white" />
-              </div>
-              <div>
-                <h1 className="text-2xl font-bold text-gray-800">User Profile</h1>
-                <p className="text-gray-600">Manage your personal information and safety settings</p>
-              </div>
+        <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-6 mb-6">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <h1 className="text-3xl font-bold text-gray-800 mb-2">User Profile</h1>
+              <p className="text-gray-600">Manage your personal information and safety settings</p>
             </div>
-            
-            <button
-              onClick={editMode ? handleSave : () => setEditMode(true)}
-              className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-            >
-              <FiEdit3 className="w-4 h-4" />
-              <span>{editMode ? 'Save' : 'Edit'}</span>
-            </button>
+            <div className="mt-4 sm:mt-0 flex space-x-3">
+              {!editMode ? (
+                <button
+                  onClick={() => setEditMode(true)}
+                  className="flex items-center space-x-2 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors duration-200"
+                >
+                  <FiEdit3 className="w-5 h-5" />
+                  <span>Edit Profile</span>
+                </button>
+              ) : (
+                <div className="flex space-x-3">
+                  <button
+                    onClick={() => setEditMode(false)}
+                    className="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors duration-200"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleSave}
+                    disabled={isLoading}
+                    className="flex items-center space-x-2 px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 transition-colors duration-200"
+                  >
+                    {isLoading ? (
+                      <>
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                        <span>Saving...</span>
+                      </>
+                    ) : (
+                      <span>Save Changes</span>
+                    )}
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
         </div>
 
-        {/* Navigation Tabs */}
-        <div className="bg-white rounded-xl shadow-lg mb-6">
-          <div className="flex overflow-x-auto">
-            {sections.map((section) => {
-              const Icon = section.icon;
-              const isActive = activeSection === section.id;
-              
-              return (
-                <button
-                  key={section.id}
-                  onClick={() => setActiveSection(section.id)}
-                  className={`
-                    flex items-center space-x-2 px-6 py-4 border-b-2 transition-colors duration-200 whitespace-nowrap
-                    ${isActive 
-                      ? 'border-blue-600 text-blue-600 bg-blue-50' 
-                      : 'border-transparent text-gray-600 hover:text-gray-800 hover:bg-gray-50'
-                    }
-                  `}
-                >
-                  <Icon className="w-5 h-5" />
-                  <span className="font-medium">{section.label}</span>
-                </button>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* Content Area */}
-        <div className="bg-white rounded-xl shadow-lg p-6">
-          {renderSectionContent()}
-          
-          {/* Save Button at Bottom (when in edit mode) */}
-          {editMode && (
-            <div className="mt-8 pt-6 border-t border-gray-200">
-              <div className="flex justify-end space-x-4">
-                <button
-                  onClick={() => setEditMode(false)}
-                  className="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={handleSave}
-                  className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center space-x-2"
-                >
-                  <FiEdit3 className="w-4 h-4" />
-                  <span>Save Changes</span>
-                </button>
-              </div>
+        {/* Main Content */}
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+          {/* Sidebar Navigation */}
+          <div className="lg:col-span-1">
+            <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-4">
+              <nav className="space-y-2">
+                {sections.map((section) => {
+                  const Icon = section.icon;
+                  const isActive = activeSection === section.id;
+                  
+                  return (
+                    <button
+                      key={section.id}
+                      onClick={() => setActiveSection(section.id)}
+                      className={`
+                        w-full flex items-center space-x-3 px-4 py-3 rounded-lg text-left
+                        transition-all duration-200
+                        ${isActive 
+                          ? 'bg-blue-50 text-blue-700 border-r-4 border-blue-600' 
+                          : 'text-gray-600 hover:bg-gray-50 hover:text-gray-800'
+                        }
+                      `}
+                    >
+                      <Icon className="w-5 h-5" />
+                      <span className="font-medium">{section.label}</span>
+                    </button>
+                  );
+                })}
+              </nav>
             </div>
-          )}
+          </div>
+
+          {/* Content Area */}
+          <div className="lg:col-span-3">
+            <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-6">
+              {renderSectionContent()}
+            </div>
+          </div>
         </div>
       </div>
     </div>
