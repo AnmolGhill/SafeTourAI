@@ -7,17 +7,39 @@
   box-sizing: border-box;
 }
 
+html {
+  -webkit-text-size-adjust: 100%;
+  -ms-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+  -webkit-tap-highlight-color: transparent;
+}
+
 body {
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
   background-color: #f9fafb;
   color: #111827;
   line-height: 1.6;
+  width: 100%;
+  max-width: 100vw;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 /* Layout */
 .dashboard-container {
   min-height: 100vh;
   background-color: #f9fafb;
+  width: 100%;
+  max-width: 100vw;
+  overflow-x: hidden;
+}
+
+#root {
+  width: 100%;
+  max-width: 100vw;
+  overflow-x: hidden;
 }
 
 .sidebar {
@@ -331,14 +353,25 @@ body {
 @media (max-width: 640px) {
   .content-area {
     padding: 0.5rem;
+    width: 100%;
+    max-width: 100vw;
+    overflow-x: hidden;
+    box-sizing: border-box;
   }
   
   .navbar {
     padding: 1rem;
+    width: 100%;
+    max-width: 100vw;
+    box-sizing: border-box;
   }
   
   .mobile-content {
     padding: 0.5rem !important;
+    width: 100% !important;
+    max-width: 100vw !important;
+    overflow-x: hidden !important;
+    box-sizing: border-box !important;
   }
   
   .stats-grid {
@@ -569,20 +602,36 @@ body {
     font-size: 1.125rem !important;
   }
   
+  /* Activity Feed Container */
+  .activity-feed {
+    width: 100% !important;
+    max-width: 100% !important;
+    overflow-x: hidden !important;
+    box-sizing: border-box !important;
+  }
+  
   /* Activity Feed Controls */
-  .activity-feed .flex.items-center.space-x-2 {
-    flex-wrap: wrap;
-    gap: 0.5rem;
+  .activity-feed .flex.flex-col.sm\\:flex-row {
+    display: grid !important;
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 0.5rem !important;
+    width: 100% !important;
   }
   
-  .activity-feed .flex.items-center.space-x-2 button {
-    padding: 0.5rem 0.75rem !important;
-    font-size: 0.75rem !important;
-    min-width: auto;
+  .activity-feed .flex.flex-col.sm\\:flex-row button {
+    padding: 0.75rem 0.5rem !important;
+    font-size: 0.875rem !important;
+    min-height: 44px !important;
+    width: 100% !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 0.5rem !important;
+    box-sizing: border-box !important;
   }
   
-  .activity-feed .flex.items-center.space-x-2 span {
-    display: none;
+  .activity-feed .flex.flex-col.sm\\:flex-row button span {
+    font-weight: 500 !important;
   }
   
   /* Map container mobile */
@@ -712,10 +761,20 @@ body {
 
 /* General Mobile Improvements */
 @media (max-width: 640px) {
+  /* Prevent zoom and ensure proper scaling */
+  .min-h-screen {
+    width: 100% !important;
+    max-width: 100vw !important;
+    overflow-x: hidden !important;
+  }
+  
   /* Reduce all card padding */
   .card {
     padding: 0.75rem !important;
     margin-bottom: 1rem !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
   }
   
   /* Make buttons more compact */
@@ -1018,6 +1077,11 @@ body {
   padding: 1rem;
   min-height: calc(100vh - 60px);
   background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+  width: 100%;
+  max-width: 100vw;
+  overflow-x: hidden;
+  box-sizing: border-box;
+  -webkit-overflow-scrolling: touch;
 }
 
 /* Mobile Cards Grid */
@@ -1026,6 +1090,10 @@ body {
   grid-template-columns: repeat(2, 1fr);
   gap: 0.75rem;
   margin-bottom: 1.5rem;
+  width: 100%;
+  max-width: 100%;
+  overflow: hidden;
+  box-sizing: border-box;
 }
 
 .mobile-card {
@@ -1038,6 +1106,11 @@ body {
   cursor: pointer;
   position: relative;
   overflow: hidden;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  min-height: 160px;
+  height: auto;
 }
 
 .mobile-card[data-color="green"] {
@@ -1718,6 +1791,54 @@ body {
   .mobile-dashboard-content {
     margin-top: 0;
     padding: 2rem;
+  }
+}
+
+/* Mobile Zoom Prevention and Layout Fixes */
+@media (max-width: 1023px) {
+  /* Prevent accidental zoom on mobile */
+  input, select, textarea, button {
+    font-size: 16px !important;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+  }
+  
+  /* Ensure all containers respect viewport width */
+  * {
+    max-width: 100vw !important;
+    box-sizing: border-box !important;
+  }
+  
+  /* Fix flex containers that might cause overflow */
+  .flex {
+    flex-wrap: wrap !important;
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+  
+  /* Prevent horizontal scrolling */
+  body, html, #root {
+    overflow-x: hidden !important;
+    width: 100% !important;
+    max-width: 100vw !important;
+  }
+  
+  /* Fix dashboard main container */
+  .min-h-screen.bg-gray-50 {
+    width: 100% !important;
+    max-width: 100vw !important;
+    overflow-x: hidden !important;
+  }
+  
+  /* Fix main content area */
+  main.mobile-dashboard-content {
+    width: 100% !important;
+    max-width: 100vw !important;
+    padding: 0.75rem !important;
+    margin: 60px 0 0 0 !important;
+    overflow-x: hidden !important;
+    box-sizing: border-box !important;
   }
 }
 

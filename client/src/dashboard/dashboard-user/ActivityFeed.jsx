@@ -143,12 +143,12 @@ const ActivityFeed = () => {
   }, [showMap]);
 
   const initializeMap = () => {
-    if (window.google && window.google.maps) {
+    if (window.google && window.google.maps && mapRef.current) {
       // Don't use fake coordinates - wait for real user location
-      const center = userLocation || { lat: 0, lng: 0 };
+      const center = userLocation || { lat: 30.8428, lng: 75.7898 }; // Default to Ludhiana
       const mapInstance = new window.google.maps.Map(mapRef.current, {
         center: center,
-        zoom: userLocation ? 15 : 2, // World view if no location
+        zoom: userLocation ? 15 : 12,
         styles: [
           {
             featureType: "poi",
@@ -158,6 +158,13 @@ const ActivityFeed = () => {
         ]
       });
       setMap(mapInstance);
+      
+      // If we have user location, fetch nearby services immediately
+      if (userLocation) {
+        setTimeout(() => {
+          fetchNearbyServices(userLocation.lat, userLocation.lng);
+        }, 500);
+      }
       
       // Request location permission explicitly when map loads
       if (navigator.geolocation && !userLocation) {
@@ -342,7 +349,7 @@ const ActivityFeed = () => {
   };
 
   // Fetch nearby services using Google Places API
-  const fetchNearbyServices = (lat, lng) => {
+  const fetchNearbyServices = (lat, lng, retryCount = 0) => {
     console.log('Fetching nearby services for:', lat, lng);
     
     if (!window.google || !window.google.maps) {
@@ -351,7 +358,12 @@ const ActivityFeed = () => {
     }
     
     if (!map) {
-      console.error('Map instance not available');
+      if (retryCount < 3) {
+        console.log(`Map instance not available, retry ${retryCount + 1}/3`);
+        setTimeout(() => fetchNearbyServices(lat, lng, retryCount + 1), 2000);
+      } else {
+        console.log('Map instance not available after 3 retries, giving up');
+      }
       return;
     }
     
@@ -482,41 +494,45 @@ const ActivityFeed = () => {
 
   return (
     <div className="activity-feed mb-6" style={{ minHeight: '600px' }}>
-      <div className="flex items-center justify-between mb-4">
+      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between mb-4 gap-3">
         <h2 className="text-xl font-semibold text-gray-800">Activity Feed</h2>
-        <div className="flex items-center space-x-2">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-2">
           <button
             onClick={toggleLocationTracker}
-            className="flex items-center space-x-2 px-4 py-2 bg-green-600 hover:bg-green-700 
-                     text-white rounded-lg transition-colors duration-200 text-sm font-medium"
+            className="flex items-center justify-center space-x-2 px-3 py-2 bg-green-600 hover:bg-green-700 
+                     text-white rounded-lg transition-colors duration-200 text-sm font-medium w-full sm:w-auto"
           >
-            <FiNavigation className="text-white" />
-            <span>{showLocationTracker ? 'Hide Tracker' : 'Track Location'}</span>
+            <FiNavigation className="text-white flex-shrink-0" />
+            <span className="hidden sm:inline">{showLocationTracker ? 'Hide Tracker' : 'Track Location'}</span>
+            <span className="sm:hidden">Track</span>
           </button>
           <button
             onClick={() => setShowServices(!showServices)}
-            className="flex items-center space-x-2 px-4 py-2 bg-purple-600 hover:bg-purple-700 
-                     text-white rounded-lg transition-colors duration-200 text-sm font-medium"
+            className="flex items-center justify-center space-x-2 px-3 py-2 bg-purple-600 hover:bg-purple-700 
+                     text-white rounded-lg transition-colors duration-200 text-sm font-medium w-full sm:w-auto"
           >
-            <FiShield className="text-white" />
-            <span>{showServices ? 'Hide Services' : 'Show Services'}</span>
+            <FiShield className="text-white flex-shrink-0" />
+            <span className="hidden sm:inline">{showServices ? 'Hide Services' : 'Show Services'}</span>
+            <span className="sm:hidden">Services</span>
           </button>
           <button
             onClick={toggleMapView}
-            className="flex items-center space-x-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 
-                     text-white rounded-lg transition-colors duration-200 text-sm font-medium"
+            className="flex items-center justify-center space-x-2 px-3 py-2 bg-blue-600 hover:bg-blue-700 
+                     text-white rounded-lg transition-colors duration-200 text-sm font-medium w-full sm:w-auto"
           >
-            <FiMap className="text-white" />
-            <span>{showMap ? 'Hide Map' : 'Show Map'}</span>
+            <FiMap className="text-white flex-shrink-0" />
+            <span className="hidden sm:inline">{showMap ? 'Hide Map' : 'Show Map'}</span>
+            <span className="sm:hidden">Map</span>
           </button>
           <button
             onClick={refreshFeed}
             disabled={loading}
-            className="flex items-center space-x-2 px-4 py-2 bg-gray-100 hover:bg-gray-200 
-                     rounded-lg transition-colors duration-200 text-sm font-medium disabled:opacity-50"
+            className="flex items-center justify-center space-x-2 px-3 py-2 bg-gray-100 hover:bg-gray-200 
+                     rounded-lg transition-colors duration-200 text-sm font-medium disabled:opacity-50 w-full sm:w-auto"
           >
-            <FiRefreshCw className={`text-gray-600 ${loading ? 'animate-spin' : ''}`} />
-            <span className="text-gray-700">Refresh</span>
+            <FiRefreshCw className={`text-gray-600 flex-shrink-0 ${loading ? 'animate-spin' : ''}`} />
+            <span className="text-gray-700 hidden sm:inline">Refresh</span>
+            <span className="text-gray-700 sm:hidden">↻</span>
           </button>
         </div>
       </div>

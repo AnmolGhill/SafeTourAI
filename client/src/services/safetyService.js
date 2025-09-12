@@ -1,7 +1,7 @@
 import axios from 'axios';
 
-const API_BASE_URL = process.env.NODE_ENV === 'production' 
-  ? 'https://your-production-api.com/api' 
+const API_BASE_URL = import.meta.env.VITE_BASE_URL 
+  ? `${import.meta.env.VITE_BASE_URL}/api` 
   : 'http://localhost:5000/api';
 
 // Create axios instance with default config

@@ -48,7 +48,9 @@ router.get('/profile', verifyFirebaseToken, async (req, res) => {
   } catch (error) {
     console.error('Get user profile error:', error);
     logger.errorWithContext(error, req, { operation: 'getProfile' });
-    res.status(500).json({ error: 'Failed to get user profile' });
+    if (!res.headersSent) {
+      res.status(500).json({ error: 'Failed to get user profile' });
+    }
   }
 });
 
@@ -114,7 +116,9 @@ router.put('/profile', verifyFirebaseToken, [
   } catch (error) {
     console.error('Update user profile error:', error);
     logger.errorWithContext(error, req, { operation: 'updateProfile' });
-    res.status(500).json({ error: 'Failed to update profile' });
+    if (!res.headersSent) {
+      res.status(500).json({ error: 'Failed to update profile' });
+    }
   }
 });
 
@@ -145,7 +149,9 @@ router.put('/emergency-contacts', verifyFirebaseToken, [
 
   } catch (error) {
     logger.error('Update emergency contacts error:', error);
-    res.status(500).json({ error: 'Failed to update emergency contacts' });
+    if (!res.headersSent) {
+      res.status(500).json({ error: 'Failed to update emergency contacts' });
+    }
   }
 });
 
@@ -185,7 +191,9 @@ router.put('/health-info', verifyFirebaseToken, [
 
   } catch (error) {
     logger.error('Update health info error:', error);
-    res.status(500).json({ error: 'Failed to update health information' });
+    if (!res.headersSent) {
+      res.status(500).json({ error: 'Failed to update health information' });
+    }
   }
 });
 
@@ -222,7 +230,9 @@ router.put('/security-settings', verifyFirebaseToken, [
 
   } catch (error) {
     logger.error('Update security settings error:', error);
-    res.status(500).json({ error: 'Failed to update security settings' });
+    if (!res.headersSent) {
+      res.status(500).json({ error: 'Failed to update security settings' });
+    }
   }
 });
 
@@ -261,7 +271,9 @@ router.put('/ai-preferences', verifyFirebaseToken, [
 
   } catch (error) {
     logger.error('Update AI preferences error:', error);
-    res.status(500).json({ error: 'Failed to update AI preferences' });
+    if (!res.headersSent) {
+      res.status(500).json({ error: 'Failed to update AI preferences' });
+    }
   }
 });
 
@@ -331,7 +343,9 @@ router.get('/kyc-status', verifyFirebaseToken, async (req, res) => {
   } catch (error) {
     console.error('❌ KYC Status endpoint error:', error);
     logger.error('Get KYC status error:', error);
-    res.status(500).json({ error: 'Failed to get KYC status' });
+    if (!res.headersSent) {
+      res.status(500).json({ error: 'Failed to get KYC status' });
+    }
   }
 });
 
@@ -367,7 +381,9 @@ router.get('/dashboard', verifyFirebaseToken, async (req, res) => {
 
   } catch (error) {
     logger.error('Get dashboard data error:', error);
-    res.status(500).json({ error: 'Failed to get dashboard data' });
+    if (!res.headersSent) {
+      res.status(500).json({ error: 'Failed to get dashboard data' });
+    }
   }
 });
 
@@ -399,7 +415,9 @@ router.delete('/account', verifyFirebaseToken, async (req, res) => {
 
   } catch (error) {
     logger.error('Delete account error:', error);
-    res.status(500).json({ error: 'Failed to delete account' });
+    if (!res.headersSent) {
+      res.status(500).json({ error: 'Failed to delete account' });
+    }
   }
 });
 
