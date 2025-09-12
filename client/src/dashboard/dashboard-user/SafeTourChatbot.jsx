@@ -205,7 +205,8 @@ For immediate emergencies, contact local emergency services directly.`,
         onClick={() => setIsOpen(true)}
         className="fixed bottom-6 right-6 w-14 h-14 bg-gradient-to-br from-blue-600 to-teal-500 
                    text-white rounded-full shadow-lg hover:shadow-xl transform hover:scale-105 
-                   transition-all duration-200 flex items-center justify-center z-50"
+                   transition-all duration-200 flex items-center justify-center z-50
+                   hidden lg:flex"
       >
         <FiMessageCircle className="w-6 h-6" />
       </button>

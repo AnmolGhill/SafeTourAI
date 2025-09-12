@@ -3,6 +3,21 @@ const admin = require('firebase-admin');
 // Initialize Firebase Admin SDK
 const initializeFirebase = async () => {
   try {
+    // Check if required Firebase environment variables are present
+    const requiredEnvVars = [
+      'FIREBASE_PROJECT_ID',
+      'FIREBASE_PRIVATE_KEY',
+      'FIREBASE_CLIENT_EMAIL'
+    ];
+    
+    const missingVars = requiredEnvVars.filter(varName => !process.env[varName]);
+    
+    if (missingVars.length > 0) {
+      console.warn('⚠️ Firebase configuration incomplete. Missing environment variables:', missingVars);
+      console.warn('⚠️ Running in mock mode. Please configure Firebase for production use.');
+      return false;
+    }
+
     if (admin.apps.length === 0) {
       const serviceAccount = {
         type: "service_account",
@@ -23,14 +38,17 @@ const initializeFirebase = async () => {
         storageBucket: `${process.env.FIREBASE_PROJECT_ID}.appspot.com`
       });
 
-      // Firebase Admin SDK initialized successfully
+      console.log('✅ Firebase Admin SDK initialized successfully');
       
       // Test Firestore database connectivity
-      await testDatabaseConnection();
+      const connected = await testDatabaseConnection();
+      return connected;
     }
+    return true;
   } catch (error) {
-    console.error('Firebase initialization error:', error);
-    throw error;
+    console.error('❌ Firebase initialization error:', error.message);
+    console.warn('⚠️ Running in mock mode due to Firebase initialization failure');
+    return false;
   }
 };
 
@@ -44,7 +62,7 @@ const testDatabaseConnection = async () => {
     await testDoc.set({ timestamp: admin.firestore.FieldValue.serverTimestamp(), status: 'connected' });
     await testDoc.delete(); // Clean up test document
     
-    // Firestore database connected successfully
+    console.log('✅ Firestore database connected successfully');
     return true;
   } catch (error) {
     if (error.code === 5 || error.message.includes('NOT_FOUND')) {
@@ -54,26 +72,55 @@ const testDatabaseConnection = async () => {
     } else {
       console.error('❌ Firestore database connection failed:', error.message);
     }
+    console.warn('⚠️ API will run in mock mode');
     return false;
   }
 };
 
 // Initialize Firebase
-initializeFirebase().catch(error => {
-  console.error('Failed to initialize Firebase:', error);
-  process.exit(1);
+let firebaseInitialized = false;
+initializeFirebase().then(success => {
+  firebaseInitialized = success;
+  if (success) {
+    console.log('🔥 Firebase initialized and ready');
+  } else {
+    console.log('⚠️ Running in mock mode - Firebase not configured');
+  }
+}).catch(error => {
+  console.error('❌ Failed to initialize Firebase:', error.message);
+  console.log('⚠️ Continuing in mock mode...');
+  firebaseInitialized = false;
 });
 
-// Export Firebase services
-const auth = admin.auth();
-const db = admin.firestore();
-const storage = admin.storage();
-const realtimeDb = admin.database();
+// Export Firebase services (with null checks for mock mode)
+let auth, db, storage, realtimeDb;
+
+try {
+  if (admin.apps.length > 0) {
+    auth = admin.auth();
+    db = admin.firestore();
+    storage = admin.storage();
+    realtimeDb = admin.database();
+  } else {
+    // Mock mode - services will be null
+    auth = null;
+    db = null;
+    storage = null;
+    realtimeDb = null;
+  }
+} catch (error) {
+  console.warn('⚠️ Firebase services not available, using mock mode');
+  auth = null;
+  db = null;
+  storage = null;
+  realtimeDb = null;
+}
 
 module.exports = {
-  admin,
+  admin: admin.apps.length > 0 ? admin : null,
   auth,
   db,
   storage,
-  realtimeDb
+  realtimeDb,
+  isInitialized: () => firebaseInitialized
 };

@@ -207,18 +207,23 @@ const StatsCards = () => {
 
   // Always render the component structure to prevent layout shifts
   const renderSkeletonCards = () => (
-    <div className="stats-grid" style={{ minHeight: '200px' }}>
+    <div className="mobile-cards-grid" style={{ minHeight: '200px' }}>
       {[1, 2, 3, 4].map((index) => (
-        <div key={index} className="stat-card animate-pulse" style={{ height: '160px' }}>
-          <div className="stat-header" style={{ marginBottom: '1rem' }}>
-            <div className="bg-gray-200 w-12 h-12 rounded-lg"></div>
-            <div className="bg-gray-200 h-4 w-24 rounded"></div>
+        <div key={index} className="mobile-card animate-pulse" style={{ 
+          height: '160px',
+          width: '100%',
+          maxWidth: '100%',
+          boxSizing: 'border-box'
+        }}>
+          <div className="mobile-card-header" style={{ marginBottom: '1rem' }}>
+            <div className="bg-gray-200 w-8 h-8 rounded-lg flex-shrink-0"></div>
+            <div className="bg-gray-200 h-4 w-20 rounded"></div>
           </div>
           <div>
-            <div className="bg-gray-200 h-4 w-32 rounded mb-2"></div>
-            <div className="bg-gray-200 h-8 w-20 rounded mb-2"></div>
-            <div className="bg-gray-200 h-3 w-28 rounded mb-1"></div>
-            <div className="bg-gray-200 h-3 w-20 rounded"></div>
+            <div className="bg-gray-200 h-6 w-16 rounded mb-2"></div>
+            <div className="bg-gray-200 h-3 w-24 rounded mb-1"></div>
+            <div className="bg-gray-200 h-2 w-full rounded mb-1"></div>
+            <div className="bg-gray-200 h-3 w-16 rounded"></div>
           </div>
         </div>
       ))}
@@ -226,8 +231,18 @@ const StatsCards = () => {
   );
 
   return (
-    <div className="mb-6" style={{ minHeight: '300px' }}>
-      <div className="flex items-center justify-between mb-4">
+    <div className="mb-6" style={{ 
+      minHeight: '300px',
+      width: '100%',
+      maxWidth: '100vw',
+      overflow: 'hidden',
+      boxSizing: 'border-box'
+    }}>
+      <div className="flex items-center justify-between mb-4" style={{
+        width: '100%',
+        maxWidth: '100%',
+        boxSizing: 'border-box'
+      }}>
         <h2 className="text-xl font-semibold text-gray-800">Personal Dashboard</h2>
         <button
           onClick={refreshStats}
@@ -246,7 +261,12 @@ const StatsCards = () => {
       )}
 
       {loading ? renderSkeletonCards() : (
-      <div className="mobile-cards-grid">
+      <div className="mobile-cards-grid" style={{
+        width: '100%',
+        maxWidth: '100%',
+        overflow: 'hidden',
+        boxSizing: 'border-box'
+      }}>
         {cardData.map((card, index) => {
           const Icon = card.icon;
           const TrendIcon = card.trendUp ? FiTrendingUp : FiTrendingDown;
@@ -256,6 +276,12 @@ const StatsCards = () => {
               key={index}
               className="mobile-card"
               data-color={card.color}
+              style={{
+                width: '100%',
+                maxWidth: '100%',
+                boxSizing: 'border-box',
+                overflow: 'hidden'
+              }}
               onMouseEnter={(e) => {
                 e.target.style.transform = 'translateY(-2px)';
                 e.target.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.15)';
