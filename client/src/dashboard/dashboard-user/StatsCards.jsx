@@ -15,6 +15,7 @@ import {
   FiPhone
 } from 'react-icons/fi';
 import { safetyService } from '../../services/safetyService';
+import { kycAPI } from '../../config/api';
 
 const StatsCards = () => {
   const [stats, setStats] = useState({
@@ -49,55 +50,37 @@ const StatsCards = () => {
         return;
       }
 
-      const response = await fetch('/api/user/kyc-status', {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      });
+      const result = await kycAPI.getStatus();
+      
+      if (result.data && result.data.success) {
+        const userData = result.data.data;
+        const newStats = {
+          kycStatus: userData.kycStatus || 'not_started',
+          blockchainId: userData.blockchainId,
+          verificationLevel: userData.verificationLevel,
+          digitalIdActive: userData.digitalIdActive || false,
+          digitalIdCreated: userData.digitalIdCreated,
+          securityScore: userData.securityScore || 0,
+          securityLevel: userData.securityLevel,
+          safetyScore: stats.safetyScore, // Keep existing safety score
+          safetyLevel: stats.safetyLevel, // Keep existing safety level
+          emergencyContactsCount: userData.emergencyContactsCount || 0,
+          emergencyContactsConfigured: userData.emergencyContactsConfigured
+        };
+        
+        console.log('📈 Setting new stats:', newStats);
+        setStats(newStats);
+        
+        console.log('✅ Setting loading to false');
+        setLoading(false);
+        setInitialRender(false);
+        setError(null);
 
-      if (!response.ok) {
-        const errorText = await response.text();
+      } else {
+        const errorText = result.data.message;
         console.error('API Error Response:', errorText);
-        throw new Error(`Failed to fetch user statistics: ${response.status}`);
+        throw new Error(`Failed to fetch user statistics: ${result.status}`);
       }
-
-      const responseText = await response.text();
-      console.log('✅ Raw API Response:', responseText);
-      console.log('📊 Response length:', responseText.length);
-      console.log('🔍 Response type:', typeof responseText);
-      
-      let data;
-      try {
-        data = JSON.parse(responseText);
-        console.log('✅ Parsed JSON data:', data);
-      } catch (parseError) {
-        console.error('❌ JSON Parse Error:', parseError);
-        console.error('❌ Response that failed to parse:', responseText);
-        throw new Error('Invalid JSON response from server');
-      }
-      
-      const newStats = {
-        kycStatus: data.kycStatus,
-        blockchainId: data.blockchainId,
-        verificationLevel: data.verificationLevel,
-        digitalIdActive: data.digitalIdActive,
-        digitalIdCreated: data.digitalIdCreated,
-        securityScore: data.securityScore,
-        securityLevel: data.securityLevel,
-        safetyScore: stats.safetyScore, // Keep existing safety score
-        safetyLevel: stats.safetyLevel, // Keep existing safety level
-        emergencyContactsCount: data.emergencyContactsCount,
-        emergencyContactsConfigured: data.emergencyContactsConfigured
-      };
-      
-      console.log('📈 Setting new stats:', newStats);
-      setStats(newStats);
-      
-      console.log('✅ Setting loading to false');
-      setLoading(false);
-      setInitialRender(false);
-      setError(null);
 
     } catch (err) {
       console.error('Error fetching user stats:', err);

@@ -55,7 +55,7 @@ const ActivityFeed = () => {
         return;
       }
 
-      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/location/activities`, {
+      const response = await fetch(`${import.meta.env.VITE_BASE_URL || 'http://localhost:5000'}/api/location/activities`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
@@ -397,7 +397,7 @@ const ActivityFeed = () => {
             distance: calculateDistance(lat, lng, place.geometry.location.lat(), place.geometry.location.lng()).toFixed(1),
             rating: place.rating || 'N/A',
             vicinity: place.vicinity || place.formatted_address || 'Unknown location',
-            isOpen: place.opening_hours ? place.opening_hours.open_now : null
+            isOpen: place.opening_hours ? (place.opening_hours.isOpen ? place.opening_hours.isOpen() : null) : null
           }));
           allServices = [...allServices, ...services];
           console.log(`Added ${services.length} ${type} services`);
