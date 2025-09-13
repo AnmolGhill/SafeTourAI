@@ -21,7 +21,8 @@ const AdminStatsCards = () => {
         return;
       }
 
-      const response = await fetch('/api/admin/dashboard-stats', {
+      const BASE_URL = import.meta.env.VITE_BASE_URL;
+      const response = await fetch(`${BASE_URL}/api/admin/dashboard-stats`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'

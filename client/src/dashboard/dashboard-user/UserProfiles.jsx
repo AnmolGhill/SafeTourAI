@@ -88,7 +88,8 @@ const UserProfiles = () => {
           setDataLoading(true);
           
           // Fetch complete profile from backend
-          const response = await fetch('/api/user/profile', {
+          const BASE_URL = import.meta.env.VITE_BASE_URL;
+          const response = await fetch(`${BASE_URL}/api/user/profile`, {
             method: 'GET',
             headers: {
               'Authorization': `Bearer ${token}`,
@@ -217,7 +218,8 @@ const UserProfiles = () => {
       console.log('Saving profile with emergency contacts:', profileToSave.emergencyContacts);
       
       // Save profile to backend Firebase
-      const response = await fetch('/api/user/profile', {
+      const BASE_URL = import.meta.env.VITE_BASE_URL;
+      const response = await fetch(`${BASE_URL}/api/user/profile`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',

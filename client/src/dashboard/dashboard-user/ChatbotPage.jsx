@@ -140,7 +140,8 @@ const ChatbotPage = () => {
 
     try {
       // Call the Gemini API
-      const response = await fetch('/api/gemini/chat', {
+      const BASE_URL = import.meta.env.VITE_BASE_URL;
+      const response = await fetch(`${BASE_URL}/api/gemini/chat`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
