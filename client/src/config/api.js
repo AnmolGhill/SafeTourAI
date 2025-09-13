@@ -2,8 +2,6 @@
 const BASE_URL = import.meta.env.VITE_BASE_URL || 'http://localhost:5000';
 const API_BASE_URL = `${BASE_URL}/api`;
 
-console.log('API Configuration:', { BASE_URL, API_BASE_URL });
-
 // Helper function to get auth headers
 const getAuthHeaders = () => {
   const token = localStorage.getItem('token');
