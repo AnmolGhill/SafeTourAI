@@ -1,0 +1,366 @@
+const express = require('express');
+const router = express.Router();
+const { verifyFirebaseToken } = require('../middleware/auth');
+
+// Store emergency alerts (in production, use database)
+const emergencyAlerts = new Map();
+const responders = new Map();
+
+// POST /api/emergency/alert - Create emergency alert
+router.post('/alert', verifyFirebaseToken, async (req, res) => {
+  try {
+    const { emergencyId, type, status, autoActivated, location } = req.body;
+    const userId = req.user.id;
+
+    if (!emergencyId || !type) {
+      return res.status(400).json({
+        success: false,
+        error: 'Emergency ID and type are required'
+      });
+    }
+
+    const alert = {
+      id: emergencyId,
+      userId,
+      type,
+      status: status || 'active',
+      autoActivated: autoActivated || false,
+      location: location || null,
+      timestamp: new Date(),
+      responders: [],
+      updates: []
+    };
+
+    emergencyAlerts.set(emergencyId, alert);
+
+    // Log emergency for monitoring
+    console.log(`🚨 EMERGENCY ALERT: ${type} - ID: ${emergencyId} - User: ${userId} - Auto: ${autoActivated}`);
+
+    // In production, trigger emergency response system
+    // - Send notifications to emergency services
+    // - Alert nearby responders
+    // - Start location tracking
+    // - Send SMS/email to emergency contacts
+
+    res.json({
+      success: true,
+      message: 'Emergency alert created',
+      alert: {
+        id: alert.id,
+        type: alert.type,
+        status: alert.status,
+        timestamp: alert.timestamp
+      }
+    });
+
+  } catch (error) {
+    console.error('Error creating emergency alert:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to create emergency alert'
+    });
+  }
+});
+
+// GET /api/emergency/alerts - Get user's emergency alerts
+router.get('/alerts', verifyFirebaseToken, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const userAlerts = [];
+
+    for (const [alertId, alert] of emergencyAlerts.entries()) {
+      if (alert.userId === userId) {
+        userAlerts.push(alert);
+      }
+    }
+
+    // Sort by timestamp (newest first)
+    userAlerts.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+
+    res.json({
+      success: true,
+      alerts: userAlerts.slice(0, 20) // Return last 20 alerts
+    });
+
+  } catch (error) {
+    console.error('Error fetching emergency alerts:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch emergency alerts'
+    });
+  }
+});
+
+// PUT /api/emergency/alert/:id - Update emergency alert
+router.put('/alert/:id', verifyFirebaseToken, async (req, res) => {
+  try {
+    const alertId = req.params.id;
+    const userId = req.user.id;
+    const { status, location, update } = req.body;
+
+    const alert = emergencyAlerts.get(alertId);
+    if (!alert) {
+      return res.status(404).json({
+        success: false,
+        error: 'Emergency alert not found'
+      });
+    }
+
+    if (alert.userId !== userId) {
+      return res.status(403).json({
+        success: false,
+        error: 'Access denied'
+      });
+    }
+
+    // Update alert
+    if (status) alert.status = status;
+    if (location) alert.location = location;
+    
+    if (update) {
+      alert.updates.push({
+        message: update,
+        timestamp: new Date()
+      });
+    }
+
+    alert.lastUpdated = new Date();
+
+    res.json({
+      success: true,
+      message: 'Emergency alert updated',
+      alert: {
+        id: alert.id,
+        status: alert.status,
+        lastUpdated: alert.lastUpdated
+      }
+    });
+
+  } catch (error) {
+    console.error('Error updating emergency alert:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to update emergency alert'
+    });
+  }
+});
+
+// GET /api/emergency/responders - Get available responders
+router.get('/responders', verifyFirebaseToken, async (req, res) => {
+  try {
+    const { lat, lng, radius = 10, type } = req.query;
+
+    // Mock responder data (in production, fetch from database)
+    const mockResponders = [
+      {
+        id: 'RSP_001',
+        name: 'Dr. Sarah Johnson',
+        type: 'medical',
+        location: 'Downtown Medical Center',
+        coordinates: { lat: 28.6139, lng: 77.2090 },
+        status: 'available',
+        specialization: 'Emergency Medicine',
+        responseTime: '3 min',
+        rating: 4.9,
+        distance: 0.8
+      },
+      {
+        id: 'RSP_002',
+        name: 'Officer Mike Chen',
+        type: 'police',
+        location: 'Central Police Station',
+        coordinates: { lat: 28.6129, lng: 77.2100 },
+        status: 'available',
+        specialization: 'Law Enforcement',
+        responseTime: '5 min',
+        rating: 4.8,
+        distance: 1.2
+      },
+      {
+        id: 'RSP_003',
+        name: 'Paramedic Lisa Davis',
+        type: 'medical',
+        location: 'Fire Station 12',
+        coordinates: { lat: 28.6149, lng: 77.2080 },
+        status: 'busy',
+        specialization: 'Emergency Medical',
+        responseTime: '7 min',
+        rating: 4.7,
+        distance: 2.1
+      },
+      {
+        id: 'RSP_004',
+        name: 'Firefighter Tom Wilson',
+        type: 'fire',
+        location: 'Fire Station 8',
+        coordinates: { lat: 28.6159, lng: 77.2070 },
+        status: 'available',
+        specialization: 'Fire & Rescue',
+        responseTime: '8 min',
+        rating: 4.9,
+        distance: 2.8
+      }
+    ];
+
+    let filteredResponders = mockResponders;
+
+    // Filter by type if specified
+    if (type) {
+      filteredResponders = filteredResponders.filter(r => r.type === type);
+    }
+
+    // Filter by location if coordinates provided
+    if (lat && lng) {
+      const userLat = parseFloat(lat);
+      const userLng = parseFloat(lng);
+      const searchRadius = parseFloat(radius);
+
+      filteredResponders = filteredResponders.filter(responder => {
+        const distance = calculateDistance(
+          userLat, userLng,
+          responder.coordinates.lat, responder.coordinates.lng
+        );
+        responder.distance = Math.round(distance * 100) / 100;
+        return distance <= searchRadius;
+      });
+    }
+
+    // Sort by distance and availability
+    filteredResponders.sort((a, b) => {
+      if (a.status === 'available' && b.status !== 'available') return -1;
+      if (a.status !== 'available' && b.status === 'available') return 1;
+      return a.distance - b.distance;
+    });
+
+    res.json({
+      success: true,
+      responders: filteredResponders.slice(0, 10), // Return max 10 responders
+      searchRadius: parseFloat(radius),
+      center: lat && lng ? { lat: parseFloat(lat), lng: parseFloat(lng) } : null
+    });
+
+  } catch (error) {
+    console.error('Error fetching responders:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch responders'
+    });
+  }
+});
+
+// POST /api/emergency/assign - Assign responder to emergency
+router.post('/assign', verifyFirebaseToken, async (req, res) => {
+  try {
+    const { emergencyId, responderId } = req.body;
+    const userId = req.user.id;
+
+    if (!emergencyId || !responderId) {
+      return res.status(400).json({
+        success: false,
+        error: 'Emergency ID and responder ID are required'
+      });
+    }
+
+    const alert = emergencyAlerts.get(emergencyId);
+    if (!alert) {
+      return res.status(404).json({
+        success: false,
+        error: 'Emergency alert not found'
+      });
+    }
+
+    if (alert.userId !== userId) {
+      return res.status(403).json({
+        success: false,
+        error: 'Access denied'
+      });
+    }
+
+    // Add responder to alert
+    const assignment = {
+      responderId,
+      assignedAt: new Date(),
+      status: 'assigned'
+    };
+
+    alert.responders.push(assignment);
+    alert.updates.push({
+      message: `Responder ${responderId} assigned to emergency`,
+      timestamp: new Date()
+    });
+
+    console.log(`👨‍⚕️ Responder ${responderId} assigned to emergency ${emergencyId}`);
+
+    res.json({
+      success: true,
+      message: 'Responder assigned successfully',
+      assignment
+    });
+
+  } catch (error) {
+    console.error('Error assigning responder:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to assign responder'
+    });
+  }
+});
+
+// GET /api/emergency/status/:id - Get emergency status
+router.get('/status/:id', verifyFirebaseToken, async (req, res) => {
+  try {
+    const alertId = req.params.id;
+    const userId = req.user.id;
+
+    const alert = emergencyAlerts.get(alertId);
+    if (!alert) {
+      return res.status(404).json({
+        success: false,
+        error: 'Emergency alert not found'
+      });
+    }
+
+    if (alert.userId !== userId) {
+      return res.status(403).json({
+        success: false,
+        error: 'Access denied'
+      });
+    }
+
+    res.json({
+      success: true,
+      alert: {
+        id: alert.id,
+        type: alert.type,
+        status: alert.status,
+        timestamp: alert.timestamp,
+        lastUpdated: alert.lastUpdated,
+        responders: alert.responders,
+        updates: alert.updates,
+        location: alert.location
+      }
+    });
+
+  } catch (error) {
+    console.error('Error fetching emergency status:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch emergency status'
+    });
+  }
+});
+
+// Helper function to calculate distance between coordinates
+function calculateDistance(lat1, lng1, lat2, lng2) {
+  const R = 6371; // Earth's radius in kilometers
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLng = (lng2 - lng1) * Math.PI / 180;
+  const a = 
+    Math.sin(dLat/2) * Math.sin(dLat/2) +
+    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
+    Math.sin(dLng/2) * Math.sin(dLng/2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+  return R * c;
+}
+
+module.exports = router;
