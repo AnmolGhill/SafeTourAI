@@ -1,9 +1,11 @@
 import React, { useState, useRef } from 'react';
-import { FiCamera, FiUpload, FiCheck, FiX, FiUser, FiShield } from 'react-icons/fi';
+import { FiCamera, FiUpload, FiCheck, FiX, FiUser, FiShield, FiEye } from 'react-icons/fi';
+import EnhancedQRScanner from '../../components/EnhancedQRScanner';
 
 const DigitalIdScanner = () => {
   const [scanResult, setScanResult] = useState(null);
   const [isScanning, setIsScanning] = useState(false);
+  const [showEnhancedScanner, setShowEnhancedScanner] = useState(false);
   const [scanHistory, setScanHistory] = useState([
     { id: 1, name: 'John Doe', idNumber: 'ID123456', time: '10:30 AM', status: 'verified' },
     { id: 2, name: 'Jane Smith', idNumber: 'ID789012', time: '10:15 AM', status: 'verified' },
@@ -12,43 +14,248 @@ const DigitalIdScanner = () => {
   const fileInputRef = useRef(null);
 
   const handleScan = () => {
-    setIsScanning(true);
-    // Simulate scanning process
-    setTimeout(() => {
-      setScanResult({
-        name: 'Alex Rodriguez',
-        idNumber: 'ID567890',
-        nationality: 'Spain',
-        age: 28,
-        verified: true,
-        emergencyContact: '+34 123 456 789',
-        travelPurpose: 'Tourism',
-        checkInDate: '2024-08-28',
-        accommodation: 'Grand Hotel Central'
-      });
-      setIsScanning(false);
-    }, 2000);
+    setShowEnhancedScanner(true);
   };
 
-  const handleFileUpload = (event) => {
+  const handleEnhancedScanResult = (scanData) => {
+    // Process the scan result from the enhanced scanner
+    if (scanData && scanData.verified && scanData.userData) {
+      const newScanResult = {
+        name: scanData.userData.fullName,
+        idNumber: scanData.digitalId.id,
+        nationality: scanData.userData.nationality,
+        age: calculateAge(scanData.userData.dateOfBirth),
+        verified: scanData.verified,
+        emergencyContact: scanData.userData.emergencyContact,
+        travelPurpose: scanData.userData.travelPurpose,
+        checkInDate: scanData.userData.checkInDate,
+        accommodation: scanData.userData.accommodation,
+        email: scanData.userData.email,
+        gender: scanData.userData.gender,
+        governmentIdType: scanData.userData.governmentIdType,
+        governmentIdNumber: scanData.userData.governmentIdNumber,
+        address: scanData.userData.address,
+        kycStatus: scanData.userData.kycStatus,
+        blockchainId: scanData.digitalId.id,
+        verificationLevel: scanData.digitalId.verificationLevel,
+        scannedAt: scanData.scanInfo.scannedAt
+      };
+
+      setScanResult(newScanResult);
+
+      // Add to scan history
+      const newHistoryEntry = {
+        id: Date.now(),
+        name: scanData.userData.fullName,
+        idNumber: scanData.digitalId.id,
+        time: new Date().toLocaleTimeString(),
+        status: scanData.verified ? 'verified' : 'flagged'
+      };
+
+      setScanHistory(prev => [newHistoryEntry, ...prev.slice(0, 9)]); // Keep last 10 entries
+    }
+    
+    setShowEnhancedScanner(false);
+  };
+
+  const calculateAge = (dateOfBirth) => {
+    if (!dateOfBirth || dateOfBirth === 'N/A') return 'N/A';
+    
+    try {
+      const birthDate = new Date(dateOfBirth);
+      const today = new Date();
+      let age = today.getFullYear() - birthDate.getFullYear();
+      const monthDiff = today.getMonth() - birthDate.getMonth();
+      
+      if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+        age--;
+      }
+      
+      return age;
+    } catch (error) {
+      return 'N/A';
+    }
+  };
+
+  const handleFileUpload = async (event) => {
     const file = event.target.files[0];
     if (file) {
       setIsScanning(true);
-      // Simulate file processing
-      setTimeout(() => {
-        setScanResult({
-          name: 'Maria Garcia',
-          idNumber: 'ID998877',
-          nationality: 'Mexico',
-          age: 32,
-          verified: true,
-          emergencyContact: '+52 555 123 4567',
-          travelPurpose: 'Business',
-          checkInDate: '2024-08-30',
-          accommodation: 'Business Center Hotel'
-        });
+      
+      try {
+        // Create a canvas to read the QR code from the uploaded image
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        const img = new Image();
+        
+        img.onload = async () => {
+          canvas.width = img.width;
+          canvas.height = img.height;
+          ctx.drawImage(img, 0, 0);
+          
+          try {
+            // For now, simulate QR reading - in production, use jsQR library
+            // Get current user data to simulate a real QR scan
+            const currentUser = JSON.parse(localStorage.getItem('userData') || '{}');
+            
+            const mockQRData = {
+              type: 'SafeTourDigitalID',
+              blockchainId: `ST-${currentUser.uid?.substring(0, 8) || 'TEST123456'}`,
+              uid: currentUser.uid || 'test-user-uid',
+              verificationLevel: 'Level 3 - Full KYC',
+              network: 'SafeTour Blockchain',
+              timestamp: '2024-01-01T00:00:00.000Z',
+              hash: generateTestPrivateKey(currentUser.uid, currentUser.email),
+              issuer: 'SafeTourAI',
+              version: '2.0'
+            };
+            
+            // Use the enhanced scanner's verification function
+            await verifyQRData(mockQRData);
+            
+          } catch (error) {
+            console.error('QR processing error:', error);
+            setScanResult({
+              name: 'Error',
+              idNumber: 'N/A',
+              nationality: 'N/A',
+              age: 'N/A',
+              verified: false,
+              emergencyContact: 'N/A',
+              travelPurpose: 'Failed to process QR code',
+              checkInDate: 'N/A',
+              accommodation: 'N/A'
+            });
+            setIsScanning(false);
+          }
+        };
+        
+        img.src = URL.createObjectURL(file);
+        
+      } catch (error) {
+        console.error('File upload error:', error);
         setIsScanning(false);
-      }, 1500);
+      }
+    }
+  };
+
+  const generateTestPrivateKey = (uid, email) => {
+    const staticData = `ST-TEST123456-${uid || email}-SafeTourAI-PrivateKey`;
+    let hash = 0;
+    for (let i = 0; i < staticData.length; i++) {
+      const char = staticData.charCodeAt(i);
+      hash = ((hash << 5) - hash) + char;
+      hash = hash & hash;
+    }
+    return Math.abs(hash).toString(16).padStart(8, '0');
+  };
+
+  const verifyQRData = async (qrData) => {
+    try {
+      // Get authentication token from various possible sources
+      let authToken = null;
+      
+      // Try different token storage keys
+      const tokenSources = [
+        'firebaseToken',
+        'authToken', 
+        'token',
+        'accessToken',
+        'idToken'
+      ];
+      
+      for (const source of tokenSources) {
+        const token = localStorage.getItem(source);
+        if (token) {
+          authToken = token;
+          break;
+        }
+      }
+      
+      // If no token found, try to get from Firebase Auth
+      if (!authToken) {
+        try {
+          const { getAuth } = await import('firebase/auth');
+          const auth = getAuth();
+          if (auth.currentUser) {
+            authToken = await auth.currentUser.getIdToken();
+          }
+        } catch (firebaseError) {
+          console.log('Firebase auth not available:', firebaseError);
+        }
+      }
+      
+      if (!authToken) {
+        throw new Error('Authentication required. Please login again.');
+      }
+
+      const response = await fetch('/api/blockchain/verify-qr', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${authToken}`
+        },
+        body: JSON.stringify({ qrData })
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+
+      const data = await response.json();
+      
+      if (data.success && data.verified && data.userData) {
+        const newScanResult = {
+          name: data.userData.fullName,
+          idNumber: data.digitalId.id,
+          nationality: data.userData.nationality,
+          age: calculateAge(data.userData.dateOfBirth),
+          verified: data.verified,
+          emergencyContact: data.userData.emergencyContact,
+          travelPurpose: data.userData.travelPurpose,
+          checkInDate: data.userData.checkInDate,
+          accommodation: data.userData.accommodation,
+          email: data.userData.email,
+          gender: data.userData.gender,
+          governmentIdType: data.userData.governmentIdType,
+          governmentIdNumber: data.userData.governmentIdNumber,
+          address: data.userData.address,
+          kycStatus: data.userData.kycStatus,
+          blockchainId: data.digitalId.id,
+          verificationLevel: data.digitalId.verificationLevel,
+          scannedAt: data.scanInfo.scannedAt
+        };
+
+        setScanResult(newScanResult);
+
+        // Add to scan history
+        const newHistoryEntry = {
+          id: Date.now(),
+          name: data.userData.fullName,
+          idNumber: data.digitalId.id,
+          time: new Date().toLocaleTimeString(),
+          status: data.verified ? 'verified' : 'flagged'
+        };
+
+        setScanHistory(prev => [newHistoryEntry, ...prev.slice(0, 9)]);
+      } else {
+        throw new Error(data.error || 'Verification failed');
+      }
+    } catch (error) {
+      console.error('QR verification error:', error);
+      setScanResult({
+        name: 'Verification Failed',
+        idNumber: 'N/A',
+        nationality: 'N/A',
+        age: 'N/A',
+        verified: false,
+        emergencyContact: 'N/A',
+        travelPurpose: error.message,
+        checkInDate: 'N/A',
+        accommodation: 'N/A'
+      });
+    } finally {
+      setIsScanning(false);
     }
   };
 
@@ -145,11 +352,46 @@ const DigitalIdScanner = () => {
                   <span className="text-gray-600">Check-in Date:</span>
                   <span className="font-semibold">{scanResult.checkInDate}</span>
                 </div>
+                {scanResult.email && (
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Email:</span>
+                    <span className="font-semibold">{scanResult.email}</span>
+                  </div>
+                )}
+                {scanResult.governmentIdType && (
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">ID Type:</span>
+                    <span className="font-semibold uppercase">{scanResult.governmentIdType}</span>
+                  </div>
+                )}
+                {scanResult.kycStatus && (
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">KYC Status:</span>
+                    <span className={`font-semibold capitalize ${
+                      scanResult.kycStatus === 'approved' ? 'text-green-600' : 'text-yellow-600'
+                    }`}>
+                      {scanResult.kycStatus}
+                    </span>
+                  </div>
+                )}
+                {scanResult.verificationLevel && (
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Verification:</span>
+                    <span className="font-semibold text-blue-600">{scanResult.verificationLevel}</span>
+                  </div>
+                )}
               </div>
 
-              <button className="w-full btn btn-primary">
-                View Full Profile
-              </button>
+              <div className="flex space-x-3">
+                <button className="flex-1 btn btn-primary flex items-center justify-center space-x-2">
+                  <FiEye className="w-4 h-4" />
+                  <span>View Full Profile</span>
+                </button>
+                <button className="flex-1 btn btn-secondary flex items-center justify-center space-x-2">
+                  <FiShield className="w-4 h-4" />
+                  <span>Verify Identity</span>
+                </button>
+              </div>
             </div>
           ) : (
             <div className="text-center py-8 text-gray-500">
@@ -191,6 +433,13 @@ const DigitalIdScanner = () => {
           ))}
         </div>
       </div>
+
+      {/* Enhanced QR Scanner Modal */}
+      <EnhancedQRScanner
+        isOpen={showEnhancedScanner}
+        onScan={handleEnhancedScanResult}
+        onClose={() => setShowEnhancedScanner(false)}
+      />
     </div>
   );
 };
