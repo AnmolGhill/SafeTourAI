@@ -1,6 +1,8 @@
 // Get base URL from environment variables and append /api
-const BASE_URL = import.meta.env.VITE_BASE_URL;
+const BASE_URL = import.meta.env.VITE_BASE_URL || 'http://localhost:5000';
 const API_BASE_URL = `${BASE_URL}/api`;
+
+console.log('API Configuration:', { BASE_URL, API_BASE_URL });
 
 // Helper function to get auth headers
 const getAuthHeaders = () => {
@@ -10,6 +12,7 @@ const getAuthHeaders = () => {
   }
   return {
     'Content-Type': 'application/json',
+    'Accept': 'application/json',
     ...(token && { 'Authorization': `Bearer ${token}` })
   };
 };
@@ -54,12 +57,31 @@ export const kycAPI = {
 
   async getStatus() {
     try {
+      console.log('Fetching KYC status from:', `${API_BASE_URL}/user/kyc-status`);
       const response = await fetch(`${API_BASE_URL}/user/kyc-status`, {
         headers: getAuthHeaders()
       });
 
+      console.log('KYC Status Response:', response.status, response.statusText);
+
       if (!response.ok) {
+        const errorText = await response.text();
+        console.error('KYC Status Error Response:', errorText);
+        
+        // Check if response is HTML (server error page)
+        if (errorText.includes('<!doctype html>') || errorText.includes('<html')) {
+          console.error('Server returned HTML instead of JSON - possible server configuration issue');
+          throw new Error('Server configuration error - received HTML instead of JSON');
+        }
+        
         throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const contentType = response.headers.get('content-type');
+      if (!contentType || !contentType.includes('application/json')) {
+        const responseText = await response.text();
+        console.error('Non-JSON response received:', responseText);
+        throw new Error('Server returned non-JSON response');
       }
 
       const result = await response.json();
