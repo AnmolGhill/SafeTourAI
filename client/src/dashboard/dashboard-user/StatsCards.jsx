@@ -62,19 +62,34 @@ const StatsCards = () => {
         throw new Error(`Failed to fetch user statistics: ${response.status}`);
       }
 
-      const responseText = await response.text();
-      console.log('✅ Raw API Response:', responseText);
-      console.log('📊 Response length:', responseText.length);
-      console.log('🔍 Response type:', typeof responseText);
+      // Check if response is JSON or HTML
+      const contentType = response.headers.get('content-type');
+      console.log('📋 Content-Type:', contentType);
       
       let data;
-      try {
-        data = JSON.parse(responseText);
+      if (contentType && contentType.includes('application/json')) {
+        // Parse as JSON
+        data = await response.json();
         console.log('✅ Parsed JSON data:', data);
-      } catch (parseError) {
-        console.error('❌ JSON Parse Error:', parseError);
-        console.error('❌ Response that failed to parse:', responseText);
-        throw new Error('Invalid JSON response from server');
+      } else {
+        // Handle HTML response (likely an error page)
+        const responseText = await response.text();
+        console.error('❌ Received HTML instead of JSON:', responseText.substring(0, 200) + '...');
+        
+        // Check if it's a doctype (HTML page)
+        if (responseText.trim().startsWith('<!doctype') || responseText.trim().startsWith('<html')) {
+          throw new Error('Server returned HTML page instead of JSON. Check server configuration.');
+        }
+        
+        // Try to parse as JSON anyway (fallback)
+        try {
+          data = JSON.parse(responseText);
+          console.log('✅ Fallback JSON parse successful:', data);
+        } catch (parseError) {
+          console.error('❌ JSON Parse Error:', parseError);
+          console.error('❌ Response that failed to parse:', responseText.substring(0, 500));
+          throw new Error('Invalid response format from server');
+        }
       }
       
       const newStats = {
