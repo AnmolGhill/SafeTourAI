@@ -73,7 +73,7 @@ jspm_packages/
 
 # Gatsby files
 .cache/
-public
+public/uploads/
 
 # Storybook build outputs
 .out
