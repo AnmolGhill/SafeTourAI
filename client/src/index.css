@@ -161,6 +161,72 @@ body {
   background: var(--danger-red);
 }
 
+/* Logo fixes for mobile */
+.logo-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.logo-container > * {
+  flex-shrink: 0;
+  max-width: 100%;
+  height: auto;
+}
+
+/* Auth page logo fixes */
+.auth-logo {
+  width: 64px !important;
+  height: 64px !important;
+  border-radius: 50% !important;
+  flex-shrink: 0 !important;
+}
+
+@media (max-width: 640px) {
+  .auth-logo {
+    width: 48px !important;
+    height: 48px !important;
+  }
+}
+
+/* Sidebar logo fixes */
+.sidebar-logo-container {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  overflow: hidden;
+  max-width: calc(100% - 40px);
+  flex: 1;
+}
+
+.sidebar-logo-icon {
+  flex-shrink: 0 !important;
+  width: 24px !important;
+  height: 24px !important;
+  min-width: 24px !important;
+  max-width: 24px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+.sidebar-logo-text {
+  min-width: 0;
+  flex: 1;
+  overflow: hidden;
+}
+
+/* Fix stretched logo bar */
+.sidebar-header-mobile {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  max-width: 100%;
+  overflow: hidden;
+}
+
 /* Responsive utilities */
 @media (max-width: 768px) {
   .mobile-hidden {
@@ -169,5 +235,39 @@ body {
   
   .mobile-full {
     width: 100%;
+  }
+  
+  .sidebar-logo-icon {
+    width: 20px !important;
+    height: 20px !important;
+  }
+  
+  /* Compact mobile sidebar */
+  .mobile-sidebar-compact {
+    padding: 8px !important;
+  }
+  
+  .mobile-sidebar-compact .sidebar-logo-container {
+    gap: 4px;
+    max-width: calc(100% - 32px);
+  }
+  
+  /* Prevent logo stretching on mobile */
+  .sidebar-logo-container {
+    flex: none !important;
+    width: auto !important;
+  }
+  
+  .sidebar-logo-icon {
+    width: 32px !important;
+    height: 32px !important;
+    min-width: 32px !important;
+    max-width: 32px !important;
+    flex: none !important;
+  }
+  
+  .sidebar-header-mobile {
+    padding: 0 !important;
+    margin: 0 !important;
   }
 }

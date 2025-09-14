@@ -4,6 +4,7 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const { auth, db } = require('../config/firebase');
 const emailService = require('../services/emailService');
+const alternativeEmailService = require('../services/alternativeEmailService');
 const logger = require('../utils/logger');
 const { AppError, asyncHandler } = require('../middleware/errorHandler');
 const { handleValidationErrors } = require('../utils/validation');
@@ -105,13 +106,22 @@ router.post('/register', [
         verified: false
       });
 
-      // Try to send OTP email with role priority
+      // Try to send OTP email with role priority and fallback
       try {
         await emailService.sendOTP(email, otp, name, role);
-        console.log('📱 OTP sent successfully', { email, role });
+        console.log('📱 OTP sent successfully via primary service', { email, role });
       } catch (emailError) {
-        console.error('Email service error:', emailError);
-        console.log(`Email service failed, OTP for ${email}: ${otp}`);
+        console.error('Primary email service error:', emailError);
+        
+        // Try alternative email service as fallback
+        try {
+          console.log('🔄 Attempting fallback email service...');
+          await alternativeEmailService.sendOTP(email, otp, name, role);
+          console.log('📱 OTP sent successfully via fallback service', { email, role });
+        } catch (fallbackError) {
+          console.error('Fallback email service also failed:', fallbackError);
+          console.log(`All email services failed, OTP for ${email}: ${otp}`);
+        }
       }
 
       // All roles require OTP verification
