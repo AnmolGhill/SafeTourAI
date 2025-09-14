@@ -22,17 +22,6 @@
   will-change: filter;
   transition: filter 300ms;
 }
-
-/* Fix for stretched logos on mobile */
-@media (max-width: 768px) {
-  .logo {
-    height: auto;
-    max-height: 4em;
-    width: auto;
-    max-width: 100%;
-    object-fit: contain;
-  }
-}
 .logo:hover {
   filter: drop-shadow(0 0 2em #646cffaa);
 }

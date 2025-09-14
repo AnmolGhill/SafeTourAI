@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { FiTrendingUp, FiBarChart2 as FiBarChart3, FiPieChart } from 'react-icons/fi';
+import { FiTrendingUp, FiBarChart as FiBarChart3, FiPieChart } from 'react-icons/fi';
 
 const AnalyticsChart = () => {
   const [activeChart, setActiveChart] = useState('line');

@@ -16,7 +16,7 @@ class AlternativeEmailService {
       const isProduction = process.env.NODE_ENV === 'production';
       
       // Primary transporter with optimized settings for cloud environments
-      this.transporter = nodemailer.createTransporter({
+      this.transporter = nodemailer.createTransport({
         host: process.env.SMTP_HOST || 'smtp.gmail.com',
         port: parseInt(process.env.SMTP_PORT) || 587,
         secure: false, // Use STARTTLS
@@ -41,7 +41,7 @@ class AlternativeEmailService {
       });
 
       // Fallback transporter with different settings
-      this.fallbackTransporter = nodemailer.createTransporter({
+      this.fallbackTransporter = nodemailer.createTransport({
         host: 'smtp.gmail.com',
         port: 465,
         secure: true, // Use SSL

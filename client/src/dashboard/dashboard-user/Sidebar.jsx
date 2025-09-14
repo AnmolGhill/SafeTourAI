@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import toast from 'react-hot-toast';
-import DashboardSelector from '../../components/DashboardSelector';
 import { 
   FiHome, 
   FiAlertTriangle, 
@@ -121,27 +120,29 @@ const Sidebar = ({ activeTab, setActiveTab }) => {
 
       {/* Sidebar */}
       <div className={`
-        fixed inset-y-0 left-0 z-50
-        w-24 sm:w-20 lg:w-16 bg-white shadow-2xl border-r border-gray-200
+        fixed inset-y-0 left-0 z-40
+        w-64 bg-white shadow-xl border-r border-gray-200
         transform transition-transform duration-300 ease-in-out
         ${isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
-        flex flex-col lg:translate-x-0 lg:static lg:z-auto
-        h-screen overflow-y-auto
+        flex flex-col lg:translate-x-0
       `}
+        style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          width: '256px',
+          height: '100vh',
+          zIndex: 40,
+          overflowY: 'auto',
+          display: 'flex',
+          flexDirection: 'column',
+          paddingTop: '60px'
+        }}
       >
         <div className="flex flex-col h-full">
-          {/* Close button for mobile only */}
-          <div className="lg:hidden p-2 border-b border-gray-200">
-            <button
-              onClick={() => setIsOpen(false)}
-              className="p-1 rounded-lg hover:bg-gray-100 transition-colors"
-            >
-              <FiX className="w-4 h-4 text-gray-600" />
-            </button>
-          </div>
 
           {/* Navigation Menu */}
-          <nav className="flex-1 px-1 py-2 sm:px-2 sm:py-2 space-y-1 overflow-y-auto">
+          <nav className="flex-1 p-4 space-y-2 overflow-y-auto">
             {menuItems.map((item) => {
               const isActive = activeTab === item.id;
               
@@ -150,45 +151,60 @@ const Sidebar = ({ activeTab, setActiveTab }) => {
                   key={item.id}
                   onClick={() => handleMenuClick(item.id, item.route, item.useTab)}
                   className={`
-                    w-full flex flex-col items-center justify-center px-1 py-3 rounded-lg
-                    text-center transition-all duration-200
+                    w-full flex items-center space-x-3 px-4 py-3 rounded-lg
+                    text-left transition-all duration-200
                     ${isActive 
-                      ? 'bg-blue-50 text-blue-700' 
+                      ? 'bg-blue-50 text-blue-700 border-r-4 border-blue-600' 
                       : 'text-gray-600 hover:bg-gray-50 hover:text-gray-800'
                     }
                   `}
-                  title={item.label}
                 >
-                  <item.icon className="w-5 h-5 flex-shrink-0 mb-1" />
-                  <span className="font-medium text-xs leading-tight">{item.label}</span>
+                  <item.icon className="w-5 h-5" />
+                  <span className="font-medium">{item.label}</span>
                 </button>
               );
             })}
           </nav>
 
           {/* User Profile & Auth Button */}
-          <div className="px-1 py-2 sm:px-2 sm:py-2 border-t border-gray-200">
+          <div className="p-4 border-t border-gray-200 flex-shrink-0">
             {userIsAuthenticated ? (
               <>
+                <div className="flex items-center space-x-3 mb-4">
+                  <div className="w-10 h-10 bg-gradient-to-br from-green-400 to-blue-500 rounded-full flex items-center justify-center">
+                    <span className="text-white font-semibold text-sm">
+                      {user?.name ? user.name.charAt(0).toUpperCase() : 
+                       user?.fullName ? user.fullName.charAt(0).toUpperCase() : 
+                       user?.displayName ? user.displayName.charAt(0).toUpperCase() : 'U'}
+                    </span>
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-gray-800">
+                      {user?.name || user?.fullName || user?.displayName || 'Demo User'}
+                    </p>
+                    <p className="text-xs text-gray-500">
+                      {user?.email || 'demo@example.com'}
+                    </p>
+                  </div>
+                </div>
+                
                 <button
                   onClick={handleLogout}
-                  className="w-full flex flex-col items-center justify-center px-1 py-3 rounded-lg
+                  className="w-full flex items-center space-x-3 px-4 py-3 rounded-lg
                            text-red-600 hover:bg-red-50 transition-colors duration-200"
-                  title="Logout"
                 >
-                  <FiLogOut className="w-5 h-5 flex-shrink-0 mb-1" />
-                  <span className="font-medium text-xs leading-tight">Logout</span>
+                  <FiLogOut className="w-5 h-5" />
+                  <span className="font-medium">Logout</span>
                 </button>
               </>
             ) : (
               <button
                 onClick={handleLogin}
-                className="w-full flex flex-col items-center justify-center px-1 py-3 rounded-lg
+                className="w-full flex items-center space-x-3 px-4 py-3 rounded-lg
                          text-blue-600 hover:bg-blue-50 transition-colors duration-200"
-                title="Login"
               >
-                <FiUser className="w-5 h-5 flex-shrink-0 mb-1" />
-                <span className="font-medium text-xs leading-tight">Login</span>
+                <FiUser className="w-5 h-5" />
+                <span className="font-medium">Login</span>
               </button>
             )}
           </div>
