@@ -166,15 +166,15 @@ export const safetyService = {
             },
             {
               enableHighAccuracy: false, // Lower accuracy fallback
-              timeout: 8000, // Shorter timeout for fallback
-              maximumAge: 300000 // 5 minute cache for fallback
+              timeout: 15000,
+              maximumAge: 60000 // 1 minute cache
             }
           );
         },
         {
           enableHighAccuracy: true,
-          timeout: 10000, // Reduced timeout to prevent hanging
-          maximumAge: 60000 // 1 minute cache for fresh location
+          timeout: 20000, // Increased timeout
+          maximumAge: 30000 // 30 seconds cache for fresh location
         }
       );
     });

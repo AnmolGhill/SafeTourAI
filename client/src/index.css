@@ -161,6 +161,17 @@ body {
   background: var(--danger-red);
 }
 
+/* Auth logo styling */
+.auth-logo {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto;
+}
+
 /* Responsive utilities */
 @media (max-width: 768px) {
   .mobile-hidden {

@@ -26,6 +26,7 @@ const weatherRoutes = require('./routes/weather');
 const walletRoutes = require('./routes/wallet');
 const geminiRoutes = require('./routes/gemini');
 const userRoutes = require('./routes/user');
+const digitalIdRoutes = require('./routes/digitalId');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -45,10 +46,7 @@ app.use(cors({
     
     const allowedOrigins = [
       'http://localhost:3000', 
-      'http://127.0.0.1:3000', 
-      'http://localhost:3001',
-      'https://safetourai.onrender.com',
-      'https://safetourai.vercel.app'
+      'https://safe-tour.vercel.app'
     ];
     
     if (allowedOrigins.indexOf(origin) !== -1) {
@@ -148,6 +146,7 @@ app.use('/api/emergency', emergencyRoutes);
 app.use('/api/notifications', notificationsRoutes);
 app.use('/api/maps', mapsRoutes);
 app.use('/api/weather', weatherRoutes);
+app.use('/api/digital-id', digitalIdRoutes);
 
 // 404 handler
 app.use('*', (req, res, next) => {

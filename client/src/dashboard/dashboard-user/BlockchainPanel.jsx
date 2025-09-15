@@ -9,7 +9,7 @@ import {
   FiUser,
   FiShield
 } from 'react-icons/fi';
-import { kycAPI } from '../../config/api';
+import { kycAPI, blockchainAPI, walletAPI } from '../../config/api';
 
 const BlockchainPanel = () => {
   const [transactions, setTransactions] = useState([]);
@@ -26,40 +26,15 @@ const BlockchainPanel = () => {
   const fetchBlockchainTransactions = async () => {
     setLoading(true);
     try {
-      const token = localStorage.getItem('token');
-      
-      if (!token) {
-        console.warn('No authentication token found, using mock data');
-        setTransactions(generateMockTransactions());
-        setLoading(false);
-        return;
-      }
-
-      const response = await fetch(`${import.meta.env.VITE_BASE_URL || 'http://localhost:5000'}/api/blockchain/transactions`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      });
-      
-      if (response.ok) {
-        const data = await response.json();
-        if (data.success) {
-          setTransactions(data.transactions || []);
-        } else {
-          console.warn('API returned error, using mock data:', data.error);
-          setTransactions(generateMockTransactions());
-        }
-      } else if (response.status === 401) {
-        console.warn('Authentication failed, using mock data');
-        setTransactions(generateMockTransactions());
+      const result = await walletAPI.getTransactions();
+      if (result.data) {
+        setTransactions(result.data.transactions || []);
       } else {
-        console.warn('API error, using mock data. Status:', response.status);
-        setTransactions(generateMockTransactions());
+        setTransactions([]);
       }
     } catch (error) {
-      console.warn('Network error, using mock data:', error.message);
-      setTransactions(generateMockTransactions());
+      console.error('Error fetching blockchain transactions:', error);
+      setTransactions([]);
     } finally {
       setLoading(false);
     }
@@ -68,55 +43,21 @@ const BlockchainPanel = () => {
   // Fetch real blockchain statistics
   const fetchBlockchainStats = async () => {
     try {
-      const token = localStorage.getItem('token');
-      
-      if (!token) {
-        console.warn('No authentication token found, using mock stats');
-        setBlockchainStats({
-          networkStatus: 'active',
-          totalRecords: 1247,
-          verifiedToday: 23,
-          totalVerifiedUsers: 892
-        });
-        return;
-      }
-
-      const response = await fetch(`${import.meta.env.VITE_BASE_URL || 'http://localhost:5000'}/api/blockchain/stats`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      });
-      
-      if (response.ok) {
-        const data = await response.json();
-        if (data.success) {
-          setBlockchainStats(data.stats);
-        } else {
-          console.warn('Stats API error, using mock data');
-          setBlockchainStats({
-            networkStatus: 'active',
-            totalRecords: 1247,
-            verifiedToday: 23,
-            totalVerifiedUsers: 892
-          });
-        }
-      } else {
-        console.warn('Stats API failed, using mock data. Status:', response.status);
-        setBlockchainStats({
-          networkStatus: 'active',
-          totalRecords: 1247,
-          verifiedToday: 23,
-          totalVerifiedUsers: 892
-        });
-      }
-    } catch (error) {
-      console.warn('Stats network error, using mock data:', error.message);
+      // For now, set basic stats - you can expand this when backend provides stats endpoint
       setBlockchainStats({
         networkStatus: 'active',
-        totalRecords: 1247,
-        verifiedToday: 23,
-        totalVerifiedUsers: 892
+        totalRecords: transactions.length,
+        verifiedToday: transactions.filter(tx => {
+          const today = new Date().toDateString();
+          return new Date(tx.timestamp).toDateString() === today;
+        }).length
+      });
+    } catch (error) {
+      console.error('Error calculating blockchain stats:', error);
+      setBlockchainStats({
+        networkStatus: 'active',
+        totalRecords: 0,
+        verifiedToday: 0
       });
     }
   };
@@ -135,10 +76,9 @@ const BlockchainPanel = () => {
         setBlockchainId(response.data.data.blockchainId);
       }
     } catch (error) {
-      console.warn('Error fetching KYC status, using defaults:', error.message);
-      // Set default values for demo
-      setKycStatus('approved');
-      setBlockchainId('ST-DEMO1234567890');
+      console.error('Error fetching KYC status:', error);
+      setKycStatus('not_started');
+      setBlockchainId(null);
     }
   };
 
@@ -440,44 +380,5 @@ const BlockchainPanel = () => {
   );
 };
 
-// Helper function to generate mock transactions for demo
-const generateMockTransactions = () => {
-  const now = new Date();
-  return [
-    {
-      id: `TXN_${Date.now()}_DEMO1234`,
-      userId: 'demo-user-123',
-      eventType: 'KYC Verification Complete',
-      status: 'verified',
-      timestamp: new Date(now.getTime() - 24 * 60 * 60 * 1000).toISOString(),
-      blockHash: `0x${Math.random().toString(16).substring(2, 66)}`,
-      blockNumber: Math.floor(Date.now() / 1000),
-      gasUsed: '21000',
-      confirmations: 47
-    },
-    {
-      id: `TXN_${Date.now() + 1}_DEMO5678`,
-      userId: 'demo-user-123',
-      eventType: 'Digital ID Created',
-      status: 'verified',
-      timestamp: new Date(now.getTime() - 12 * 60 * 60 * 1000).toISOString(),
-      blockHash: `0x${Math.random().toString(16).substring(2, 66)}`,
-      blockNumber: Math.floor(Date.now() / 1000) + 1,
-      gasUsed: '45000',
-      confirmations: 23
-    },
-    {
-      id: `TXN_${Date.now() + 2}_DEMO9012`,
-      userId: 'demo-user-123',
-      eventType: 'Profile Update',
-      status: 'verified',
-      timestamp: new Date(now.getTime() - 2 * 60 * 60 * 1000).toISOString(),
-      blockHash: `0x${Math.random().toString(16).substring(2, 66)}`,
-      blockNumber: Math.floor(Date.now() / 1000) + 2,
-      gasUsed: '18500',
-      confirmations: 12
-    }
-  ];
-};
 
 export default BlockchainPanel;

@@ -15,6 +15,7 @@ import {
   FiPhone
 } from 'react-icons/fi';
 import { safetyService } from '../../services/safetyService';
+import { kycAPI } from '../../config/api';
 
 const StatsCards = () => {
   const [stats, setStats] = useState({
@@ -49,70 +50,37 @@ const StatsCards = () => {
         return;
       }
 
-      const response = await fetch('/api/user/kyc-status', {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error('API Error Response:', errorText);
-        throw new Error(`Failed to fetch user statistics: ${response.status}`);
-      }
-
-      // Check if response is JSON or HTML
-      const contentType = response.headers.get('content-type');
-      console.log('📋 Content-Type:', contentType);
+      const result = await kycAPI.getStatus();
       
-      let data;
-      if (contentType && contentType.includes('application/json')) {
-        // Parse as JSON
-        data = await response.json();
-        console.log('✅ Parsed JSON data:', data);
+      if (result.data && result.data.success) {
+        const userData = result.data.data;
+        const newStats = {
+          kycStatus: userData.kycStatus || 'not_started',
+          blockchainId: userData.blockchainId,
+          verificationLevel: userData.verificationLevel,
+          digitalIdActive: userData.digitalIdActive || false,
+          digitalIdCreated: userData.digitalIdCreated,
+          securityScore: userData.securityScore || 0,
+          securityLevel: userData.securityLevel,
+          safetyScore: stats.safetyScore, // Keep existing safety score
+          safetyLevel: stats.safetyLevel, // Keep existing safety level
+          emergencyContactsCount: userData.emergencyContactsCount || 0,
+          emergencyContactsConfigured: userData.emergencyContactsConfigured
+        };
+        
+        console.log('📈 Setting new stats:', newStats);
+        setStats(newStats);
+        
+        console.log('✅ Setting loading to false');
+        setLoading(false);
+        setInitialRender(false);
+        setError(null);
+
       } else {
-        // Handle HTML response (likely an error page)
-        const responseText = await response.text();
-        console.error('❌ Received HTML instead of JSON:', responseText.substring(0, 200) + '...');
-        
-        // Check if it's a doctype (HTML page)
-        if (responseText.trim().startsWith('<!doctype') || responseText.trim().startsWith('<html')) {
-          throw new Error('Server returned HTML page instead of JSON. Check server configuration.');
-        }
-        
-        // Try to parse as JSON anyway (fallback)
-        try {
-          data = JSON.parse(responseText);
-          console.log('✅ Fallback JSON parse successful:', data);
-        } catch (parseError) {
-          console.error('❌ JSON Parse Error:', parseError);
-          console.error('❌ Response that failed to parse:', responseText.substring(0, 500));
-          throw new Error('Invalid response format from server');
-        }
+        const errorText = result.data.message;
+        console.error('API Error Response:', errorText);
+        throw new Error(`Failed to fetch user statistics: ${result.status}`);
       }
-      
-      const newStats = {
-        kycStatus: data.kycStatus,
-        blockchainId: data.blockchainId,
-        verificationLevel: data.verificationLevel,
-        digitalIdActive: data.digitalIdActive,
-        digitalIdCreated: data.digitalIdCreated,
-        securityScore: data.securityScore,
-        securityLevel: data.securityLevel,
-        safetyScore: stats.safetyScore, // Keep existing safety score
-        safetyLevel: stats.safetyLevel, // Keep existing safety level
-        emergencyContactsCount: data.emergencyContactsCount,
-        emergencyContactsConfigured: data.emergencyContactsConfigured
-      };
-      
-      console.log('📈 Setting new stats:', newStats);
-      setStats(newStats);
-      
-      console.log('✅ Setting loading to false');
-      setLoading(false);
-      setInitialRender(false);
-      setError(null);
 
     } catch (err) {
       console.error('Error fetching user stats:', err);

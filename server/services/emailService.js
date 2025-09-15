@@ -16,32 +16,44 @@ class EmailService {
 
   initializeTransporter() {
     try {
+      // Production-optimized configuration for cloud deployments
+      const isProduction = process.env.NODE_ENV === 'production';
+      
       this.transporter = nodemailer.createTransport({
         service: process.env.EMAIL_SERVICE || 'gmail',
         host: process.env.SMTP_HOST || 'smtp.gmail.com',
         port: parseInt(process.env.SMTP_PORT) || 587,
-        secure: false,
-        pool: true, // Enable connection pooling
-        maxConnections: 5, // Limit concurrent connections
-        maxMessages: 100, // Messages per connection
-        rateLimit: 14, // Messages per second
+        secure: false, // Use STARTTLS
+        requireTLS: true, // Force TLS
+        pool: !isProduction, // Disable pooling in production for better reliability
+        maxConnections: isProduction ? 1 : 5, // Single connection in production
+        maxMessages: isProduction ? 1 : 100, // One message per connection in production
+        rateLimit: isProduction ? 5 : 14, // Slower rate in production
         auth: {
           user: process.env.EMAIL_USER,
           pass: process.env.EMAIL_PASSWORD
         },
-        connectionTimeout: 10000, // 10 seconds timeout
-        greetingTimeout: 5000, // 5 seconds greeting timeout
-        socketTimeout: 30000 // 30 seconds socket timeout
+        // Extended timeouts for production environments
+        connectionTimeout: isProduction ? 60000 : 10000, // 60s for production, 10s for dev
+        greetingTimeout: isProduction ? 30000 : 5000, // 30s for production, 5s for dev
+        socketTimeout: isProduction ? 60000 : 30000, // 60s for production, 30s for dev
+        // Additional production settings
+        tls: {
+          ciphers: 'SSLv3',
+          rejectUnauthorized: false // Allow self-signed certificates in some cloud environments
+        },
+        debug: isProduction ? false : true, // Enable debug in development
+        logger: isProduction ? false : true // Enable logging in development
       });
 
-      // Email service initialized successfully
+      console.log(`📧 Email service initialized for ${isProduction ? 'PRODUCTION' : 'DEVELOPMENT'} environment`);
     } catch (error) {
       console.error('Email service initialization failed:', error);
     }
   }
 
   /**
-   * Send OTP email with optimized delivery
+   * Send OTP email with optimized delivery and retry mechanism
    * @param {string} email - Recipient email
    * @param {string} otp - OTP code
    * @param {string} name - User name
@@ -49,61 +61,79 @@ class EmailService {
    */
   async sendOTP(email, otp, name, role = 'user') {
     const startTime = Date.now();
+    const maxRetries = process.env.NODE_ENV === 'production' ? 3 : 1;
     
-    try {
-      // Simplified HTML for faster processing
-      const isAdmin = role === 'admin' || role === 'subadmin';
-      const priority = isAdmin ? 'high' : 'normal';
-      
-      const mailOptions = {
-        from: `SafeTourAI <${process.env.EMAIL_USER}>`,
-        to: email,
-        subject: `SafeTourAI - ${isAdmin ? 'Admin ' : ''}Email Verification OTP`,
-        priority: priority,
-        html: isAdmin ? `
-          <div style="font-family:Arial,sans-serif;max-width:500px;margin:0 auto;padding:20px;background:#f5f5f5;">
-            <div style="background:#667eea;color:white;padding:20px;text-align:center;border-radius:8px 8px 0 0;">
-              <h1 style="margin:0;">SafeTourAI Admin</h1>
-              <p style="margin:5px 0 0 0;">Email Verification</p>
-            </div>
-            <div style="background:white;padding:30px;border-radius:0 0 8px 8px;">
-              <h2>Hello ${name}!</h2>
-              <p>Your admin verification code:</p>
-              <div style="background:#f8f9ff;border:2px solid #667eea;padding:15px;text-align:center;margin:20px 0;border-radius:8px;">
-                <div style="font-size:28px;font-weight:bold;color:#667eea;letter-spacing:3px;">${otp}</div>
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        // Simplified HTML for faster processing
+        const isAdmin = role === 'admin' || role === 'subadmin';
+        const priority = isAdmin ? 'high' : 'normal';
+        
+        const mailOptions = {
+          from: `SafeTourAI <${process.env.EMAIL_USER}>`,
+          to: email,
+          subject: `SafeTourAI - ${isAdmin ? 'Admin ' : ''}Email Verification OTP`,
+          priority: priority,
+          html: isAdmin ? `
+            <div style="font-family:Arial,sans-serif;max-width:500px;margin:0 auto;padding:20px;background:#f5f5f5;">
+              <div style="background:#667eea;color:white;padding:20px;text-align:center;border-radius:8px 8px 0 0;">
+                <h1 style="margin:0;">SafeTourAI Admin</h1>
+                <p style="margin:5px 0 0 0;">Email Verification</p>
               </div>
-              <p style="color:#666;font-size:14px;">Valid for ${process.env.OTP_EXPIRY_MINUTES || 10} minutes. Do not share this code.</p>
-            </div>
-          </div>
-        ` : `
-          <div style="font-family:Arial,sans-serif;max-width:500px;margin:0 auto;padding:20px;background:#f5f5f5;">
-            <div style="background:#667eea;color:white;padding:20px;text-align:center;border-radius:8px 8px 0 0;">
-              <h1 style="margin:0;">SafeTourAI</h1>
-              <p style="margin:5px 0 0 0;">Email Verification</p>
-            </div>
-            <div style="background:white;padding:30px;border-radius:0 0 8px 8px;">
-              <h2>Hello ${name}!</h2>
-              <p>Your verification code:</p>
-              <div style="background:#f8f9ff;border:2px solid #667eea;padding:15px;text-align:center;margin:20px 0;border-radius:8px;">
-                <div style="font-size:28px;font-weight:bold;color:#667eea;letter-spacing:3px;">${otp}</div>
+              <div style="background:white;padding:30px;border-radius:0 0 8px 8px;">
+                <h2>Hello ${name}!</h2>
+                <p>Your admin verification code:</p>
+                <div style="background:#f8f9ff;border:2px solid #667eea;padding:15px;text-align:center;margin:20px 0;border-radius:8px;">
+                  <div style="font-size:28px;font-weight:bold;color:#667eea;letter-spacing:3px;">${otp}</div>
+                </div>
+                <p style="color:#666;font-size:14px;">Valid for ${process.env.OTP_EXPIRY_MINUTES || 10} minutes. Do not share this code.</p>
               </div>
-              <p style="color:#666;font-size:14px;">Valid for ${process.env.OTP_EXPIRY_MINUTES || 10} minutes.</p>
             </div>
-          </div>
-        `
-      };
+          ` : `
+            <div style="font-family:Arial,sans-serif;max-width:500px;margin:0 auto;padding:20px;background:#f5f5f5;">
+              <div style="background:#667eea;color:white;padding:20px;text-align:center;border-radius:8px 8px 0 0;">
+                <h1 style="margin:0;">SafeTourAI</h1>
+                <p style="margin:5px 0 0 0;">Email Verification</p>
+              </div>
+              <div style="background:white;padding:30px;border-radius:0 0 8px 8px;">
+                <h2>Hello ${name}!</h2>
+                <p>Your verification code:</p>
+                <div style="background:#f8f9ff;border:2px solid #667eea;padding:15px;text-align:center;margin:20px 0;border-radius:8px;">
+                  <div style="font-size:28px;font-weight:bold;color:#667eea;letter-spacing:3px;">${otp}</div>
+                </div>
+                <p style="color:#666;font-size:14px;">Valid for ${process.env.OTP_EXPIRY_MINUTES || 10} minutes.</p>
+              </div>
+            </div>
+          `
+        };
 
-      await this.transporter.sendMail(mailOptions);
-      const endTime = Date.now();
-      const duration = endTime - startTime;
-      
-      console.log(`📧 OTP email sent successfully to: ${email} (${duration}ms) ${isAdmin ? '[ADMIN PRIORITY]' : ''}`);
+        // Verify transporter before sending
+        if (process.env.NODE_ENV === 'production') {
+          await this.transporter.verify();
+        }
 
-    } catch (error) {
-      const endTime = Date.now();
-      const duration = endTime - startTime;
-      console.error(`❌ Failed to send OTP email to ${email} after ${duration}ms:`, error);
-      throw new Error('Failed to send verification email');
+        await this.transporter.sendMail(mailOptions);
+        const endTime = Date.now();
+        const duration = endTime - startTime;
+        
+        console.log(`📧 OTP email sent successfully to: ${email} (${duration}ms) ${isAdmin ? '[ADMIN PRIORITY]' : ''} ${attempt > 1 ? `[Retry ${attempt}]` : ''}`);
+        return; // Success, exit retry loop
+
+      } catch (error) {
+        const endTime = Date.now();
+        const duration = endTime - startTime;
+        
+        if (attempt === maxRetries) {
+          console.error(`❌ Failed to send OTP email to ${email} after ${maxRetries} attempts (${duration}ms):`, error);
+          throw new Error('Failed to send verification email');
+        } else {
+          console.warn(`⚠️ Email attempt ${attempt} failed for ${email}, retrying... (${duration}ms):`, error.message);
+          // Wait before retry (exponential backoff)
+          await new Promise(resolve => setTimeout(resolve, attempt * 2000));
+          // Reinitialize transporter for next attempt
+          this.initializeTransporter();
+        }
+      }
     }
   }
 

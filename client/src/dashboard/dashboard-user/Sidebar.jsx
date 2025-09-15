@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import toast from 'react-hot-toast';
-import DashboardSelector from '../../components/DashboardSelector';
 import { 
   FiHome, 
   FiAlertTriangle, 
@@ -133,29 +132,17 @@ const Sidebar = ({ activeTab, setActiveTab }) => {
           left: 0,
           width: '256px',
           height: '100vh',
-          zIndex: 1000,
-          overflowY: 'auto'
+          zIndex: 40,
+          overflowY: 'auto',
+          display: 'flex',
+          flexDirection: 'column',
+          paddingTop: '60px'
         }}
       >
         <div className="flex flex-col h-full">
-          {/* Logo Section */}
-          <div className="p-6 border-b border-gray-200">
-            <div className="flex items-center space-x-3 mb-4">
-              <div className="w-10 h-10 bg-gradient-to-br from-blue-600 to-teal-500 rounded-lg flex items-center justify-center">
-                <FiAlertTriangle className="w-6 h-6 text-white" />
-              </div>
-              <div>
-                <h1 className="text-xl font-bold text-gray-800">SafeTourAI</h1>
-                <p className="text-xs text-gray-500">Emergency Response</p>
-              </div>
-            </div>
-            
-            {/* Dashboard Selector */}
-            <DashboardSelector currentDashboard="user" />
-          </div>
 
           {/* Navigation Menu */}
-          <nav className="flex-1 p-4 space-y-2">
+          <nav className="flex-1 p-4 space-y-2 overflow-y-auto">
             {menuItems.map((item) => {
               const isActive = activeTab === item.id;
               
@@ -180,7 +167,7 @@ const Sidebar = ({ activeTab, setActiveTab }) => {
           </nav>
 
           {/* User Profile & Auth Button */}
-          <div className="p-4 border-t border-gray-200">
+          <div className="p-4 border-t border-gray-200 flex-shrink-0">
             {userIsAuthenticated ? (
               <>
                 <div className="flex items-center space-x-3 mb-4">

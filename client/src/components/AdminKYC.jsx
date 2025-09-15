@@ -330,78 +330,19 @@ const AdminKYC = () => {
         </div>
 
         {loading ? (
-          <div className="min-h-screen bg-gray-50 p-6">
-            <div className="max-w-4xl mx-auto">
-              {/* Header Skeleton */}
-              <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-6 mb-6">
-                <div className="text-center">
-                  <div className="h-8 bg-gray-200 rounded-lg w-80 mx-auto mb-2 animate-pulse"></div>
-                  <div className="h-4 bg-gray-200 rounded-lg w-96 mx-auto animate-pulse"></div>
-                </div>
+          <div className="admin-loading">
+            <div className="loading-animation">
+              <div className="loading-spinner">
+                <div className="spinner-ring"></div>
+                <div className="spinner-ring"></div>
+                <div className="spinner-ring"></div>
               </div>
-
-              {/* Stats Cards Skeleton */}
-              <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-6">
-                {[1, 2, 3, 4, 5].map((item) => (
-                  <div key={item} className="bg-white rounded-xl shadow-lg border border-gray-200 p-4">
-                    <div className="flex items-center space-x-3">
-                      <div className="w-8 h-8 bg-gray-200 rounded-full animate-pulse"></div>
-                      <div className="flex-1">
-                        <div className="h-6 bg-gray-200 rounded w-8 mb-1 animate-pulse"></div>
-                        <div className="h-4 bg-gray-200 rounded w-16 animate-pulse"></div>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              {/* Table Skeleton */}
-              <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-6">
-                <div className="flex justify-between items-center mb-4">
-                  <div className="h-6 bg-gray-200 rounded-lg w-48 animate-pulse"></div>
-                  <div className="h-10 bg-gray-200 rounded-lg w-24 animate-pulse"></div>
-                </div>
-                
-                <div className="space-y-4">
-                  {/* Table Header */}
-                  <div className="grid grid-cols-7 gap-4 pb-2 border-b">
-                    {['User ID', 'Name', 'Email', 'Full Name', 'ID Type', 'Submitted', 'Actions'].map((header, index) => (
-                      <div key={index} className="h-4 bg-gray-200 rounded animate-pulse"></div>
-                    ))}
-                  </div>
-                  
-                  {/* Table Rows */}
-                  {[1, 2, 3, 4, 5].map((row) => (
-                    <div key={row} className="grid grid-cols-7 gap-4 py-3 border-b border-gray-100">
-                      {[1, 2, 3, 4, 5, 6, 7].map((col) => (
-                        <div key={col} className="h-4 bg-gray-200 rounded animate-pulse"></div>
-                      ))}
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Loading indicator overlay */}
-              <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-                <div className="bg-white rounded-xl p-8 flex flex-col items-center space-y-4">
-                  <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
-                  <p className="text-gray-700 font-medium">Loading KYC submissions...</p>
-                  <p className="text-gray-500 text-sm">Fetching pending verification requests</p>
-                  <div className="space-y-2 text-sm text-gray-600">
-                    <div className="flex items-center space-x-2">
-                      <div className="w-2 h-2 bg-blue-600 rounded-full animate-pulse"></div>
-                      <span>📋 Retrieving KYC data</span>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <div className="w-2 h-2 bg-gray-300 rounded-full"></div>
-                      <span>📊 Loading statistics</span>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <div className="w-2 h-2 bg-gray-300 rounded-full"></div>
-                      <span>🔄 Updating dashboard</span>
-                    </div>
-                  </div>
-                </div>
+              <h3>🔍 Loading KYC submissions...</h3>
+              <p>Fetching pending verification requests</p>
+              <div className="loading-steps">
+                <div className="step active">📋 Retrieving KYC data</div>
+                <div className="step">📊 Loading statistics</div>
+                <div className="step">🔄 Updating dashboard</div>
               </div>
             </div>
           </div>

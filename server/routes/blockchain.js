@@ -36,21 +36,11 @@ router.get('/transactions', verifyFirebaseToken, async (req, res) => {
     const userData = userDoc.data();
     
     // Get user's blockchain transactions from Firestore
-    let transactionsSnapshot;
-    try {
-      transactionsSnapshot = await db.collection('blockchain_transactions')
-        .where('userId', '==', req.user.uid)
-        .orderBy('timestamp', 'desc')
-        .limit(20)
-        .get();
-    } catch (indexError) {
-      console.warn('⚠️ Firestore index missing for blockchain_transactions query, using fallback');
-      // Fallback: Get transactions without ordering (no composite index required)
-      transactionsSnapshot = await db.collection('blockchain_transactions')
-        .where('userId', '==', req.user.uid)
-        .limit(20)
-        .get();
-    }
+    const transactionsSnapshot = await db.collection('blockchain_transactions')
+      .where('userId', '==', req.user.uid)
+      .orderBy('timestamp', 'desc')
+      .limit(20)
+      .get();
 
     const transactions = [];
     transactionsSnapshot.forEach(doc => {
@@ -135,18 +125,11 @@ router.get('/stats', verifyFirebaseToken, async (req, res) => {
     // Get today's verifications
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    let verifiedToday = 0;
-    try {
-      const todaySnapshot = await db.collection('users')
-        .where('kycStatus', '==', 'approved')
-        .where('kycApprovedAt', '>=', today.toISOString())
-        .get();
-      verifiedToday = todaySnapshot.size;
-    } catch (indexError) {
-      console.warn('⚠️ Firestore index missing for users query with kycStatus and kycApprovedAt, using fallback');
-      // Fallback: Count all approved users (less accurate but doesn't require composite index)
-      verifiedToday = Math.floor(totalVerifiedUsers * 0.1); // Estimate 10% verified today
-    }
+    const todaySnapshot = await db.collection('users')
+      .where('kycStatus', '==', 'approved')
+      .where('kycApprovedAt', '>=', today.toISOString())
+      .get();
+    const verifiedToday = todaySnapshot.size;
 
     res.json({
       success: true,
@@ -376,163 +359,6 @@ router.post('/verify', verifyFirebaseToken, async (req, res) => {
   }
 });
 
-// Verify QR code and get user data (for sub-admin/police scanning)
-router.post('/verify-qr', verifyFirebaseToken, async (req, res) => {
-  try {
-    const { qrData, scannedHash } = req.body;
-
-    // Validate input
-    if (!qrData) {
-      return res.status(400).json({ 
-        success: false, 
-        error: 'QR data is required' 
-      });
-    }
-
-    // Parse QR data
-    let parsedQrData;
-    try {
-      parsedQrData = typeof qrData === 'string' ? JSON.parse(qrData) : qrData;
-    } catch (parseError) {
-      return res.status(400).json({ 
-        success: false, 
-        error: 'Invalid QR data format' 
-      });
-    }
-
-    // Handle simplified QR format (only qrId)
-    let userId, blockchainId;
-    
-    if (parsedQrData.qrId) {
-      // New simplified format: extract user info from qrId
-      if (parsedQrData.qrId.startsWith('ST-')) {
-        // Extract blockchain ID or user ID from qrId
-        blockchainId = parsedQrData.qrId;
-        
-        // Try to find user by blockchain ID first
-        const usersSnapshot = await db.collection('users')
-          .where('blockchainId', '==', blockchainId)
-          .limit(1)
-          .get();
-          
-        if (!usersSnapshot.empty) {
-          userId = usersSnapshot.docs[0].id;
-        } else {
-          // If not found by blockchain ID, try extracting UID from qrId
-          const uidPart = parsedQrData.qrId.replace('ST-', '');
-          const usersSnapshot2 = await db.collection('users')
-            .where('uid', '>=', uidPart)
-            .where('uid', '<', uidPart + '\uf8ff')
-            .limit(1)
-            .get();
-            
-          if (!usersSnapshot2.empty) {
-            userId = usersSnapshot2.docs[0].id;
-            blockchainId = usersSnapshot2.docs[0].data().blockchainId;
-          }
-        }
-      }
-    } else {
-      // Legacy format with uid and blockchainId
-      userId = parsedQrData.uid;
-      blockchainId = parsedQrData.blockchainId;
-    }
-
-    // Validate we found user info
-    if (!userId) {
-      return res.status(404).json({ 
-        success: false, 
-        error: 'User not found for this QR code' 
-      });
-    }
-
-    // Get user data from database
-    const userDoc = await db.collection('users').doc(userId).get();
-    if (!userDoc.exists) {
-      return res.status(404).json({ 
-        success: false, 
-        error: 'User not found' 
-      });
-    }
-
-    const userData = userDoc.data();
-
-    // Verify the blockchain ID matches (skip for test data)
-    if (userData.blockchainId && blockchainId && userData.blockchainId !== blockchainId) {
-      return res.status(400).json({ 
-        success: false, 
-        error: 'Blockchain ID mismatch' 
-      });
-    }
-
-    // Get KYC data
-    const kycDoc = await db.collection('kyc').doc(userId).get();
-    const kycData = kycDoc.exists ? kycDoc.data() : {};
-
-    // Get digital identity from blockchain service
-    const digitalIdResult = blockchainService.getDigitalIdentity(userId);
-
-    // Prepare response data
-    const responseData = {
-      success: true,
-      verified: true,
-      digitalId: {
-        id: blockchainId || userData.blockchainId,
-        uid: userId,
-        verificationLevel: parsedQrData.verificationLevel || 'Level 3 - Full KYC',
-        network: parsedQrData.network || 'SafeTour Blockchain',
-        timestamp: parsedQrData.timestamp,
-        status: 'verified'
-      },
-      userData: {
-        fullName: kycData.fullName || userData.name || 'N/A',
-        email: userData.email || 'N/A',
-        dateOfBirth: kycData.dateOfBirth || 'N/A',
-        gender: kycData.gender || 'N/A',
-        nationality: kycData.address?.country || 'N/A',
-        governmentIdType: kycData.governmentIdType || 'N/A',
-        governmentIdNumber: kycData.governmentIdNumber ? 
-          `***${kycData.governmentIdNumber.slice(-4)}` : 'N/A', // Masked for security
-        address: kycData.address ? {
-          city: kycData.address.city || 'N/A',
-          state: kycData.address.state || 'N/A',
-          country: kycData.address.country || 'N/A'
-        } : null,
-        kycStatus: userData.kycStatus || 'pending',
-        kycApprovedAt: kycData.reviewedAt || 'N/A',
-        emergencyContact: userData.emergencyContact || 'N/A',
-        travelPurpose: userData.travelPurpose || 'Tourism',
-        checkInDate: userData.checkInDate || 'N/A',
-        accommodation: userData.accommodation || 'N/A'
-      },
-      scanInfo: {
-        scannedAt: new Date().toISOString(),
-        scannedBy: req.user.uid,
-        scannerRole: 'sub-admin'
-      }
-    };
-
-    // Log the scan for audit purposes
-    await db.collection('scan_logs').add({
-      scannedUserId: userId,
-      scannedBy: req.user.uid,
-      scannedAt: new Date().toISOString(),
-      scannerRole: 'sub-admin',
-      blockchainId: blockchainId || userData.blockchainId,
-      scanResult: 'verified'
-    });
-
-    res.json(responseData);
-
-  } catch (error) {
-    logger.errorWithContext(error, req, { operation: 'verifyQRCode' });
-    res.status(500).json({ 
-      success: false, 
-      error: 'Failed to verify QR code' 
-    });
-  }
-});
-
 // Helper function to generate mock transactions
 function generateMockTransactions(uid) {
   const now = new Date();
@@ -599,5 +425,38 @@ function generateMockDigitalId(uid) {
     }
   };
 }
+
+/**
+ * Generate QR code data for user's digital ID
+ */
+router.get('/qr-code', verifyFirebaseToken, async (req, res) => {
+  try {
+    const uid = req.user.uid;
+    
+    // Generate QR code data using blockchain service
+    const qrData = blockchainService.generateQRCodeData(uid);
+    
+    if (!qrData) {
+      return res.status(404).json({
+        success: false,
+        message: 'Digital ID not found. Please ensure your KYC is approved.'
+      });
+    }
+    
+    res.json({
+      success: true,
+      qrData: qrData,
+      message: 'QR code data generated successfully'
+    });
+    
+  } catch (error) {
+    logger.errorWithContext(error, req, { operation: 'generateQRCode' });
+    res.status(500).json({
+      success: false,
+      message: 'Failed to generate QR code data',
+      error: error.message
+    });
+  }
+});
 
 module.exports = router;

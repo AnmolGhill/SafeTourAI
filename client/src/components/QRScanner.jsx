@@ -6,13 +6,14 @@ import {
   FiAlertCircle,
   FiRefreshCw 
 } from 'react-icons/fi';
+import QrScanner from 'qr-scanner';
 
 const QRScanner = ({ onScan, onClose, isOpen }) => {
   const [scanning, setScanning] = useState(false);
   const [result, setResult] = useState(null);
   const [error, setError] = useState(null);
   const videoRef = useRef(null);
-  const canvasRef = useRef(null);
+  const qrScannerRef = useRef(null);
 
   useEffect(() => {
     if (isOpen) {
@@ -29,41 +30,92 @@ const QRScanner = ({ onScan, onClose, isOpen }) => {
       setScanning(true);
       setError(null);
       
-      const stream = await navigator.mediaDevices.getUserMedia({ 
-        video: { facingMode: 'environment' } 
-      });
-      
       if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-        videoRef.current.play();
+        qrScannerRef.current = new QrScanner(
+          videoRef.current,
+          (result) => {
+            console.log('QR Code detected:', result.data);
+            verifyDigitalId(result.data);
+          },
+          {
+            onDecodeError: (error) => {
+              // Silently handle decode errors - they're normal when no QR is visible
+              console.log('QR decode error (normal):', error);
+            },
+            highlightScanRegion: true,
+            highlightCodeOutline: true,
+          }
+        );
+        
+        await qrScannerRef.current.start();
       }
     } catch (err) {
+      console.error('Camera error:', err);
       setError('Camera access denied. Please allow camera permissions.');
       setScanning(false);
     }
   };
 
   const stopCamera = () => {
-    if (videoRef.current && videoRef.current.srcObject) {
-      const tracks = videoRef.current.srcObject.getTracks();
-      tracks.forEach(track => track.stop());
-      videoRef.current.srcObject = null;
+    if (qrScannerRef.current) {
+      qrScannerRef.current.stop();
+      qrScannerRef.current.destroy();
+      qrScannerRef.current = null;
     }
     setScanning(false);
   };
 
-  const verifyDigitalId = async (digitalIdHash) => {
+  const verifyDigitalId = async (qrData) => {
     try {
-      const response = await fetch(`/api/digital-id/verify/${digitalIdHash}`);
+      const token = localStorage.getItem('token');
+      if (!token) {
+        setResult({
+          verified: false,
+          message: 'Authentication required'
+        });
+        return;
+      }
+
+      let requestBody = {};
+      
+      // Handle different input types
+      if (typeof qrData === 'string') {
+        try {
+          // Try to parse as JSON first
+          const parsedData = JSON.parse(qrData);
+          if (parsedData.uid || parsedData.blockchainId) {
+            requestBody = { qrData: parsedData };
+          } else {
+            // Treat as blockchain ID or UID
+            requestBody = { blockchainId: qrData };
+          }
+        } catch {
+          // Not JSON, treat as blockchain ID or UID
+          requestBody = { blockchainId: qrData };
+        }
+      } else if (typeof qrData === 'object') {
+        requestBody = { qrData };
+      }
+
+      const response = await fetch('http://localhost:5000/api/digital-id/verify', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify(requestBody)
+      });
+      
       const data = await response.json();
       
       if (data.success) {
         setResult({
           verified: true,
           digitalId: data.digitalId,
+          userData: data.userData,
           message: 'Digital ID verified successfully!'
         });
-        onScan && onScan(data.digitalId);
+        onScan && onScan(data);
       } else {
         setResult({
           verified: false,
@@ -71,6 +123,7 @@ const QRScanner = ({ onScan, onClose, isOpen }) => {
         });
       }
     } catch (error) {
+      console.error('Verification error:', error);
       setResult({
         verified: false,
         message: 'Error verifying Digital ID'
@@ -128,11 +181,13 @@ const QRScanner = ({ onScan, onClose, isOpen }) => {
               </span>
             </div>
             
-            {result.verified && result.digitalId && (
+            {result.verified && result.userData && (
               <div className="text-sm space-y-1">
-                <div><strong>Name:</strong> {result.digitalId.userData.fullName}</div>
+                <div><strong>Name:</strong> {result.userData.fullName}</div>
                 <div><strong>ID:</strong> {result.digitalId.id}</div>
                 <div><strong>Verification:</strong> {result.digitalId.verificationLevel}</div>
+                <div><strong>Nationality:</strong> {result.userData.nationality}</div>
+                <div><strong>Status:</strong> {result.userData.kycStatus}</div>
               </div>
             )}
           </div>
@@ -146,17 +201,8 @@ const QRScanner = ({ onScan, onClose, isOpen }) => {
                 className="w-full h-64 bg-gray-900 rounded-lg"
                 autoPlay
                 playsInline
+                muted
               />
-              <canvas
-                ref={canvasRef}
-                className="hidden"
-              />
-              <div className="absolute inset-0 border-2 border-blue-500 rounded-lg pointer-events-none">
-                <div className="absolute top-4 left-4 w-6 h-6 border-t-2 border-l-2 border-blue-500"></div>
-                <div className="absolute top-4 right-4 w-6 h-6 border-t-2 border-r-2 border-blue-500"></div>
-                <div className="absolute bottom-4 left-4 w-6 h-6 border-b-2 border-l-2 border-blue-500"></div>
-                <div className="absolute bottom-4 right-4 w-6 h-6 border-b-2 border-r-2 border-blue-500"></div>
-              </div>
             </div>
           ) : (
             <div className="text-center py-8">

@@ -401,29 +401,7 @@ router.post('/kyc/:uid/review', verifyFirebaseToken, requireAdmin, [
 
     // If approved, generate blockchain ID asynchronously
     if (action === 'approve') {
-      // Check if user role should get blockchain ID (only regular users, not admin/sub-admin)
-      const userRole = userData.role || 'user';
-      if (userRole === 'admin' || userRole === 'subadmin') {
-        console.log(`⚠️ Skipping blockchain ID generation for ${userRole} user: ${uid}`);
-        // Update KYC status but don't generate blockchain ID for admin/sub-admin
-        await db.collection('kyc').doc(uid).update({
-          status: 'approved',
-          reviewedAt: new Date().toISOString(),
-          reviewedBy: req.user.uid
-        });
-        
-        await db.collection('users').doc(uid).update({
-          kycStatus: 'approved'
-          // No blockchainId for admin/sub-admin
-        });
-        
-        return res.json({
-          message: `KYC approved for ${userRole} user (no blockchain ID generated)`,
-          status: 'approved'
-        });
-      }
-      
-      // Generate REAL blockchain ID for regular users only
+      // Generate REAL blockchain ID immediately (no temporary ID)
       console.log(`🚀 Generating REAL blockchain ID for user: ${uid}`);
       const realBlockchainId = await blockchainService.generateBlockchainId(uid, kycData, userData.email);
       

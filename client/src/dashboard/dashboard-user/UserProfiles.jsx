@@ -88,7 +88,8 @@ const UserProfiles = () => {
           setDataLoading(true);
           
           // Fetch complete profile from backend
-          const response = await fetch('/api/user/profile', {
+          const BASE_URL = import.meta.env.VITE_BASE_URL;
+          const response = await fetch(`${BASE_URL}/api/user/profile`, {
             method: 'GET',
             headers: {
               'Authorization': `Bearer ${token}`,
@@ -126,12 +127,25 @@ const UserProfiles = () => {
             if (result.user.emergencyContacts) {
               if (Array.isArray(result.user.emergencyContacts)) {
                 updatedProfile.emergencyContacts = result.user.emergencyContacts;
-              } else if (typeof result.user.emergencyContacts === 'object') {
+              } else if (typeof result.user.emergencyContacts === 'object' && result.user.emergencyContacts !== null) {
                 // Convert object format to array format
                 updatedProfile.emergencyContacts = Object.values(result.user.emergencyContacts);
               } else {
                 updatedProfile.emergencyContacts = [];
               }
+            } else {
+              updatedProfile.emergencyContacts = [];
+            }
+
+            // Ensure safetyTips is always an array
+            if (result.user.safetyTips) {
+              if (Array.isArray(result.user.safetyTips)) {
+                updatedProfile.safetyTips = result.user.safetyTips;
+              } else {
+                updatedProfile.safetyTips = [];
+              }
+            } else {
+              updatedProfile.safetyTips = [];
             }
             if (result.user.bloodGroup) updatedProfile.bloodGroup = result.user.bloodGroup;
             if (result.user.allergies) updatedProfile.allergies = result.user.allergies;
@@ -203,21 +217,47 @@ const UserProfiles = () => {
       setIsLoading(true);
       
       // Validate emergency contacts before saving
-      const validEmergencyContacts = userProfile.emergencyContacts.filter(contact => 
-        contact.name && contact.name.trim() !== '' && 
-        contact.phone && contact.phone.trim() !== ''
-      );
+      const validEmergencyContacts = Array.isArray(userProfile.emergencyContacts) 
+        ? userProfile.emergencyContacts.filter(contact => 
+            contact.name && contact.name.trim() !== '' && 
+            contact.phone && contact.phone.trim() !== ''
+          )
+        : [];
       
-      // Prepare profile data with validated emergency contacts as array (not object)
+      // Clean and prepare profile data
       const profileToSave = {
         ...userProfile,
-        emergencyContacts: validEmergencyContacts // Ensure this is always an array
+        emergencyContacts: validEmergencyContacts, // Ensure this is always an array
+        safetyTips: Array.isArray(userProfile.safetyTips) ? userProfile.safetyTips : [], // Ensure array
       };
+
+      // Remove empty strings and replace with undefined for optional fields
+      // This prevents validation errors for fields with minimum length requirements
+      Object.keys(profileToSave).forEach(key => {
+        if (profileToSave[key] === '' && 
+            !['fullName', 'email', 'contactNumber'].includes(key)) { // Keep required fields as empty strings
+          profileToSave[key] = undefined;
+        }
+      });
+
+      // Handle age - convert empty string to undefined, ensure it's a number if provided
+      if (profileToSave.age === '' || profileToSave.age === null) {
+        profileToSave.age = undefined;
+      } else if (profileToSave.age && typeof profileToSave.age === 'string') {
+        const ageNum = parseInt(profileToSave.age);
+        profileToSave.age = isNaN(ageNum) ? undefined : ageNum;
+      }
+
+      // Handle dateOfBirth - convert empty string to undefined
+      if (profileToSave.dateOfBirth === '') {
+        profileToSave.dateOfBirth = undefined;
+      }
       
-      console.log('Saving profile with emergency contacts:', profileToSave.emergencyContacts);
+      console.log('Saving profile with cleaned data:', profileToSave);
       
       // Save profile to backend Firebase
-      const response = await fetch('/api/user/profile', {
+      const BASE_URL = import.meta.env.VITE_BASE_URL;
+      const response = await fetch(`${BASE_URL}/api/user/profile`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -267,7 +307,7 @@ const UserProfiles = () => {
           <label className="block text-sm font-medium text-gray-700 mb-2">Age</label>
           <input
             type="number"
-            value={userProfile.age}
+            value={userProfile.age || ''}
             onChange={(e) => setUserProfile(prev => ({ ...prev, age: e.target.value ? parseInt(e.target.value) : '' }))}
             disabled={!editMode}
             className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 disabled:bg-gray-50"
@@ -278,7 +318,7 @@ const UserProfiles = () => {
           <label className="block text-sm font-medium text-gray-700 mb-2">Date of Birth</label>
           <input
             type="date"
-            value={userProfile.dateOfBirth}
+            value={userProfile.dateOfBirth || ''}
             onChange={(e) => setUserProfile(prev => ({ ...prev, dateOfBirth: e.target.value }))}
             disabled={!editMode}
             className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 disabled:bg-gray-50"
@@ -288,7 +328,7 @@ const UserProfiles = () => {
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">Gender</label>
           <select
-            value={userProfile.gender}
+            value={userProfile.gender || ''}
             onChange={(e) => setUserProfile(prev => ({ ...prev, gender: e.target.value }))}
             disabled={!editMode}
             className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 disabled:bg-gray-50"
@@ -305,7 +345,7 @@ const UserProfiles = () => {
           <label className="block text-sm font-medium text-gray-700 mb-2">Contact Number</label>
           <input
             type="tel"
-            value={userProfile.contactNumber}
+            value={userProfile.contactNumber || ''}
             onChange={(e) => setUserProfile(prev => ({ ...prev, contactNumber: e.target.value }))}
             disabled={!editMode}
             className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 disabled:bg-gray-50"
@@ -316,7 +356,7 @@ const UserProfiles = () => {
           <label className="block text-sm font-medium text-gray-700 mb-2">Email</label>
           <input
             type="email"
-            value={userProfile.email}
+            value={userProfile.email || ''}
             onChange={(e) => setUserProfile(prev => ({ ...prev, email: e.target.value }))}
             disabled={!editMode}
             className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 disabled:bg-gray-50"
@@ -348,7 +388,7 @@ const UserProfiles = () => {
         <div className="md:col-span-2">
           <label className="block text-sm font-medium text-gray-700 mb-2">Address</label>
           <textarea
-            value={userProfile.address}
+            value={userProfile.address || ''}
             onChange={(e) => setUserProfile(prev => ({ ...prev, address: e.target.value }))}
             disabled={!editMode}
             rows="3"
@@ -519,7 +559,7 @@ const UserProfiles = () => {
                 <label className="block text-sm font-medium text-gray-700 mb-2">Blood Group</label>
                 {editMode ? (
                   <select
-                    value={userProfile.bloodGroup}
+                    value={userProfile.bloodGroup || ''}
                     onChange={(e) => setUserProfile(prev => ({ ...prev, bloodGroup: e.target.value }))}
                     className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                   >
@@ -544,7 +584,7 @@ const UserProfiles = () => {
                 {editMode ? (
                   <input
                     type="text"
-                    value={userProfile.healthInsurance}
+                    value={userProfile.healthInsurance || ''}
                     onChange={(e) => setUserProfile(prev => ({ ...prev, healthInsurance: e.target.value }))}
                     className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                     placeholder="Insurance provider and policy number"
@@ -564,7 +604,7 @@ const UserProfiles = () => {
                 {editMode ? (
                   <input
                     type="text"
-                    value={userProfile.doctorName}
+                    value={userProfile.doctorName || ''}
                     onChange={(e) => setUserProfile(prev => ({ ...prev, doctorName: e.target.value }))}
                     className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                     placeholder="Doctor's name"
@@ -581,7 +621,7 @@ const UserProfiles = () => {
                 {editMode ? (
                   <input
                     type="tel"
-                    value={userProfile.doctorPhone}
+                    value={userProfile.doctorPhone || ''}
                     onChange={(e) => setUserProfile(prev => ({ ...prev, doctorPhone: e.target.value }))}
                     className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                     placeholder="Doctor's contact number"
@@ -600,7 +640,7 @@ const UserProfiles = () => {
                 <label className="block text-sm font-medium text-gray-700 mb-2">Allergies</label>
                 {editMode ? (
                   <textarea
-                    value={userProfile.allergies}
+                    value={userProfile.allergies || ''}
                     onChange={(e) => setUserProfile(prev => ({ ...prev, allergies: e.target.value }))}
                     rows="3"
                     className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
@@ -617,7 +657,7 @@ const UserProfiles = () => {
                 <label className="block text-sm font-medium text-gray-700 mb-2">Medical Conditions</label>
                 {editMode ? (
                   <textarea
-                    value={userProfile.medicalConditions}
+                    value={userProfile.medicalConditions || ''}
                     onChange={(e) => setUserProfile(prev => ({ ...prev, medicalConditions: e.target.value }))}
                     rows="3"
                     className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
@@ -634,7 +674,7 @@ const UserProfiles = () => {
                 <label className="block text-sm font-medium text-gray-700 mb-2">Chronic Conditions</label>
                 {editMode ? (
                   <textarea
-                    value={userProfile.chronicConditions}
+                    value={userProfile.chronicConditions || ''}
                     onChange={(e) => setUserProfile(prev => ({ ...prev, chronicConditions: e.target.value }))}
                     rows="3"
                     className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
@@ -651,7 +691,7 @@ const UserProfiles = () => {
                 <label className="block text-sm font-medium text-gray-700 mb-2">Current Medications</label>
                 {editMode ? (
                   <textarea
-                    value={userProfile.medications}
+                    value={userProfile.medications || ''}
                     onChange={(e) => setUserProfile(prev => ({ ...prev, medications: e.target.value }))}
                     rows="3"
                     className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
@@ -668,7 +708,7 @@ const UserProfiles = () => {
                 <label className="block text-sm font-medium text-gray-700 mb-2">Mental Health Conditions</label>
                 {editMode ? (
                   <textarea
-                    value={userProfile.mentalHealthConditions}
+                    value={userProfile.mentalHealthConditions || ''}
                     onChange={(e) => setUserProfile(prev => ({ ...prev, mentalHealthConditions: e.target.value }))}
                     rows="2"
                     className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
@@ -688,7 +728,7 @@ const UserProfiles = () => {
                 <label className="block text-sm font-medium text-gray-700 mb-2">Medical History</label>
                 {editMode ? (
                   <textarea
-                    value={userProfile.medicalHistory}
+                    value={userProfile.medicalHistory || ''}
                     onChange={(e) => setUserProfile(prev => ({ ...prev, medicalHistory: e.target.value }))}
                     rows="3"
                     className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
@@ -705,7 +745,7 @@ const UserProfiles = () => {
                 <label className="block text-sm font-medium text-gray-700 mb-2">Vaccination Status</label>
                 {editMode ? (
                   <textarea
-                    value={userProfile.vaccinationStatus}
+                    value={userProfile.vaccinationStatus || ''}
                     onChange={(e) => setUserProfile(prev => ({ ...prev, vaccinationStatus: e.target.value }))}
                     rows="3"
                     className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
@@ -729,7 +769,7 @@ const UserProfiles = () => {
                   {editMode ? (
                     <input
                       type="text"
-                      value={userProfile.mobilityAids}
+                      value={userProfile.mobilityAids || ''}
                       onChange={(e) => setUserProfile(prev => ({ ...prev, mobilityAids: e.target.value }))}
                       className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                       placeholder="Wheelchair, walker, cane, etc."
@@ -745,7 +785,7 @@ const UserProfiles = () => {
                   <label className="block text-sm font-medium text-gray-700 mb-2">Emergency Medical Preference</label>
                   {editMode ? (
                     <select
-                      value={userProfile.emergencyMedicalPreference}
+                      value={userProfile.emergencyMedicalPreference || ''}
                       onChange={(e) => setUserProfile(prev => ({ ...prev, emergencyMedicalPreference: e.target.value }))}
                       className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                     >
@@ -819,7 +859,7 @@ const UserProfiles = () => {
                   <h4 className="text-sm font-medium text-yellow-800 mb-1">Medical Alerts</h4>
                   {editMode ? (
                     <textarea
-                      value={userProfile.medicalAlerts}
+                      value={userProfile.medicalAlerts || ''}
                       onChange={(e) => setUserProfile(prev => ({ ...prev, medicalAlerts: e.target.value }))}
                       rows="2"
                       className="w-full px-3 py-2 border border-yellow-300 rounded-lg focus:ring-2 focus:ring-yellow-500"
@@ -847,7 +887,7 @@ const UserProfiles = () => {
                 <label className="block text-sm font-medium text-gray-700 mb-2">SOS Trigger Method</label>
                 {editMode ? (
                   <select
-                    value={userProfile.sosPreference}
+                    value={userProfile.sosPreference || ''}
                     onChange={(e) => setUserProfile(prev => ({ ...prev, sosPreference: e.target.value }))}
                     className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                   >
@@ -868,7 +908,7 @@ const UserProfiles = () => {
                 <label className="block text-sm font-medium text-gray-700 mb-2">Location Sharing</label>
                 {editMode ? (
                   <select
-                    value={userProfile.privacySettings}
+                    value={userProfile.privacySettings || ''}
                     onChange={(e) => setUserProfile(prev => ({ ...prev, privacySettings: e.target.value }))}
                     className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                   >
@@ -1058,7 +1098,7 @@ const UserProfiles = () => {
                 <label className="block text-sm font-medium text-gray-700 mb-2">AI Learning Level</label>
                 {editMode ? (
                   <select
-                    value={userProfile.aiLearningLevel || 'Basic'}
+                    value={userProfile.aiLearningLevel || 'Moderate'}
                     onChange={(e) => setUserProfile(prev => ({ ...prev, aiLearningLevel: e.target.value }))}
                     className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
                   >
@@ -1125,7 +1165,7 @@ const UserProfiles = () => {
                   <label className="block text-sm font-medium text-gray-700 mb-2">Travel Style</label>
                   {editMode ? (
                     <select
-                      value={userProfile.travelStyle || ''}
+                      value={userProfile.travelStyle || 'Adventure'}
                       onChange={(e) => setUserProfile(prev => ({ ...prev, travelStyle: e.target.value }))}
                       className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                     >
@@ -1148,7 +1188,7 @@ const UserProfiles = () => {
                   <label className="block text-sm font-medium text-gray-700 mb-2">Accommodation Preference</label>
                   {editMode ? (
                     <select
-                      value={userProfile.accommodationPref || ''}
+                      value={userProfile.accommodationPref || 'Hotel'}
                       onChange={(e) => setUserProfile(prev => ({ ...prev, accommodationPref: e.target.value }))}
                       className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                     >
@@ -1211,7 +1251,7 @@ const UserProfiles = () => {
                   {editMode ? (
                     <input
                       type="text"
-                      value={userProfile.languagePrefs || ''}
+                      value={userProfile.languagePrefs || 'English'}
                       onChange={(e) => setUserProfile(prev => ({ ...prev, languagePrefs: e.target.value }))}
                       placeholder="e.g., English, Spanish, French"
                       className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
@@ -1227,7 +1267,7 @@ const UserProfiles = () => {
                   <label className="block text-sm font-medium text-gray-700 mb-2">Time Zone Preference</label>
                   {editMode ? (
                     <select
-                      value={userProfile.timeZonePref || ''}
+                      value={userProfile.timeZonePref || 'Local time'}
                       onChange={(e) => setUserProfile(prev => ({ ...prev, timeZonePref: e.target.value }))}
                       className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                     >

@@ -1,12 +1,10 @@
 import axios from 'axios';
 
-const API_BASE_URL = process.env.NODE_ENV === 'production' 
-  ? 'https://your-production-api.com/api' 
-  : 'http://localhost:5000/api';
+const API_BASE_URL = `${import.meta.env.VITE_BASE_URL || 'http://localhost:5000'}/api`;
 
 // Create axios instance with default config
 const mapsAPI = axios.create({
-  baseURL: `${API_BASE_URL}/maps`,
+  baseURL: API_BASE_URL,
   timeout: 30000,
   headers: {
     'Content-Type': 'application/json',
@@ -46,7 +44,7 @@ export const mapsService = {
   // Geocode place name to coordinates
   async geocodePlace(address) {
     try {
-      const response = await mapsAPI.post('/geocode', { address });
+      const response = await mapsAPI.post('/maps/geocode', { address });
       return {
         success: true,
         data: response.data.data
@@ -63,7 +61,7 @@ export const mapsService = {
   // Reverse geocode coordinates to address
   async reverseGeocode(lat, lng) {
     try {
-      const response = await mapsAPI.post('/reverse-geocode', { lat, lng });
+      const response = await mapsAPI.post('/maps/reverse-geocode', { lat, lng });
       return {
         success: true,
         data: response.data.data
@@ -85,7 +83,7 @@ export const mapsService = {
         types = ['police', 'hospital', 'fire_station', 'lodging']
       } = options;
 
-      const response = await mapsAPI.post('/nearby-services', {
+      const response = await mapsAPI.post('/maps/nearby-services', {
         lat,
         lng,
         radius,
@@ -109,7 +107,7 @@ export const mapsService = {
   // Get place details by place ID
   async getPlaceDetails(placeId) {
     try {
-      const response = await mapsAPI.get(`/place-details/${placeId}`);
+      const response = await mapsAPI.get(`/maps/place-details/${placeId}`);
       return {
         success: true,
         data: response.data.data
@@ -126,7 +124,7 @@ export const mapsService = {
   // Get safety analysis for location
   async getSafetyAnalysis(lat, lng, options = {}) {
     try {
-      const response = await mapsAPI.post('/safety-analysis', {
+      const response = await mapsAPI.post('/maps/safety-analysis', {
         lat,
         lng,
         ...options
