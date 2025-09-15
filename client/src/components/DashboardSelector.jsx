@@ -43,17 +43,17 @@ const DashboardSelector = ({ currentDashboard = 'user' }) => {
 
   return (
     <div className="relative group">
-      <button className="w-full flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
-        <div className="flex items-center space-x-3">
-          <div className={`w-8 h-8 ${currentDashboardInfo.bgColor} rounded-lg flex items-center justify-center`}>
-            <currentDashboardInfo.icon className={`w-4 h-4 ${currentDashboardInfo.color}`} />
+      <button className="w-full flex items-center justify-between p-2 sm:p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
+        <div className="flex items-center space-x-2 sm:space-x-3">
+          <div className={`w-6 h-6 sm:w-8 sm:h-8 ${currentDashboardInfo.bgColor} rounded-lg flex items-center justify-center`}>
+            <currentDashboardInfo.icon className={`w-3 h-3 sm:w-4 sm:h-4 ${currentDashboardInfo.color}`} />
           </div>
           <div className="text-left">
-            <div className="font-semibold text-gray-800 text-sm">{currentDashboardInfo.name}</div>
-            <div className="text-xs text-gray-500">{currentDashboardInfo.description}</div>
+            <div className="font-semibold text-gray-800 text-xs sm:text-sm">{currentDashboardInfo.name}</div>
+            <div className="text-xs text-gray-500 leading-tight">{currentDashboardInfo.description}</div>
           </div>
         </div>
-        <FiChevronDown className="w-4 h-4 text-gray-400 group-hover:text-gray-600 transition-colors" />
+        <FiChevronDown className="w-3 h-3 sm:w-4 sm:h-4 text-gray-400 group-hover:text-gray-600 transition-colors" />
       </button>
 
       {/* Dropdown Menu */}

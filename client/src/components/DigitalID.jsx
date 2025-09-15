@@ -12,6 +12,7 @@ import {
   FiLink
 } from 'react-icons/fi';
 import { BiWallet } from 'react-icons/bi';
+import QRCode from 'qrcode';
 import { kycAPI, blockchainAPI } from '../config/api';
 import QRScanner from './QRScanner';
 
@@ -133,138 +134,81 @@ const DigitalID = () => {
   };
 
   const [qrCodeData, setQrCodeData] = useState(null);
+  const [qrCodeImage, setQrCodeImage] = useState(null);
 
   const fetchQRCodeData = async () => {
     try {
       const response = await blockchainAPI.getQRCodeData();
       if (response.data && response.data.qrData) {
         setQrCodeData(response.data.qrData);
+        await generateRealQRCode(response.data.qrData);
       }
     } catch (error) {
       console.error('Error fetching QR code data:', error);
     }
   };
 
+  const generateRealQRCode = async (qrData) => {
+    try {
+      // Create QR code content with secure data
+      const qrContent = JSON.stringify({
+        type: qrData.type || 'SafeTourDigitalID',
+        blockchainId: qrData.blockchainId || digitalID?.blockchainId,
+        uid: qrData.uid || userData?.uid,
+        hash: qrData.hash,
+        network: qrData.network || 'SafeTour Blockchain',
+        timestamp: qrData.timestamp || new Date().toISOString(),
+        verificationLevel: qrData.verificationLevel || 'Level 3 - Full KYC'
+      });
+
+      // Generate real QR code using qrcode library
+      const qrCodeDataURL = await QRCode.toDataURL(qrContent, {
+        width: 200,
+        margin: 2,
+        color: {
+          dark: '#000000',
+          light: '#FFFFFF'
+        },
+        errorCorrectionLevel: 'M'
+      });
+
+      setQrCodeImage(qrCodeDataURL);
+    } catch (error) {
+      console.error('Error generating QR code:', error);
+      // Fallback to loading indicator
+      setQrCodeImage(`data:image/svg+xml;base64,${btoa(`
+        <svg width="200" height="200" xmlns="http://www.w3.org/2000/svg">
+          <rect width="200" height="200" fill="white"/>
+          <circle cx="100" cy="100" r="20" fill="none" stroke="#3B82F6" stroke-width="3">
+            <animate attributeName="r" values="15;25;15" dur="1.5s" repeatCount="indefinite"/>
+          </circle>
+          <text x="100" y="140" text-anchor="middle" font-size="12" fill="#666">QR Error</text>
+        </svg>
+      `)}`);
+    }
+  };
+
   const generateQRCode = () => {
-    if (!qrCodeData) {
-      fetchQRCodeData();
+    if (!qrCodeImage) {
+      if (!qrCodeData) {
+        fetchQRCodeData();
+      } else {
+        generateRealQRCode(qrCodeData);
+      }
+      
+      // Return loading indicator while QR code is being generated
       return `data:image/svg+xml;base64,${btoa(`
         <svg width="200" height="200" xmlns="http://www.w3.org/2000/svg">
           <rect width="200" height="200" fill="white"/>
           <circle cx="100" cy="100" r="20" fill="none" stroke="#3B82F6" stroke-width="3">
             <animate attributeName="r" values="15;25;15" dur="1.5s" repeatCount="indefinite"/>
-          <text x="100" y="25" text-anchor="middle" font-size="8" fill="#666">ID: ${digitalID?.blockchainId || `ST-${userData?.uid?.substring(0, 8)}`}</text>
+          </circle>
+          <text x="100" y="140" text-anchor="middle" font-size="12" fill="#666">Loading QR...</text>
         </svg>
       `)}`;
     }
 
-    // Generate consistent private key hash (not changing every time)
-    function generateConsistentPrivateKey() {
-      const staticData = `${digitalID?.blockchainId}-${userData?.uid || userData?.email}-SafeTourAI-PrivateKey`;
-      let hash = 0;
-      for (let i = 0; i < staticData.length; i++) {
-        const char = staticData.charCodeAt(i);
-        hash = ((hash << 5) - hash) + char;
-        hash = hash & hash; // Convert to 32-bit integer
-      }
-      return Math.abs(hash).toString(16).padStart(8, '0');
-    }
-
-    // QR code data format that matches scanner expectations - STATIC DATA ONLY
-    const qrData = {
-      type: 'SafeTourDigitalID',
-      blockchainId: digitalID?.blockchainId || `ST-${userData?.uid?.substring(0, 8)}`,
-      uid: userData?.uid || 'test-user-uid',
-      verificationLevel: 'Level 3 - Full KYC',
-      network: 'SafeTour Blockchain',
-      timestamp: '2024-01-01T00:00:00.000Z', // Fixed timestamp for consistency
-      hash: generateConsistentPrivateKey(),
-      issuer: 'SafeTourAI',
-      version: '2.0'
-    };
-    
-    const simplifiedQrContent = JSON.stringify(qrData);
-
-    // Create a more sophisticated QR-like pattern with better visual structure
-    const generateEnhancedPattern = (data) => {
-      const hash = data.split('').reduce((a, b) => {
-        a = ((a << 5) - a) + b.charCodeAt(0);
-        return a & a;
-      }, 0);
-      
-      let pattern = '';
-      const size = 21; // Standard QR code size
-      const cellSize = 7; // Smaller cells for better resolution
-      const startOffset = 15;
-      
-      // Generate corner markers (finder patterns)
-      const cornerMarker = (x, y) => `
-        <rect x="${x}" y="${y}" width="49" height="49" fill="black"/>
-        <rect x="${x + 7}" y="${y + 7}" width="35" height="35" fill="white"/>
-        <rect x="${x + 14}" y="${y + 14}" width="21" height="21" fill="black"/>
-      `;
-      
-      // Add corner markers
-      pattern += cornerMarker(startOffset, startOffset); // Top-left
-      pattern += cornerMarker(startOffset + 14 * cellSize, startOffset); // Top-right
-      pattern += cornerMarker(startOffset, startOffset + 14 * cellSize); // Bottom-left
-      
-      // Generate data pattern
-      for (let y = 0; y < size; y++) {
-        for (let x = 0; x < size; x++) {
-          // Skip corner marker areas (7x7 squares)
-          if ((x < 7 && y < 7) || (x >= size - 7 && y < 7) || (x < 7 && y >= size - 7)) {
-            continue;
-          }
-          
-          // Skip timing patterns
-          if (x === 6 || y === 6) {
-            const shouldFill = (x + y) % 2 === 0;
-            if (shouldFill) {
-              pattern += `<rect x="${startOffset + x * cellSize}" y="${startOffset + y * cellSize}" width="${cellSize}" height="${cellSize}" fill="black"/>`;
-            }
-            continue;
-          }
-          
-          // Create data pattern based on hash and position
-          const shouldFill = ((hash + x * y + x + y) % 3) === 0;
-          if (shouldFill) {
-            pattern += `<rect x="${startOffset + x * cellSize}" y="${startOffset + y * cellSize}" width="${cellSize}" height="${cellSize}" fill="black"/>`;
-          }
-        }
-      }
-      
-      // Add alignment pattern in center
-      const centerX = startOffset + 10 * cellSize;
-      const centerY = startOffset + 10 * cellSize;
-      pattern += `
-        <rect x="${centerX - 14}" y="${centerY - 14}" width="28" height="28" fill="black"/>
-        <rect x="${centerX - 7}" y="${centerY - 7}" width="14" height="14" fill="white"/>
-        <rect x="${centerX - 3.5}" y="${centerY - 3.5}" width="7" height="7" fill="black"/>
-      `;
-      
-      return pattern;
-    };
-
-    // Create enhanced QR pattern with SafeTour branding
-    const qrPattern = `
-      <svg width="200" height="200" xmlns="http://www.w3.org/2000/svg">
-        <rect width="200" height="200" fill="white"/>
-        
-        <!-- QR Code simulation with simplified pattern -->
-        ${generateEnhancedPattern(simplifiedQrContent)}
-        
-        <!-- SafeTour branding in center -->
-        <rect x="92" y="92" width="16" height="16" fill="white" stroke="#3B82F6" stroke-width="1"/>
-        <text x="100" y="102" text-anchor="middle" font-size="8" fill="#3B82F6" font-weight="bold">ST</text>
-        
-        <!-- Version indicator -->
-        <text x="10" y="15" font-size="6" fill="#666">v2.0</text>
-        <text x="100" y="190" text-anchor="middle" font-size="6" fill="#666">SafeTour Digital ID</text>
-      </svg>
-    `;
-
-    return `data:image/svg+xml;base64,${btoa(qrPattern)}`;
+    return qrCodeImage;
   };
 
   if (loading) {

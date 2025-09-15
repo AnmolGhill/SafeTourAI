@@ -1,19 +1,25 @@
 // Get base URL from environment variables and append /api
-const BASE_URL = import.meta.env.VITE_BASE_URL || 'https://safetourai.onrender.com';
+const BASE_URL = import.meta.env.VITE_BASE_URL;
 const API_BASE_URL = `${BASE_URL}/api`;
 
 // Helper function to get auth headers
 const getAuthHeaders = () => {
-  // Skip authentication for demo - server will use mock user
+  const token = localStorage.getItem('token');
+  if (!token) {
+    console.warn('No authentication token found');
+  }
   return {
-    'Content-Type': 'application/json'
+    'Content-Type': 'application/json',
+    ...(token && { 'Authorization': `Bearer ${token}` })
   };
 };
 
 // Helper function to get auth headers for file uploads
 const getFileUploadHeaders = () => {
-  // Skip authentication for demo - server will use mock user
-  return {};
+  const token = localStorage.getItem('token');
+  return {
+    ...(token && { 'Authorization': `Bearer ${token}` })
+  };
 };
 
 // KYC API
