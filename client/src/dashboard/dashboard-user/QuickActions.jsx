@@ -171,18 +171,18 @@ const QuickActions = () => {
       {/* Emergency Contacts Quick Access */}
       <div className="mt-6 p-4 bg-gray-50 rounded-lg">
         <h3 className="text-sm font-semibold text-gray-700 mb-3">Emergency Contacts</h3>
-        <div className="flex flex-wrap gap-2">
-          <button className="flex items-center space-x-2 px-3 py-2 bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow duration-200">
-            <FiPhone className="text-blue-600" />
-            <span className="text-sm text-gray-700">911</span>
+        <div className="flex gap-2">
+          <button className="flex items-center justify-center space-x-1 px-2 py-3 bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow duration-200 flex-1 min-h-[48px]">
+            <FiPhone className="text-blue-600 w-4 h-4 flex-shrink-0" />
+            <span className="text-xs font-semibold text-gray-700">911</span>
           </button>
-          <button className="flex items-center space-x-2 px-3 py-2 bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow duration-200">
-            <FiPhone className="text-green-600" />
-            <span className="text-sm text-gray-700">Family</span>
+          <button className="flex items-center justify-center space-x-1 px-2 py-3 bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow duration-200 flex-1 min-h-[48px]">
+            <FiPhone className="text-green-600 w-4 h-4 flex-shrink-0" />
+            <span className="text-xs font-semibold text-gray-700">Family</span>
           </button>
-          <button className="flex items-center space-x-2 px-3 py-2 bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow duration-200">
-            <FiPhone className="text-purple-600" />
-            <span className="text-sm text-gray-700">Medical</span>
+          <button className="flex items-center justify-center space-x-1 px-2 py-3 bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow duration-200 flex-1 min-h-[48px]">
+            <FiPhone className="text-purple-600 w-4 h-4 flex-shrink-0" />
+            <span className="text-xs font-semibold text-gray-700">Medical</span>
           </button>
         </div>
       </div>

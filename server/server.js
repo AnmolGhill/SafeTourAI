@@ -46,6 +46,7 @@ app.use(cors({
     
     const allowedOrigins = [
       'http://localhost:3000', 
+      'https://safetourai.onrender.com',
       'https://safetourai.vercel.app'
     ];
     
