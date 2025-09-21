@@ -313,22 +313,22 @@ const LocationTracker = ({ onLocationUpdate, emergencyMode = false }) => {
           <button
             onClick={requestPermission}
             disabled={permission === 'denied'}
-            className={`flex items-center space-x-2 px-4 py-2 rounded-lg font-medium text-sm transition-colors ${
+            className={`flex items-center justify-center space-x-2 px-6 py-3 rounded-lg font-medium text-sm transition-colors w-full sm:w-auto min-h-[48px] ${
               emergencyMode
                 ? 'bg-red-600 hover:bg-red-700 text-white disabled:bg-red-300'
                 : 'bg-blue-600 hover:bg-blue-700 text-white disabled:bg-blue-300'
             }`}
           >
-            <FiMapPin />
-            <span>{emergencyMode ? 'Start Emergency Tracking' : 'Start Tracking'}</span>
+            <FiMapPin className="w-5 h-5 flex-shrink-0" />
+            <span className="font-semibold">{emergencyMode ? 'Start Emergency Tracking' : 'Start Tracking'}</span>
           </button>
         ) : (
           <button
             onClick={stopTracking}
-            className="flex items-center space-x-2 px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-lg font-medium text-sm transition-colors"
+            className="flex items-center justify-center space-x-2 px-6 py-3 bg-gray-600 hover:bg-gray-700 text-white rounded-lg font-medium text-sm transition-colors w-full sm:w-auto min-h-[48px]"
           >
-            <FiX />
-            <span>Stop Tracking</span>
+            <FiX className="w-5 h-5 flex-shrink-0" />
+            <span className="font-semibold">Stop Tracking</span>
           </button>
         )}
 

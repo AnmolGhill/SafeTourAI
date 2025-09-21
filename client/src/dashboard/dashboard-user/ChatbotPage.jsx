@@ -22,6 +22,7 @@ const ChatbotPage = () => {
   ]);
   const [inputMessage, setInputMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [showQuickTopics, setShowQuickTopics] = useState(true);
   const messagesEndRef = useRef(null);
 
   const promptCategories = [
@@ -189,6 +190,7 @@ For immediate emergencies, contact local emergency services directly.`,
   };
 
   const handlePromptClick = (prompt) => {
+    setShowQuickTopics(false); // Hide quick topics after selection
     handleSendMessage(prompt);
   };
 
@@ -196,38 +198,50 @@ For immediate emergencies, contact local emergency services directly.`,
     <div className="animate-fadeIn h-full">
       {/* Header */}
       <div className="card mb-6">
-        <div className="flex items-center space-x-3 mb-4">
-          <div className="w-12 h-12 bg-gradient-to-br from-blue-600 to-teal-500 rounded-lg flex items-center justify-center">
-            <FiAlertTriangle className="w-6 h-6 text-white" />
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center space-x-3">
+            <div className="w-12 h-12 bg-gradient-to-br from-blue-600 to-teal-500 rounded-lg flex items-center justify-center">
+              <FiAlertTriangle className="w-6 h-6 text-white" />
+            </div>
+            <div>
+              <h2 className="text-2xl font-bold text-gray-800">🧭 SafeTourAI Chatbot</h2>
+              <p className="text-gray-600">Your intelligent travel safety assistant</p>
+            </div>
           </div>
-          <div>
-            <h2 className="text-2xl font-bold text-gray-800">🧭 SafeTourAI Chatbot</h2>
-            <p className="text-gray-600">Your intelligent travel safety assistant</p>
-          </div>
+          {!showQuickTopics && (
+            <button
+              onClick={() => setShowQuickTopics(true)}
+              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors duration-200 text-sm"
+            >
+              Show Topics
+            </button>
+          )}
         </div>
         
-        {/* Quick Prompts */}
-        <div className="mb-4">
-          <p className="text-sm font-medium text-gray-600 mb-3">Quick Safety Topics:</p>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-            {promptCategories.map((category) => (
-              <button
-                key={category.id}
-                onClick={() => handlePromptClick(category.prompts[0])}
-                className="flex flex-col items-center p-3 rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors duration-200 group"
-              >
-                <div className={`w-8 h-8 ${category.color} rounded-full flex items-center justify-center mb-2 group-hover:scale-110 transition-transform duration-200`}>
-                  <category.icon className="w-4 h-4 text-white" />
-                </div>
-                <span className="text-xs text-gray-600 text-center font-medium">{category.title}</span>
-              </button>
-            ))}
+        {/* Quick Prompts - Only show when showQuickTopics is true */}
+        {showQuickTopics && (
+          <div className="mb-4">
+            <p className="text-sm font-medium text-gray-600 mb-3">Quick Safety Topics:</p>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              {promptCategories.map((category) => (
+                <button
+                  key={category.id}
+                  onClick={() => handlePromptClick(category.prompts[0])}
+                  className="flex flex-col items-center p-3 rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors duration-200 group"
+                >
+                  <div className={`w-8 h-8 ${category.color} rounded-full flex items-center justify-center mb-2 group-hover:scale-110 transition-transform duration-200`}>
+                    <category.icon className="w-4 h-4 text-white" />
+                  </div>
+                  <span className="text-xs text-gray-600 text-center font-medium">{category.title}</span>
+                </button>
+              ))}
+            </div>
           </div>
-        </div>
+        )}
       </div>
 
       {/* Chat Interface */}
-      <div className="card h-96 flex flex-col">
+      <div className={`card flex flex-col ${showQuickTopics ? 'h-96' : 'h-[600px]'}`}>
         {/* Messages */}
         <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50 rounded-t-lg">
           {messages.map((message) => (

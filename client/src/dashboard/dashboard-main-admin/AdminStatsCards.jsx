@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { FiUsers, FiShield, FiDatabase, FiActivity } from 'react-icons/fi';
+import { FiUsers, FiShield, FiDatabase, FiActivity, FiUserCheck, FiClock, FiCheckCircle } from 'react-icons/fi';
+import { adminAPI } from '../../config/api';
 
 const AdminStatsCards = () => {
   const [stats, setStats] = useState([]);
@@ -15,63 +16,54 @@ const AdminStatsCards = () => {
 
   const fetchDashboardStats = async () => {
     try {
-      const token = localStorage.getItem('authToken');
+      const token = localStorage.getItem('authToken') || localStorage.getItem('token');
       if (!token) {
         setError('Authentication required');
         return;
       }
 
-      const BASE_URL = import.meta.env.VITE_BASE_URL;
-      const response = await fetch(`${BASE_URL}/api/admin/dashboard-stats`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      });
+      // Fetch only KYC stats
+      const kycStatsResponse = await adminAPI.getKYCStats();
+      const kycData = kycStatsResponse.data;
 
-      if (!response.ok) {
-        throw new Error('Failed to fetch dashboard statistics');
-      }
-
-      const data = await response.json();
-      
-      // Transform API data to stats format
+      // Transform API data to stats format - only KYC stats
       const transformedStats = [
+        // KYC stats cards (4 cards as requested)
         {
-          title: 'Verified Blockchain Users',
-          value: data.verifiedBlockchainUsers.count.toString(),
-          change: data.verifiedBlockchainUsers.change + ' ' + data.verifiedBlockchainUsers.status.toLowerCase(),
-          changeType: 'positive',
+          title: 'Total Users',
+          value: (kycData?.total || 0).toString(),
+          change: 'Total registered users',
+          changeType: 'neutral',
           icon: FiUsers,
           iconBg: 'bg-blue-500',
-          realTime: data.verifiedBlockchainUsers.liveUpdates
+          realTime: false
         },
         {
-          title: 'Active User Sessions',
-          value: data.activeUserSessions.count.toString(),
-          change: data.activeUserSessions.change + ' ' + data.activeUserSessions.status.toLowerCase(),
-          changeType: 'positive',
-          icon: FiShield,
-          iconBg: 'bg-green-500',
-          realTime: data.activeUserSessions.liveUpdates
+          title: 'Pending Review',
+          value: (kycData?.submitted || 0).toString(),
+          change: 'Awaiting verification',
+          changeType: 'warning',
+          icon: FiClock,
+          iconBg: 'bg-yellow-500',
+          realTime: false
         },
         {
-          title: 'Blockchain Transactions',
-          value: data.blockchainTransactions.count.toString(),
-          change: data.blockchainTransactions.change + ' ' + data.blockchainTransactions.status.toLowerCase(),
+          title: 'Verified',
+          value: (kycData?.approved || 0).toString(),
+          change: 'Successfully verified',
           changeType: 'positive',
-          icon: FiDatabase,
-          iconBg: 'bg-purple-500',
-          realTime: data.blockchainTransactions.liveUpdates
+          icon: FiCheckCircle,
+          iconBg: 'bg-green-600',
+          realTime: false
         },
         {
-          title: 'Security Score',
-          value: data.securityScore.percentage + '%',
-          change: data.securityScore.change + ' ' + data.securityScore.status.toLowerCase(),
+          title: 'Blockchain IDs',
+          value: (kycData?.approved || 0).toString(),
+          change: 'Generated blockchain IDs',
           changeType: 'positive',
-          icon: FiActivity,
-          iconBg: 'bg-teal-500',
-          realTime: data.securityScore.liveUpdates
+          icon: FiUserCheck,
+          iconBg: 'bg-indigo-500',
+          realTime: false
         }
       ];
 
@@ -84,10 +76,10 @@ const AdminStatsCards = () => {
       setError(err.message);
       setLoading(false);
       
-      // Fallback to empty data if API fails
+      // Fallback to KYC data only if dashboard API fails
       setStats([
         {
-          title: 'Verified Blockchain Users',
+          title: 'Total Users',
           value: '0',
           change: 'No data available',
           changeType: 'neutral',
@@ -95,27 +87,27 @@ const AdminStatsCards = () => {
           iconBg: 'bg-gray-400'
         },
         {
-          title: 'Active User Sessions',
+          title: 'Pending Review',
           value: '0',
           change: 'No data available',
           changeType: 'neutral',
-          icon: FiShield,
+          icon: FiClock,
           iconBg: 'bg-gray-400'
         },
         {
-          title: 'Blockchain Transactions',
+          title: 'Verified',
           value: '0',
           change: 'No data available',
           changeType: 'neutral',
-          icon: FiDatabase,
+          icon: FiCheckCircle,
           iconBg: 'bg-gray-400'
         },
         {
-          title: 'Security Score',
-          value: '0%',
+          title: 'Blockchain IDs',
+          value: '0',
           change: 'No data available',
           changeType: 'neutral',
-          icon: FiActivity,
+          icon: FiUserCheck,
           iconBg: 'bg-gray-400'
         }
       ]);

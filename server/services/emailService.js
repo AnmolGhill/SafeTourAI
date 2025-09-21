@@ -16,125 +16,178 @@ class EmailService {
 
   initializeTransporter() {
     try {
-      // Production-optimized configuration for cloud deployments
-      const isProduction = process.env.NODE_ENV === 'production';
-      
+      // Simplified, reliable configuration
       this.transporter = nodemailer.createTransport({
-        service: process.env.EMAIL_SERVICE || 'gmail',
-        host: process.env.SMTP_HOST || 'smtp.gmail.com',
-        port: parseInt(process.env.SMTP_PORT) || 587,
+        service: 'gmail',
+        host: 'smtp.gmail.com',
+        port: 587,
         secure: false, // Use STARTTLS
-        requireTLS: true, // Force TLS
-        pool: !isProduction, // Disable pooling in production for better reliability
-        maxConnections: isProduction ? 1 : 5, // Single connection in production
-        maxMessages: isProduction ? 1 : 100, // One message per connection in production
-        rateLimit: isProduction ? 5 : 14, // Slower rate in production
         auth: {
           user: process.env.EMAIL_USER,
           pass: process.env.EMAIL_PASSWORD
         },
-        // Extended timeouts for production environments
-        connectionTimeout: isProduction ? 60000 : 10000, // 60s for production, 10s for dev
-        greetingTimeout: isProduction ? 30000 : 5000, // 30s for production, 5s for dev
-        socketTimeout: isProduction ? 60000 : 30000, // 60s for production, 30s for dev
-        // Additional production settings
+        // Simplified timeout settings
+        connectionTimeout: 10000, // 10 seconds
+        greetingTimeout: 5000,    // 5 seconds
+        socketTimeout: 10000,     // 10 seconds
+        // Secure TLS configuration
         tls: {
-          ciphers: 'SSLv3',
-          rejectUnauthorized: false // Allow self-signed certificates in some cloud environments
-        },
-        debug: isProduction ? false : true, // Enable debug in development
-        logger: isProduction ? false : true // Enable logging in development
+          rejectUnauthorized: true,
+          minVersion: 'TLSv1.2'
+        }
       });
 
-      console.log(`📧 Email service initialized for ${isProduction ? 'PRODUCTION' : 'DEVELOPMENT'} environment`);
+      console.log('📧 Email service initialized successfully');
     } catch (error) {
-      console.error('Email service initialization failed:', error);
+      console.error('❌ Email service initialization failed:', error);
+      throw error;
     }
   }
 
   /**
-   * Send OTP email with optimized delivery and retry mechanism
+   * Send OTP email with role-based templates and reliable delivery
    * @param {string} email - Recipient email
    * @param {string} otp - OTP code
    * @param {string} name - User name
-   * @param {string} role - User role (for priority handling)
+   * @param {string} role - User role (user, admin, subadmin)
    */
   async sendOTP(email, otp, name, role = 'user') {
     const startTime = Date.now();
-    const maxRetries = process.env.NODE_ENV === 'production' ? 3 : 1;
     
-    for (let attempt = 1; attempt <= maxRetries; attempt++) {
-      try {
-        // Simplified HTML for faster processing
-        const isAdmin = role === 'admin' || role === 'subadmin';
-        const priority = isAdmin ? 'high' : 'normal';
-        
-        const mailOptions = {
-          from: `SafeTourAI <${process.env.EMAIL_USER}>`,
-          to: email,
-          subject: `SafeTourAI - ${isAdmin ? 'Admin ' : ''}Email Verification OTP`,
-          priority: priority,
-          html: isAdmin ? `
-            <div style="font-family:Arial,sans-serif;max-width:500px;margin:0 auto;padding:20px;background:#f5f5f5;">
-              <div style="background:#667eea;color:white;padding:20px;text-align:center;border-radius:8px 8px 0 0;">
-                <h1 style="margin:0;">SafeTourAI Admin</h1>
-                <p style="margin:5px 0 0 0;">Email Verification</p>
-              </div>
-              <div style="background:white;padding:30px;border-radius:0 0 8px 8px;">
-                <h2>Hello ${name}!</h2>
-                <p>Your admin verification code:</p>
-                <div style="background:#f8f9ff;border:2px solid #667eea;padding:15px;text-align:center;margin:20px 0;border-radius:8px;">
-                  <div style="font-size:28px;font-weight:bold;color:#667eea;letter-spacing:3px;">${otp}</div>
-                </div>
-                <p style="color:#666;font-size:14px;">Valid for ${process.env.OTP_EXPIRY_MINUTES || 10} minutes. Do not share this code.</p>
-              </div>
-            </div>
-          ` : `
-            <div style="font-family:Arial,sans-serif;max-width:500px;margin:0 auto;padding:20px;background:#f5f5f5;">
-              <div style="background:#667eea;color:white;padding:20px;text-align:center;border-radius:8px 8px 0 0;">
-                <h1 style="margin:0;">SafeTourAI</h1>
-                <p style="margin:5px 0 0 0;">Email Verification</p>
-              </div>
-              <div style="background:white;padding:30px;border-radius:0 0 8px 8px;">
-                <h2>Hello ${name}!</h2>
-                <p>Your verification code:</p>
-                <div style="background:#f8f9ff;border:2px solid #667eea;padding:15px;text-align:center;margin:20px 0;border-radius:8px;">
-                  <div style="font-size:28px;font-weight:bold;color:#667eea;letter-spacing:3px;">${otp}</div>
-                </div>
-                <p style="color:#666;font-size:14px;">Valid for ${process.env.OTP_EXPIRY_MINUTES || 10} minutes.</p>
-              </div>
-            </div>
-          `
-        };
+    try {
+      // Verify transporter connection first
+      await this.transporter.verify();
+      console.log('✅ SMTP connection verified');
+      
+      // Role-based email configuration
+      const roleConfig = this.getRoleConfig(role);
+      
+      const mailOptions = {
+        from: `"SafeTourAI" <${process.env.EMAIL_USER}>`,
+        to: email,
+        subject: `SafeTourAI - ${roleConfig.title} Email Verification OTP`,
+        html: this.generateOTPEmailHTML(name, otp, role, roleConfig)
+      };
 
-        // Verify transporter before sending
-        if (process.env.NODE_ENV === 'production') {
-          await this.transporter.verify();
-        }
+      const result = await this.transporter.sendMail(mailOptions);
+      const endTime = Date.now();
+      const duration = endTime - startTime;
+      
+      console.log(`📧 OTP email sent successfully to: ${email} (${duration}ms) [${role.toUpperCase()}]`);
+      console.log(`📨 Message ID: ${result.messageId}`);
+      
+      return result;
 
-        await this.transporter.sendMail(mailOptions);
-        const endTime = Date.now();
-        const duration = endTime - startTime;
-        
-        console.log(`📧 OTP email sent successfully to: ${email} (${duration}ms) ${isAdmin ? '[ADMIN PRIORITY]' : ''} ${attempt > 1 ? `[Retry ${attempt}]` : ''}`);
-        return; // Success, exit retry loop
-
-      } catch (error) {
-        const endTime = Date.now();
-        const duration = endTime - startTime;
-        
-        if (attempt === maxRetries) {
-          console.error(`❌ Failed to send OTP email to ${email} after ${maxRetries} attempts (${duration}ms):`, error);
-          throw new Error('Failed to send verification email');
-        } else {
-          console.warn(`⚠️ Email attempt ${attempt} failed for ${email}, retrying... (${duration}ms):`, error.message);
-          // Wait before retry (exponential backoff)
-          await new Promise(resolve => setTimeout(resolve, attempt * 2000));
-          // Reinitialize transporter for next attempt
-          this.initializeTransporter();
-        }
+    } catch (error) {
+      const endTime = Date.now();
+      const duration = endTime - startTime;
+      
+      console.error(`❌ Failed to send OTP email to ${email} (${duration}ms):`, error);
+      
+      // Log specific error details for debugging
+      if (error.code) {
+        console.error(`📋 Error Code: ${error.code}`);
       }
+      if (error.response) {
+        console.error(`📋 SMTP Response: ${error.response}`);
+      }
+      if (error.command) {
+        console.error(`📋 Failed Command: ${error.command}`);
+      }
+      
+      throw new Error(`Failed to send verification email: ${error.message}`);
     }
+  }
+
+  /**
+   * Get role-specific configuration
+   * @param {string} role - User role
+   * @returns {object} Role configuration
+   */
+  getRoleConfig(role) {
+    const configs = {
+      admin: {
+        title: 'Admin',
+        headerColor: '#dc2626', // Red for admin
+        priority: 'high',
+        securityNote: 'This is an admin account. Do not share this code with anyone.'
+      },
+      subadmin: {
+        title: 'Sub-Admin',
+        headerColor: '#ea580c', // Orange for sub-admin
+        priority: 'high',
+        securityNote: 'This is a sub-admin account. Do not share this code with anyone.'
+      },
+      user: {
+        title: 'User',
+        headerColor: '#667eea', // Blue for regular users
+        priority: 'normal',
+        securityNote: 'Keep this code secure.'
+      }
+    };
+    
+    return configs[role] || configs.user;
+  }
+
+  /**
+   * Generate role-based OTP email HTML
+   * @param {string} name - User name
+   * @param {string} otp - OTP code
+   * @param {string} role - User role
+   * @param {object} roleConfig - Role configuration
+   * @returns {string} HTML email template
+   */
+  generateOTPEmailHTML(name, otp, role, roleConfig) {
+    return `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>SafeTourAI - Email Verification</title>
+      </head>
+      <body style="margin:0;padding:0;background-color:#f5f5f5;font-family:Arial,sans-serif;">
+        <div style="max-width:500px;margin:0 auto;padding:20px;">
+          <!-- Header -->
+          <div style="background:${roleConfig.headerColor};color:white;padding:20px;text-align:center;border-radius:8px 8px 0 0;">
+            <h1 style="margin:0;font-size:24px;">SafeTourAI ${roleConfig.title}</h1>
+            <p style="margin:5px 0 0 0;font-size:14px;">Email Verification</p>
+          </div>
+          
+          <!-- Content -->
+          <div style="background:white;padding:30px;border-radius:0 0 8px 8px;box-shadow:0 2px 10px rgba(0,0,0,0.1);">
+            <h2 style="color:#333;margin-top:0;">Hello ${name}!</h2>
+            <p style="color:#666;font-size:16px;">Your ${role === 'user' ? '' : role + ' '}verification code is:</p>
+            
+            <!-- OTP Box -->
+            <div style="background:#f8f9ff;border:2px solid ${roleConfig.headerColor};padding:20px;text-align:center;margin:20px 0;border-radius:8px;">
+              <div style="font-size:32px;font-weight:bold;color:${roleConfig.headerColor};letter-spacing:4px;font-family:monospace;">${otp}</div>
+            </div>
+            
+            <!-- Security Notice -->
+            <div style="background:#fff3cd;border:1px solid #ffeaa7;padding:15px;border-radius:5px;margin:20px 0;">
+              <p style="margin:0;color:#856404;font-size:14px;">
+                <strong>⚠️ Security Notice:</strong><br>
+                • Valid for ${process.env.OTP_EXPIRY_MINUTES || 10} minutes<br>
+                • ${roleConfig.securityNote}<br>
+                • If you didn't request this, please ignore this email
+              </p>
+            </div>
+            
+            <p style="color:#666;font-size:14px;margin-bottom:0;">
+              Thank you for choosing SafeTourAI for secure travel experiences.
+            </p>
+          </div>
+          
+          <!-- Footer -->
+          <div style="text-align:center;padding:20px;color:#999;font-size:12px;">
+            <p style="margin:0;">© 2024 SafeTourAI. All rights reserved.</p>
+            <p style="margin:5px 0 0 0;">This is an automated message, please do not reply.</p>
+          </div>
+        </div>
+      </body>
+      </html>
+    `;
   }
 
   /**

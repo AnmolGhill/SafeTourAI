@@ -7,7 +7,7 @@ import SafetyScoreCard from './SafetyScoreCard';
 import QuickActions from './QuickActions';
 import ActivityFeed from './ActivityFeed';
 import BlockchainPanel from './BlockchainPanel';
-import AnalyticsChart from './AnalyticsChart';
+import DangerZoneHeatmap from './DangerZoneHeatmap';
 import ServicesWidget from './ServicesWidget';
 import UserProfiles from './UserProfiles';
 import SafeTourChatbot from './SafeTourChatbot';
@@ -19,7 +19,7 @@ import AnalyticsPanel from '../../components/Analytics/AnalyticsPanel';
 import SettingsPanel from '../../components/Settings/SettingsPanel';
 import LocationDebugger from '../../components/LocationDebugger';
 
-const Dashboard = () => {
+const UserDashboard = () => {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [sidebarOpen, setSidebarOpen] = useState(true);
 
@@ -44,17 +44,16 @@ const Dashboard = () => {
             <WelcomeBanner userName={user?.name || user?.fullName || "User"} />
             <StatsCards />
             <div className="grid-2 mb-6">
-              <div>
+              <div className="space-y-6">
                 <QuickActions />
                 <ActivityFeed />
               </div>
-              <div>
+              <div className="space-y-6">
                 <SafetyScoreCard />
-                <BlockchainPanel />
+                <DangerZoneHeatmap />
                 <ServicesWidget />
               </div>
             </div>
-            <AnalyticsChart />
           </div>
         );
       case 'emergency':
@@ -108,4 +107,4 @@ const Dashboard = () => {
   );
 };
 
-export default Dashboard;
+export default UserDashboard;

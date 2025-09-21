@@ -254,8 +254,22 @@ const ActivityFeed = () => {
       map: mapInstance,
       title: 'Your Location',
       icon: {
-        url: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzAiIGhlaWdodD0iMzAiIHZpZXdCb3g9IjAgMCAzMCAzMCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iMTUiIGN5PSIxNSIgcj0iMTIiIGZpbGw9IiMxMGI5ODEiIHN0cm9rZT0iI2ZmZmZmZiIgc3Ryb2tlLXdpZHRoPSIzIi8+CjxjaXJjbGUgY3g9IjE1IiBjeT0iMTUiIHI9IjUiIGZpbGw9IiNmZmZmZmYiLz4KPC9zdmc+',
-        scaledSize: new window.google.maps.Size(30, 30)
+        url: `data:image/svg+xml;base64,${btoa(`
+          <svg width="32" height="40" viewBox="0 0 32 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M16 0C7.163 0 0 7.163 0 16C0 24 16 40 16 40S32 24 32 16C32 7.163 24.837 0 16 0Z" fill="#3b82f6"/>
+            <path d="M16 0C7.163 0 0 7.163 0 16C0 24 16 40 16 40S32 24 32 16C32 7.163 24.837 0 16 0Z" fill="url(#gradient)" stroke="#ffffff" stroke-width="2"/>
+            <circle cx="16" cy="16" r="8" fill="#ffffff"/>
+            <circle cx="16" cy="16" r="4" fill="#3b82f6"/>
+            <defs>
+              <linearGradient id="gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" style="stop-color:#60a5fa;stop-opacity:1" />
+                <stop offset="100%" style="stop-color:#3b82f6;stop-opacity:1" />
+              </linearGradient>
+            </defs>
+          </svg>
+        `)}`,
+        scaledSize: new window.google.maps.Size(32, 40),
+        anchor: new window.google.maps.Point(16, 40)
       }
     });
   };
@@ -268,7 +282,8 @@ const ActivityFeed = () => {
       title: service.name,
       icon: {
         url: getServiceMarkerIcon(service.type),
-        scaledSize: new window.google.maps.Size(25, 25)
+        scaledSize: new window.google.maps.Size(28, 36),
+        anchor: new window.google.maps.Point(14, 36)
       }
     });
 
@@ -288,14 +303,37 @@ const ActivityFeed = () => {
   };
   
   const getServiceMarkerIcon = (type) => {
-    const colors = {
-      'police': '#ef4444',
-      'hospital': '#22c55e', 
-      'fire_station': '#f97316',
-      'lodging': '#3b82f6'
+    const serviceConfig = {
+      'police': { 
+        color: '#dc2626',
+        iconPath: '<path d="M8 10h8v2h-8v-2zm0 3h8v1h-8v-1zm2-6h4v2h-4v-2z" fill="#dc2626"/><rect x="7" y="8" width="10" height="8" rx="1" stroke="#dc2626" stroke-width="1" fill="none"/>'
+      },
+      'hospital': { 
+        color: '#059669',
+        iconPath: '<path d="M13 8v3h3v2h-3v3h-2v-3h-3v-2h3v-3h2z" fill="#059669"/><rect x="8" y="8" width="8" height="8" rx="1" stroke="#059669" stroke-width="1" fill="none"/>'
+      }, 
+      'fire_station': { 
+        color: '#ea580c',
+        iconPath: '<path d="M14 8c-2 0-3 1-3 3 0 1 1 2 1 3 0 1-1 1-1 2h6c0-1-1-1-1-2 0-1 1-2 1-3 0-2-1-3-3-3z" fill="#ea580c"/><circle cx="14" cy="15" r="1" fill="#ea580c"/>'
+      },
+      'lodging': { 
+        color: '#7c3aed',
+        iconPath: '<rect x="9" y="10" width="6" height="4" fill="#7c3aed"/><path d="M8 14h8v2h-8v-2z" fill="#7c3aed"/><rect x="10" y="11" width="1" height="1" fill="white"/><rect x="12" y="11" width="1" height="1" fill="white"/>'
+      }
     };
-    const color = colors[type] || '#6b7280';
-    return `data:image/svg+xml;base64,${btoa(`<svg width="25" height="25" viewBox="0 0 25 25" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="12.5" cy="12.5" r="10" fill="${color}" stroke="#ffffff" stroke-width="2"/></svg>`)}`;
+    
+    const config = serviceConfig[type] || { 
+      color: '#6b7280',
+      iconPath: '<circle cx="14" cy="14" r="2" fill="#6b7280"/>'
+    };
+    
+    return `data:image/svg+xml;base64,${btoa(`
+      <svg width="28" height="36" viewBox="0 0 28 36" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M14 0C6.268 0 0 6.268 0 14C0 21 14 36 14 36S28 21 28 14C28 6.268 21.732 0 14 0Z" fill="${config.color}" stroke="#ffffff" stroke-width="2"/>
+        <circle cx="14" cy="14" r="9" fill="#ffffff"/>
+        ${config.iconPath}
+      </svg>
+    `)}`;
   };
 
   const getMarkerIcon = (type) => {
@@ -309,13 +347,6 @@ const ActivityFeed = () => {
     }
   };
 
-  const toggleMapView = () => {
-    setShowMap(!showMap);
-  };
-
-  const toggleLocationTracker = () => {
-    setShowLocationTracker(!showLocationTracker);
-  };
 
   const handleLocationUpdate = (locationData) => {
     console.log('Location updated:', locationData);
@@ -433,9 +464,6 @@ const ActivityFeed = () => {
     return R * c;
   };
 
-  const refreshFeed = async () => {
-    await fetchActivities();
-  };
 
   const getTimeAgo = (timestamp) => {
     const now = new Date();
@@ -494,47 +522,8 @@ const ActivityFeed = () => {
 
   return (
     <div className="activity-feed mb-6" style={{ minHeight: '600px' }}>
-      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between mb-4 gap-3">
+      <div className="mb-4">
         <h2 className="text-xl font-semibold text-gray-800">Activity Feed</h2>
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-2">
-          <button
-            onClick={toggleLocationTracker}
-            className="flex items-center justify-center space-x-2 px-3 py-2 bg-green-600 hover:bg-green-700 
-                     text-white rounded-lg transition-colors duration-200 text-sm font-medium w-full sm:w-auto"
-          >
-            <FiNavigation className="text-white flex-shrink-0" />
-            <span className="hidden sm:inline">{showLocationTracker ? 'Hide Tracker' : 'Track Location'}</span>
-            <span className="sm:hidden">Track</span>
-          </button>
-          <button
-            onClick={() => setShowServices(!showServices)}
-            className="flex items-center justify-center space-x-2 px-3 py-2 bg-purple-600 hover:bg-purple-700 
-                     text-white rounded-lg transition-colors duration-200 text-sm font-medium w-full sm:w-auto"
-          >
-            <FiShield className="text-white flex-shrink-0" />
-            <span className="hidden sm:inline">{showServices ? 'Hide Services' : 'Show Services'}</span>
-            <span className="sm:hidden">Services</span>
-          </button>
-          <button
-            onClick={toggleMapView}
-            className="flex items-center justify-center space-x-2 px-3 py-2 bg-blue-600 hover:bg-blue-700 
-                     text-white rounded-lg transition-colors duration-200 text-sm font-medium w-full sm:w-auto"
-          >
-            <FiMap className="text-white flex-shrink-0" />
-            <span className="hidden sm:inline">{showMap ? 'Hide Map' : 'Show Map'}</span>
-            <span className="sm:hidden">Map</span>
-          </button>
-          <button
-            onClick={refreshFeed}
-            disabled={loading}
-            className="flex items-center justify-center space-x-2 px-3 py-2 bg-gray-100 hover:bg-gray-200 
-                     rounded-lg transition-colors duration-200 text-sm font-medium disabled:opacity-50 w-full sm:w-auto"
-          >
-            <FiRefreshCw className={`text-gray-600 flex-shrink-0 ${loading ? 'animate-spin' : ''}`} />
-            <span className="text-gray-700 hidden sm:inline">Refresh</span>
-            <span className="text-gray-700 sm:hidden">↻</span>
-          </button>
-        </div>
       </div>
 
       {/* Location Tracker Section */}

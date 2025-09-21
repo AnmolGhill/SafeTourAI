@@ -10,11 +10,12 @@ import ForgotPassword from './components/Auth/ForgotPassword';
 import ProtectedRoute from './components/Auth/ProtectedRoute';
 
 // Dashboard Components
+import Dashboard from './components/Dashboard';
 import RoleBasedDashboard from './components/RoleBasedDashboard';
 import DashboardSelector from './components/DashboardSelector';
 
 // User Dashboard
-import UserDashboard from './dashboard/dashboard-user/Dashboard';
+import UserDashboard from './dashboard/dashboard-user/UserDashboard';
 import UserNavbar from './dashboard/dashboard-user/Navbar';
 import UserSidebar from './dashboard/dashboard-user/Sidebar';
 import WelcomeBanner from './dashboard/dashboard-user/WelcomeBanner';
@@ -79,7 +80,8 @@ function App() {
             <div className="App">
               <Routes>
               {/* Public Routes */}
-              <Route path="/" element={<Navigate to="/login" replace />} />
+              <Route path="/" element={<Dashboard />} />
+              <Route path="/home" element={<Dashboard />} />
               <Route path="/login" element={<Login />} />
               <Route path="/register" element={<Register />} />
               <Route path="/verify-otp" element={<OTPVerification />} />

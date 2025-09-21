@@ -11,7 +11,7 @@ const {
 
 // Initialize Gemini AI
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-const model = genAI.getGenerativeModel({ model: "gemini-pro" });
+const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
 // Gemini AI Chat Route - Isolated from other server functions
 router.post('/chat', async (req, res) => {
@@ -38,9 +38,11 @@ router.post('/chat', async (req, res) => {
 
     res.json({
       success: true,
-      response: response.content,
-      timestamp: new Date().toISOString(),
-      promptCategory: response.category
+      response: {
+        content: response.content,
+        category: response.category
+      },
+      timestamp: new Date().toISOString()
     });
 
   } catch (error) {

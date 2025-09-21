@@ -4,7 +4,6 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const { auth, db } = require('../config/firebase');
 const emailService = require('../services/emailService');
-const alternativeEmailService = require('../services/alternativeEmailService');
 const logger = require('../utils/logger');
 const { AppError, asyncHandler } = require('../middleware/errorHandler');
 const { handleValidationErrors } = require('../utils/validation');
@@ -106,21 +105,18 @@ router.post('/register', [
         verified: false
       });
 
-      // Try to send OTP email with role priority and fallback
+      // Send OTP email
       try {
         await emailService.sendOTP(email, otp, name, role);
-        console.log('📱 OTP sent successfully via primary service', { email, role });
+        console.log('📧 OTP sent successfully', { email, role });
       } catch (emailError) {
-        console.error('Primary email service error:', emailError);
+        console.error('❌ Email service error:', emailError);
+        console.log(`📋 Email failed, OTP for development/testing - ${email}: ${otp}`);
         
-        // Try alternative email service as fallback
-        try {
-          console.log('🔄 Attempting fallback email service...');
-          await alternativeEmailService.sendOTP(email, otp, name, role);
-          console.log('📱 OTP sent successfully via fallback service', { email, role });
-        } catch (fallbackError) {
-          console.error('Fallback email service also failed:', fallbackError);
-          console.log(`All email services failed, OTP for ${email}: ${otp}`);
+        // In development, we can continue even if email fails
+        // In production, you might want to throw an error here
+        if (process.env.NODE_ENV === 'production') {
+          throw new AppError('Failed to send verification email. Please try again.', 500, 'EMAIL_SEND_FAILED');
         }
       }
 
@@ -548,13 +544,18 @@ router.post('/resend-otp', [
       verified: false
     });
 
-    // Send OTP email
+    // Send OTP email with role information
     try {
-      await emailService.sendOTP(email, otp, userData.name);
-      console.log('🔄 OTP resent successfully', { email });
+      await emailService.sendOTP(email, otp, userData.name, userData.role);
+      console.log('🔄 OTP resent successfully', { email, role: userData.role });
     } catch (emailError) {
-      console.error('Resend OTP email error:', emailError);
-      console.log(`Email service failed, OTP for ${email}: ${otp}`);
+      console.error('❌ Resend OTP email error:', emailError);
+      console.log(`📋 Email failed, OTP for development/testing - ${email}: ${otp}`);
+      
+      // In production, you might want to throw an error here
+      if (process.env.NODE_ENV === 'production') {
+        throw new AppError('Failed to resend verification email. Please try again.', 500, 'EMAIL_SEND_FAILED');
+      }
     }
 
     res.json({ message: 'OTP sent successfully', success: true });
