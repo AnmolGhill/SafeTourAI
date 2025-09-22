@@ -5,6 +5,9 @@ import QrReader from 'qrcode-reader';
 import jsQR from 'jsqr';
 import QRScanner from '../../components/QRScanner';
 
+// Get API base URL from environment
+const API_BASE_URL = `${import.meta.env.VITE_BASE_URL}/api`;
+
 const DigitalIdScanner = () => {
   const [scanResult, setScanResult] = useState(null);
   const [isScanning, setIsScanning] = useState(false);
@@ -315,7 +318,7 @@ const DigitalIdScanner = () => {
   const testApiConnection = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('http://localhost:5000/api/digital-id/verify', {
+      const response = await fetch(`${API_BASE_URL}/digital-id/verify`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -485,7 +488,7 @@ const DigitalIdScanner = () => {
       Object.keys(requestBody).forEach(key => requestBody[key] === undefined && delete requestBody[key]);
       
       // Call the API
-      const response = await fetch('http://localhost:5000/api/digital-id/verify', {
+      const response = await fetch(`${API_BASE_URL}/digital-id/verify`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,

@@ -8,6 +8,9 @@ import {
 } from 'react-icons/fi';
 import QrScanner from 'qr-scanner';
 
+// Get API base URL from environment
+const API_BASE_URL = `${import.meta.env.VITE_BASE_URL}/api`;
+
 const QRScanner = ({ onScan, onClose, isOpen }) => {
   const [scanning, setScanning] = useState(false);
   const [result, setResult] = useState(null);
@@ -41,7 +44,10 @@ const QRScanner = ({ onScan, onClose, isOpen }) => {
       try {
         const stream = await navigator.mediaDevices.getUserMedia({ 
           video: { 
-            facingMode: 'environment' // Use back camera if available
+            facingMode: 'environment', // Use back camera if available
+            width: { ideal: 1280 },
+            height: { ideal: 720 },
+            aspectRatio: { ideal: 16/9 }
           } 
         });
         
@@ -152,7 +158,7 @@ const QRScanner = ({ onScan, onClose, isOpen }) => {
 
       console.log('🔍 Sending verification request:', requestBody);
       
-      const response = await fetch('http://localhost:5000/api/digital-id/verify', {
+      const response = await fetch(`${API_BASE_URL}/digital-id/verify`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -198,8 +204,8 @@ const QRScanner = ({ onScan, onClose, isOpen }) => {
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+    <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-2 sm:p-4">
+      <div className="bg-white rounded-lg p-4 sm:p-6 max-w-md w-full mx-2 sm:mx-4 max-h-[90vh] overflow-y-auto">
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-lg font-semibold">Scan Digital ID</h3>
           <button
@@ -270,10 +276,15 @@ const QRScanner = ({ onScan, onClose, isOpen }) => {
 
         <div className="space-y-4">
           {scanning ? (
-            <div className="relative">
+            <div className="relative overflow-hidden rounded-lg bg-gray-900">
               <video
                 ref={videoRef}
-                className="w-full h-64 bg-gray-900 rounded-lg"
+                className="w-full h-56 sm:h-64 md:h-80 object-cover"
+                style={{
+                  objectFit: 'cover',
+                  objectPosition: 'center',
+                  aspectRatio: '4/3'
+                }}
                 autoPlay
                 playsInline
                 muted
@@ -287,10 +298,35 @@ const QRScanner = ({ onScan, onClose, isOpen }) => {
                 </div>
               )}
               {scanning && !loading && (
-                <div className="absolute top-4 left-4 bg-green-600 text-white px-3 py-1 rounded-full text-sm flex items-center space-x-1">
-                  <div className="w-2 h-2 bg-white rounded-full animate-pulse"></div>
-                  <span>Scanning...</span>
-                </div>
+                <>
+                  {/* Scanning indicator */}
+                  <div className="absolute top-4 left-4 bg-green-600 text-white px-3 py-1 rounded-full text-sm flex items-center space-x-1">
+                    <div className="w-2 h-2 bg-white rounded-full animate-pulse"></div>
+                    <span>Scanning...</span>
+                  </div>
+                  
+                  {/* QR Code scan region overlay */}
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <div className="relative">
+                      {/* Scan frame */}
+                      <div className="w-48 h-48 sm:w-56 sm:h-56 border-2 border-white rounded-lg relative">
+                        {/* Corner indicators */}
+                        <div className="absolute top-0 left-0 w-6 h-6 border-t-4 border-l-4 border-green-400 rounded-tl-lg"></div>
+                        <div className="absolute top-0 right-0 w-6 h-6 border-t-4 border-r-4 border-green-400 rounded-tr-lg"></div>
+                        <div className="absolute bottom-0 left-0 w-6 h-6 border-b-4 border-l-4 border-green-400 rounded-bl-lg"></div>
+                        <div className="absolute bottom-0 right-0 w-6 h-6 border-b-4 border-r-4 border-green-400 rounded-br-lg"></div>
+                        
+                        {/* Scanning line animation */}
+                        <div className="absolute top-0 left-0 right-0 h-0.5 bg-green-400 animate-pulse"></div>
+                      </div>
+                      
+                      {/* Instructions */}
+                      <div className="absolute -bottom-8 left-1/2 transform -translate-x-1/2 text-white text-sm text-center">
+                        Position QR code within frame
+                      </div>
+                    </div>
+                  </div>
+                </>
               )}
             </div>
           ) : (
@@ -301,10 +337,10 @@ const QRScanner = ({ onScan, onClose, isOpen }) => {
             </div>
           )}
 
-          <div className="flex space-x-3">
+          <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-3">
             <button
               onClick={scanning ? stopCamera : startCamera}
-              className={`flex-1 flex items-center justify-center space-x-2 px-4 py-2 rounded-lg transition-colors ${
+              className={`flex-1 flex items-center justify-center space-x-2 px-4 py-3 rounded-lg transition-colors font-medium ${
                 scanning 
                   ? 'bg-red-600 text-white hover:bg-red-700' 
                   : 'bg-blue-600 text-white hover:bg-blue-700'
@@ -312,12 +348,12 @@ const QRScanner = ({ onScan, onClose, isOpen }) => {
             >
               {scanning ? (
                 <>
-                  <FiX className="w-4 h-4" />
-                  <span>Stop</span>
+                  <FiX className="w-5 h-5" />
+                  <span>Stop Scanning</span>
                 </>
               ) : (
                 <>
-                  <FiCamera className="w-4 h-4" />
+                  <FiCamera className="w-5 h-5" />
                   <span>Start Camera</span>
                 </>
               )}
@@ -325,7 +361,7 @@ const QRScanner = ({ onScan, onClose, isOpen }) => {
             
             <button
               onClick={handleManualInput}
-              className="flex items-center justify-center space-x-2 px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
+              className="flex-1 sm:flex-none flex items-center justify-center space-x-2 px-4 py-3 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors font-medium"
             >
               <span>Manual Input</span>
             </button>
