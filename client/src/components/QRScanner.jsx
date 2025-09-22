@@ -12,6 +12,7 @@ const QRScanner = ({ onScan, onClose, isOpen }) => {
   const [scanning, setScanning] = useState(false);
   const [result, setResult] = useState(null);
   const [error, setError] = useState(null);
+  const [loading, setLoading] = useState(false);
   const videoRef = useRef(null);
   const qrScannerRef = useRef(null);
 
@@ -27,8 +28,29 @@ const QRScanner = ({ onScan, onClose, isOpen }) => {
 
   const startCamera = async () => {
     try {
+      setLoading(true);
       setScanning(true);
       setError(null);
+      
+      // Check if camera is available
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        throw new Error('Camera not supported by this browser');
+      }
+
+      // Request camera permission explicitly
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ 
+          video: { 
+            facingMode: 'environment' // Use back camera if available
+          } 
+        });
+        
+        // Stop the stream immediately as QrScanner will handle it
+        stream.getTracks().forEach(track => track.stop());
+      } catch (permissionError) {
+        console.error('Permission error:', permissionError);
+        throw new Error('Camera permission denied. Please allow camera access and try again.');
+      }
       
       if (videoRef.current) {
         qrScannerRef.current = new QrScanner(
@@ -44,15 +66,33 @@ const QRScanner = ({ onScan, onClose, isOpen }) => {
             },
             highlightScanRegion: true,
             highlightCodeOutline: true,
+            preferredCamera: 'environment', // Use back camera
           }
         );
         
         await qrScannerRef.current.start();
+        console.log('QR Scanner started successfully');
+        setLoading(false);
       }
     } catch (err) {
       console.error('Camera error:', err);
-      setError('Camera access denied. Please allow camera permissions.');
+      let errorMessage = 'Camera access failed. ';
+      
+      if (err.message.includes('permission')) {
+        errorMessage += 'Please allow camera permissions in your browser settings.';
+      } else if (err.message.includes('not supported')) {
+        errorMessage += 'Camera not supported by this browser.';
+      } else if (err.message.includes('NotFoundError')) {
+        errorMessage += 'No camera found on this device.';
+      } else if (err.message.includes('NotAllowedError')) {
+        errorMessage += 'Camera permission denied. Please allow camera access.';
+      } else {
+        errorMessage += 'Please check your camera settings and try again.';
+      }
+      
+      setError(errorMessage);
       setScanning(false);
+      setLoading(false);
     }
   };
 
@@ -63,6 +103,7 @@ const QRScanner = ({ onScan, onClose, isOpen }) => {
       qrScannerRef.current = null;
     }
     setScanning(false);
+    setLoading(false);
   };
 
   const verifyDigitalId = async (qrData) => {
@@ -84,7 +125,13 @@ const QRScanner = ({ onScan, onClose, isOpen }) => {
           // Try to parse as JSON first
           const parsedData = JSON.parse(qrData);
           if (parsedData.uid || parsedData.blockchainId) {
-            requestBody = { qrData: parsedData };
+            // Send as qrData object (not nested)
+            requestBody = { 
+              qrData: parsedData,
+              uid: parsedData.uid,
+              blockchainId: parsedData.blockchainId,
+              hash: parsedData.hash
+            };
           } else {
             // Treat as blockchain ID or UID
             requestBody = { blockchainId: qrData };
@@ -94,9 +141,17 @@ const QRScanner = ({ onScan, onClose, isOpen }) => {
           requestBody = { blockchainId: qrData };
         }
       } else if (typeof qrData === 'object') {
-        requestBody = { qrData };
+        // Already an object, send all fields
+        requestBody = { 
+          qrData: qrData,
+          uid: qrData.uid,
+          blockchainId: qrData.blockchainId,
+          hash: qrData.hash
+        };
       }
 
+      console.log('🔍 Sending verification request:', requestBody);
+      
       const response = await fetch('http://localhost:5000/api/digital-id/verify', {
         method: 'POST',
         headers: {
@@ -106,7 +161,9 @@ const QRScanner = ({ onScan, onClose, isOpen }) => {
         body: JSON.stringify(requestBody)
       });
       
+      console.log('📡 API Response status:', response.status);
       const data = await response.json();
+      console.log('📡 API Response data:', data);
       
       if (data.success) {
         setResult({
@@ -155,9 +212,27 @@ const QRScanner = ({ onScan, onClose, isOpen }) => {
 
         {error && (
           <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-4">
-            <div className="flex items-center space-x-2">
-              <FiAlertCircle className="w-5 h-5 text-red-600" />
-              <span className="text-red-700">{error}</span>
+            <div className="flex items-start space-x-2">
+              <FiAlertCircle className="w-5 h-5 text-red-600 mt-0.5" />
+              <div className="flex-1">
+                <span className="text-red-700 block mb-2">{error}</span>
+                <div className="text-sm text-red-600">
+                  <p className="mb-2"><strong>To fix this:</strong></p>
+                  <ul className="list-disc list-inside space-y-1">
+                    <li>Click the camera icon in your browser's address bar</li>
+                    <li>Select "Allow" for camera permissions</li>
+                    <li>Refresh the page if needed</li>
+                    <li>Try clicking "Start Camera" again</li>
+                  </ul>
+                </div>
+                <button
+                  onClick={startCamera}
+                  className="mt-3 flex items-center space-x-2 px-3 py-1 bg-red-600 text-white text-sm rounded hover:bg-red-700 transition-colors"
+                >
+                  <FiRefreshCw className="w-4 h-4" />
+                  <span>Retry Camera Access</span>
+                </button>
+              </div>
             </div>
           </div>
         )}
@@ -203,11 +278,26 @@ const QRScanner = ({ onScan, onClose, isOpen }) => {
                 playsInline
                 muted
               />
+              {loading && (
+                <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center rounded-lg">
+                  <div className="text-center text-white">
+                    <FiRefreshCw className="w-8 h-8 animate-spin mx-auto mb-2" />
+                    <p className="text-sm">Starting camera...</p>
+                  </div>
+                </div>
+              )}
+              {scanning && !loading && (
+                <div className="absolute top-4 left-4 bg-green-600 text-white px-3 py-1 rounded-full text-sm flex items-center space-x-1">
+                  <div className="w-2 h-2 bg-white rounded-full animate-pulse"></div>
+                  <span>Scanning...</span>
+                </div>
+              )}
             </div>
           ) : (
-            <div className="text-center py-8">
+            <div className="text-center py-8 bg-gray-50 rounded-lg">
               <FiCamera className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-              <p className="text-gray-600 mb-4">Camera not active</p>
+              <p className="text-gray-600 mb-2">Camera not active</p>
+              <p className="text-sm text-gray-500">Click "Start Camera" to begin scanning</p>
             </div>
           )}
 
