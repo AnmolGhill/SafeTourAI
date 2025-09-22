@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="apple-touch-icon" href="/favicon.svg" />
+    <link rel="manifest" href="/manifest.json" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+    <title>SafeTourAI - Smart Travel Safety Platform</title>
+    <script>
+      window.initMap = function() {
+        console.log('Google Maps API loaded successfully');
+      };
+    </script>
+    <script async defer src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBvIQIc0tK5_ATKSezIgQAYOsoPw1cQ6nM&libraries=places&callback=initMap"></script>
+    <!-- Map data 2024 Imagery 2024 Airbus, CNES / Airbus, Maxar Technologies -->
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.jsx"></script>
+  </body>
+</html>
