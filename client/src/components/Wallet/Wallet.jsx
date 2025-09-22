@@ -11,7 +11,8 @@ import {
   FiArrowDownLeft,
   FiShield,
   FiKey,
-  FiAlertTriangle
+  FiAlertTriangle,
+  FiLoader
 } from 'react-icons/fi';
 import { walletAPI } from '../../config/api';
 
@@ -120,10 +121,65 @@ const Wallet = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-100 p-6 flex items-center justify-center">
-        <div className="text-center">
-          <FiRefreshCw className="w-8 h-8 animate-spin mx-auto mb-4 text-blue-600" />
-          <p className="text-gray-600">Initializing your wallet...</p>
+      <div className="min-h-screen bg-gray-100 p-6">
+        <div className="max-w-6xl mx-auto space-y-6">
+          {/* Header Skeleton */}
+          <div className="bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg shadow-lg p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="h-8 bg-white bg-opacity-30 rounded w-48 mb-2"></div>
+                <div className="h-4 bg-white bg-opacity-30 rounded w-32"></div>
+              </div>
+              <div className="h-12 bg-white bg-opacity-30 rounded w-32"></div>
+            </div>
+          </div>
+
+          {/* Balance Card Skeleton */}
+          <div className="bg-white rounded-lg shadow-lg p-6">
+            <div className="text-center">
+              <div className="h-6 bg-gray-200 rounded w-32 mx-auto mb-4 animate-pulse"></div>
+              <div className="h-12 bg-gray-200 rounded w-48 mx-auto mb-4 animate-pulse"></div>
+              <div className="h-4 bg-gray-200 rounded w-24 mx-auto animate-pulse"></div>
+            </div>
+          </div>
+
+          {/* Action Buttons Skeleton */}
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            {[1, 2, 3, 4].map((item) => (
+              <div key={item} className="bg-white rounded-lg shadow p-4">
+                <div className="h-6 bg-gray-200 rounded w-8 mx-auto mb-2 animate-pulse"></div>
+                <div className="h-4 bg-gray-200 rounded w-16 mx-auto animate-pulse"></div>
+              </div>
+            ))}
+          </div>
+
+          {/* Transactions Skeleton */}
+          <div className="bg-white rounded-lg shadow-lg p-6">
+            <div className="h-6 bg-gray-200 rounded w-40 mb-4 animate-pulse"></div>
+            <div className="space-y-3">
+              {[1, 2, 3].map((item) => (
+                <div key={item} className="flex items-center justify-between p-3 border rounded">
+                  <div className="flex items-center space-x-3">
+                    <div className="h-8 w-8 bg-gray-200 rounded-full animate-pulse"></div>
+                    <div>
+                      <div className="h-4 bg-gray-200 rounded w-24 mb-1 animate-pulse"></div>
+                      <div className="h-3 bg-gray-200 rounded w-16 animate-pulse"></div>
+                    </div>
+                  </div>
+                  <div className="h-4 bg-gray-200 rounded w-20 animate-pulse"></div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* Loading indicator overlay */}
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl p-6 sm:p-8 flex flex-col items-center space-y-4 max-w-sm sm:max-w-md w-full mx-4">
+            <FiLoader className="w-8 h-8 text-blue-600 animate-spin" />
+            <p className="text-gray-700 font-medium text-center text-sm sm:text-base">Initializing Wallet...</p>
+            <p className="text-gray-500 text-xs sm:text-sm text-center">Setting up your secure Ethereum wallet</p>
+          </div>
         </div>
       </div>
     );

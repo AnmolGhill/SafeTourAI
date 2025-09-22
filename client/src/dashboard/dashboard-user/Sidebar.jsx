@@ -20,7 +20,8 @@ import {
   FiFileText,
   FiDollarSign as FiWallet,
   FiMessageCircle,
-  FiWatch
+  FiWatch,
+  FiMic
 } from 'react-icons/fi';
 
 const Sidebar = ({ activeTab, setActiveTab }) => {
@@ -65,6 +66,7 @@ const Sidebar = ({ activeTab, setActiveTab }) => {
     { id: 'digital-id', label: 'Digital ID', icon: FiCreditCard, route: '/digital-id', useTab: false },
     { id: 'kyc', label: 'KYC Verification', icon: FiFileText, route: '/kyc', useTab: false },
     { id: 'emergency', label: 'Emergency SOS', icon: FiAlertTriangle, route: '/emergency', useTab: true },
+    { id: 'voice-emergency', label: 'Voice Emergency', icon: FiMic, route: '/voice-emergency', useTab: true },
     { id: 'responder', label: 'Responder Panel', icon: FiUsers, route: '/responder', useTab: true },
     { id: 'blockchain', label: 'Blockchain Records', icon: FiDatabase, route: '/blockchain', useTab: true },
     { id: 'analytics', label: 'Analytics', icon: FiBarChart3, route: '/analytics', useTab: true },
