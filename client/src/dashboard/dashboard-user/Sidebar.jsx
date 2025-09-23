@@ -20,7 +20,8 @@ import {
   FiFileText,
   FiDollarSign as FiWallet,
   FiMessageCircle,
-  FiWatch
+  FiWatch,
+  FiMic
 } from 'react-icons/fi';
 
 const Sidebar = ({ activeTab, setActiveTab }) => {
@@ -65,6 +66,7 @@ const Sidebar = ({ activeTab, setActiveTab }) => {
     { id: 'digital-id', label: 'Digital ID', icon: FiCreditCard, route: '/digital-id', useTab: false },
     { id: 'kyc', label: 'KYC Verification', icon: FiFileText, route: '/kyc', useTab: false },
     { id: 'emergency', label: 'Emergency SOS', icon: FiAlertTriangle, route: '/emergency', useTab: true },
+    { id: 'voice-emergency', label: 'Voice Emergency', icon: FiMic, route: '/voice-emergency', useTab: true },
     { id: 'responder', label: 'Responder Panel', icon: FiUsers, route: '/responder', useTab: true },
     { id: 'blockchain', label: 'Blockchain Records', icon: FiDatabase, route: '/blockchain', useTab: true },
     { id: 'analytics', label: 'Analytics', icon: FiBarChart3, route: '/analytics', useTab: true },
@@ -170,32 +172,52 @@ const Sidebar = ({ activeTab, setActiveTab }) => {
           <div className="p-4 border-t border-gray-200 flex-shrink-0">
             {userIsAuthenticated ? (
               <>
-                <div className="flex items-center space-x-3 mb-4">
-                  <div className="w-10 h-10 bg-gradient-to-br from-green-400 to-blue-500 rounded-full flex items-center justify-center">
+                {/* Desktop: Vertical layout with user info */}
+                <div className="hidden lg:block">
+                  <div className="flex items-center space-x-3 mb-4">
+                    <div className="w-10 h-10 bg-gradient-to-br from-green-400 to-blue-500 rounded-full flex items-center justify-center">
+                      <span className="text-white font-semibold text-sm">
+                        {user?.name ? user.name.charAt(0).toUpperCase() : 
+                         user?.fullName ? user.fullName.charAt(0).toUpperCase() : 
+                         user?.displayName ? user.displayName.charAt(0).toUpperCase() : 'U'}
+                      </span>
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-gray-800">
+                        {user?.name || user?.fullName || user?.displayName || 'Demo User'}
+                      </p>
+                      <p className="text-xs text-gray-500">
+                        {user?.email || 'demo@example.com'}
+                      </p>
+                    </div>
+                  </div>
+                  
+                  <button
+                    onClick={handleLogout}
+                    className="w-full flex items-center space-x-3 px-4 py-3 rounded-lg
+                             text-red-600 hover:bg-red-50 transition-colors duration-200"
+                  >
+                    <FiLogOut className="w-5 h-5" />
+                    <span className="font-medium">Logout</span>
+                  </button>
+                </div>
+                
+                {/* Mobile: Horizontal layout - Avatar left, Logout right */}
+                <div className="lg:hidden flex items-center justify-between sidebar-mobile-layout w-full">
+                  <div className="w-10 h-10 bg-gradient-to-br from-green-400 to-blue-500 rounded-full flex items-center justify-center flex-shrink-0">
                     <span className="text-white font-semibold text-sm">
                       {user?.name ? user.name.charAt(0).toUpperCase() : 
                        user?.fullName ? user.fullName.charAt(0).toUpperCase() : 
                        user?.displayName ? user.displayName.charAt(0).toUpperCase() : 'U'}
                     </span>
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-gray-800">
-                      {user?.name || user?.fullName || user?.displayName || 'Demo User'}
-                    </p>
-                    <p className="text-xs text-gray-500">
-                      {user?.email || 'demo@example.com'}
-                    </p>
-                  </div>
+                  </div><button
+                    onClick={handleLogout}
+                    className="flex items-center space-x-2 px-3 py-2 rounded-lg text-red-600 hover:bg-red-50 transition-colors duration-200 flex-shrink-0 ml-auto"
+                  >
+                    <FiLogOut className="w-4 h-4" />
+                    <span className="font-medium text-sm">Logout</span>
+                  </button>
                 </div>
-                
-                <button
-                  onClick={handleLogout}
-                  className="w-full flex items-center space-x-3 px-4 py-3 rounded-lg
-                           text-red-600 hover:bg-red-50 transition-colors duration-200"
-                >
-                  <FiLogOut className="w-5 h-5" />
-                  <span className="font-medium">Logout</span>
-                </button>
               </>
             ) : (
               <button

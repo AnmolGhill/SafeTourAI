@@ -3,38 +3,75 @@ import { useAuth } from '../utils/auth';
 import toast from 'react-hot-toast';
 import './AdminKYC.css';
 import { kycAPI, downloadKYCDocument, adminAPI } from '../config/api';
+import { FiLoader } from 'react-icons/fi';
 
 const AdminKYC = () => {
   const [pendingKYC, setPendingKYC] = useState([]);
   const [statistics, setStatistics] = useState({});
   const [loading, setLoading] = useState(false);
+  const [dataLoading, setDataLoading] = useState(true);
   const [selectedUser, setSelectedUser] = useState(null);
   const [showModal, setShowModal] = useState(false);
   const [actionType, setActionType] = useState('');
   const [rejectionReason, setRejectionReason] = useState('');
 
   useEffect(() => {
-    fetchPendingKYC();
-    fetchStatistics();
+    const loadInitialData = async () => {
+      setDataLoading(true);
+      let retryCount = 0;
+      const maxRetries = 2;
+      
+      const attemptLoad = async () => {
+        try {
+          // Load statistics first (usually faster and smaller response)
+          await fetchStatistics();
+          // Then load KYC data
+          await fetchPendingKYC();
+        } catch (error) {
+          console.error(`Error loading initial data (attempt ${retryCount + 1}):`, error);
+          
+          if (retryCount < maxRetries && !error.message.includes('Authentication failed')) {
+            retryCount++;
+            console.log(`Retrying... (${retryCount}/${maxRetries})`);
+            // Wait 2 seconds before retry
+            await new Promise(resolve => setTimeout(resolve, 2000));
+            return attemptLoad();
+          }
+          
+          // If all retries failed, show error but don't crash
+          toast.error(`Failed to load dashboard data. Please refresh the page.`);
+        }
+      };
+      
+      try {
+        await attemptLoad();
+      } finally {
+        setDataLoading(false);
+      }
+    };
+
+    loadInitialData();
   }, []);
 
-  const fetchPendingKYC = async () => {
-    setLoading(true);
+  const fetchPendingKYC = async (showLoading = false) => {
+    if (showLoading) setLoading(true);
     try {
       const response = await adminAPI.getPendingKYCs();
-      console.log('Pending KYC data:', response.data); // Debug log
       setPendingKYC(response.data || []);
     } catch (error) {
       console.error('Error fetching pending KYC:', error);
       if (error.message.includes('Authentication failed')) {
-        alert('Session expired. Please login again.');
-        // Redirect to login
+        toast.error('Session expired. Please login again.');
         window.location.href = '/login';
+      } else if (error.message.includes('timeout')) {
+        toast.error('Request timed out. Please try again.');
       } else {
-        alert('Failed to fetch pending KYC applications');
+        toast.error('Failed to fetch pending KYC applications');
       }
+      // Set empty array on error to prevent UI issues
+      setPendingKYC([]);
     } finally {
-      setLoading(false);
+      if (showLoading) setLoading(false);
     }
   };
 
@@ -52,17 +89,20 @@ const AdminKYC = () => {
     } catch (error) {
       console.error('Error fetching statistics:', error);
       if (error.message.includes('Authentication failed')) {
-        alert('Session expired. Please login again.');
+        toast.error('Session expired. Please login again.');
         window.location.href = '/login';
-      } else {
-        setStatistics({
-          total: 0,
-          submitted: 0,
-          verified: 0,
-          rejected: 0,
-          blockchainVerified: 0
-        });
+      } else if (error.message.includes('timeout')) {
+        toast.error('Statistics request timed out.');
       }
+      
+      // Always set fallback statistics to prevent UI issues
+      setStatistics({
+        total: 0,
+        submitted: 0,
+        verified: 0,
+        rejected: 0,
+        blockchainVerified: 0
+      });
     }
   };
 
@@ -219,7 +259,7 @@ const AdminKYC = () => {
       }
       
       // Refresh data
-      await Promise.all([fetchPendingKYC(), fetchStatistics()]);
+      await Promise.all([fetchPendingKYC(false), fetchStatistics()]);
       
       setShowModal(false);
       setSelectedUser(null);
@@ -266,6 +306,79 @@ const AdminKYC = () => {
       minute: '2-digit'
     });
   };
+
+  // Loading skeleton component
+  const LoadingSkeleton = () => (
+    <div className="admin-kyc-container">
+      <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-6 mb-6">
+        {/* Header Skeleton */}
+        <div className="h-8 bg-gray-200 rounded-lg w-64 mb-2 animate-pulse"></div>
+        <div className="h-4 bg-gray-200 rounded-lg w-80 animate-pulse"></div>
+      </div>
+
+      {/* Statistics Cards Skeleton */}
+      <div className="stats-grid">
+        {[1, 2, 3, 4, 5].map((item) => (
+          <div key={item} className="stat-card">
+            <div className="stat-icon">
+              <div className="w-8 h-8 bg-gray-200 rounded"></div>
+            </div>
+            <div className="stat-content">
+              <div className="h-6 bg-gray-200 rounded w-12 mb-2"></div>
+              <div className="h-4 bg-gray-200 rounded w-20"></div>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Table Skeleton */}
+      <div className="kyc-table-container">
+        <div className="table-header">
+          <div className="h-6 bg-gray-200 rounded w-48 animate-pulse"></div>
+          <div className="h-10 bg-gray-200 rounded w-24 animate-pulse"></div>
+        </div>
+
+        <div className="table-wrapper">
+          <table className="kyc-table">
+            <thead>
+              <tr>
+                {[1, 2, 3, 4, 5, 6, 7].map((item) => (
+                  <th key={item}>
+                    <div className="h-4 bg-gray-200 rounded"></div>
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {[1, 2, 3].map((row) => (
+                <tr key={row}>
+                  {[1, 2, 3, 4, 5, 6, 7].map((col) => (
+                    <td key={col}>
+                      <div className="h-4 bg-gray-200 rounded"></div>
+                    </td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* Loading indicator overlay */}
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+        <div className="bg-white rounded-xl p-6 sm:p-8 flex flex-col items-center space-y-4 max-w-sm sm:max-w-md w-full mx-4">
+          <FiLoader className="w-8 h-8 text-blue-600 animate-spin" />
+          <p className="text-gray-700 font-medium text-center text-sm sm:text-base">Loading KYC Dashboard...</p>
+          <p className="text-gray-500 text-xs sm:text-sm text-center">Fetching pending verification requests</p>
+        </div>
+      </div>
+    </div>
+  );
+
+  // Show loading skeleton while data is being fetched
+  if (dataLoading) {
+    return <LoadingSkeleton />;
+  }
 
   return (
     <div className="admin-kyc-container">
@@ -317,7 +430,7 @@ const AdminKYC = () => {
       <div className="kyc-table-container">
         <div className="table-header">
           <h2>Pending KYC Submissions</h2>
-          <button onClick={fetchPendingKYC} className="refresh-btn" disabled={loading}>
+          <button onClick={() => fetchPendingKYC(true)} className="refresh-btn" disabled={loading}>
             {loading ? (
               <span className="loading-text">
                 <div className="button-spinner"></div>
@@ -329,24 +442,7 @@ const AdminKYC = () => {
           </button>
         </div>
 
-        {loading ? (
-          <div className="admin-loading">
-            <div className="loading-animation">
-              <div className="loading-spinner">
-                <div className="spinner-ring"></div>
-                <div className="spinner-ring"></div>
-                <div className="spinner-ring"></div>
-              </div>
-              <h3>🔍 Loading KYC submissions...</h3>
-              <p>Fetching pending verification requests</p>
-              <div className="loading-steps">
-                <div className="step active">📋 Retrieving KYC data</div>
-                <div className="step">📊 Loading statistics</div>
-                <div className="step">🔄 Updating dashboard</div>
-              </div>
-            </div>
-          </div>
-        ) : pendingKYC.length === 0 ? (
+        {pendingKYC.length === 0 ? (
           <div className="no-data">
             <p>No pending KYC submissions</p>
           </div>

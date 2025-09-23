@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import toast from 'react-hot-toast';
-import DashboardSelector from '../../components/DashboardSelector';
 import { 
   FiHome, 
   FiShield, 
@@ -135,7 +134,7 @@ const AdminSidebar = ({ activeTab, setActiveTab }) => {
         <div className="flex flex-col h-full">
           {/* Logo Section */}
           <div className="p-6 border-b border-gray-200">
-            <div className="flex items-center space-x-3 mb-4">
+            <div className="flex items-center space-x-3">
               <div className="w-10 h-10 bg-gradient-to-br from-purple-600 to-blue-600 rounded-lg flex items-center justify-center">
                 <FiStar className="w-6 h-6 text-white" />
               </div>
@@ -144,9 +143,6 @@ const AdminSidebar = ({ activeTab, setActiveTab }) => {
                 <p className="text-xs text-gray-500">Admin Control Center</p>
               </div>
             </div>
-            
-            {/* Dashboard Selector */}
-            <DashboardSelector currentDashboard="admin" />
           </div>
 
           {/* Navigation Menu */}

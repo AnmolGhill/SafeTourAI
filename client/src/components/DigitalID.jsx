@@ -9,7 +9,8 @@ import {
   FiAlertCircle,
   FiRefreshCw,
   FiCamera,
-  FiLink
+  FiLink,
+  FiLoader
 } from 'react-icons/fi';
 import { BiWallet } from 'react-icons/bi';
 import QRCode from 'qrcode';
@@ -215,11 +216,72 @@ const DigitalID = () => {
     return (
       <div className="min-h-screen bg-gray-100 p-6">
         <div className="max-w-4xl mx-auto">
-          <div className="bg-white rounded-lg shadow-lg p-8">
-            <div className="flex items-center justify-center space-x-3">
-              <FiRefreshCw className="w-6 h-6 text-blue-600 animate-spin" />
-              <span className="text-lg text-gray-700">Verifying KYC status and generating Digital ID...</span>
+          {/* Header Skeleton */}
+          <div className="bg-white rounded-lg shadow-lg p-8 mb-6">
+            <div className="h-8 bg-gray-200 rounded-lg w-64 mb-4 animate-pulse"></div>
+            <div className="h-4 bg-gray-200 rounded-lg w-80 mb-6 animate-pulse"></div>
+          </div>
+
+          {/* Digital ID Card Skeleton */}
+          <div className="bg-white rounded-lg shadow-lg p-8 mb-6">
+            <div className="bg-gradient-to-br from-blue-600 to-purple-700 rounded-xl p-8 mb-6">
+              <div className="flex items-center justify-between mb-6">
+                <div>
+                  <div className="h-6 bg-white bg-opacity-30 rounded w-32 mb-2"></div>
+                  <div className="h-8 bg-white bg-opacity-30 rounded w-48"></div>
+                </div>
+                <div className="h-16 w-16 bg-white bg-opacity-30 rounded-full"></div>
+              </div>
+              
+              <div className="grid grid-cols-2 gap-4 mb-6">
+                <div>
+                  <div className="h-4 bg-white bg-opacity-30 rounded w-20 mb-2"></div>
+                  <div className="h-6 bg-white bg-opacity-30 rounded w-32"></div>
+                </div>
+                <div>
+                  <div className="h-4 bg-white bg-opacity-30 rounded w-24 mb-2"></div>
+                  <div className="h-6 bg-white bg-opacity-30 rounded w-28"></div>
+                </div>
+              </div>
+              
+              <div className="h-4 bg-white bg-opacity-30 rounded w-full mb-2"></div>
+              <div className="h-4 bg-white bg-opacity-30 rounded w-3/4"></div>
             </div>
+            
+            {/* Action Buttons Skeleton */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {[1, 2, 3].map((item) => (
+                <div key={item} className="flex items-center justify-center p-4 border-2 border-gray-200 rounded-lg">
+                  <div className="h-6 w-6 bg-gray-200 rounded mr-2 animate-pulse"></div>
+                  <div className="h-4 bg-gray-200 rounded w-20 animate-pulse"></div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Security Features Skeleton */}
+          <div className="bg-white rounded-lg shadow-lg p-8">
+            <div className="h-6 bg-gray-200 rounded w-48 mb-6 animate-pulse"></div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {[1, 2, 3, 4].map((item) => (
+                <div key={item} className="flex items-start space-x-3">
+                  <div className="h-6 w-6 bg-gray-200 rounded animate-pulse"></div>
+                  <div className="flex-1">
+                    <div className="h-5 bg-gray-200 rounded w-32 mb-2 animate-pulse"></div>
+                    <div className="h-4 bg-gray-200 rounded w-full animate-pulse"></div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* Loading indicator overlay */}
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl p-6 sm:p-8 flex flex-col items-center space-y-4 max-w-sm sm:max-w-md w-full mx-4">
+            <FiLoader className="w-8 h-8 text-blue-600 animate-spin" />
+            <p className="text-gray-700 font-medium text-center text-sm sm:text-base">Loading Digital ID...</p>
+            <p className="text-gray-500 text-xs sm:text-sm text-center">Verifying KYC status and generating ID</p>
           </div>
         </div>
       </div>

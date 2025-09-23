@@ -23,6 +23,7 @@
     "express-rate-limit": "^6.8.1",
     "express-validator": "^7.0.1",
     "firebase-admin": "^11.10.1",
+    "googleapis": "^160.0.0",
     "hdkey": "^2.1.0",
     "helmet": "^7.0.0",
     "jsonwebtoken": "^9.0.2",

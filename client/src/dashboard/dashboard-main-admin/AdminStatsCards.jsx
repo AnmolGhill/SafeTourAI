@@ -9,8 +9,8 @@ const AdminStatsCards = () => {
 
   useEffect(() => {
     fetchDashboardStats();
-    // Set up real-time updates every 30 seconds
-    const interval = setInterval(fetchDashboardStats, 30000);
+    // Set up real-time updates every 2 minutes (reduced from 30 seconds for better performance)
+    const interval = setInterval(fetchDashboardStats, 120000);
     return () => clearInterval(interval);
   }, []);
 

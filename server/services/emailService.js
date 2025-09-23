@@ -18,36 +18,59 @@ class EmailService {
     try {
       const isProduction = process.env.NODE_ENV === 'production';
       
-      // Production-optimized configuration for cloud hosting (Render, Heroku, etc.)
-      this.transporter = nodemailer.createTransport({
-        service: 'gmail',
-        host: 'smtp.gmail.com',
-        port: isProduction ? 465 : 587, // Use SSL port 465 for production
-        secure: isProduction, // Use SSL in production, STARTTLS in development
-        auth: {
-          user: process.env.EMAIL_USER,
-          pass: process.env.EMAIL_PASSWORD
-        },
-        // Cloud hosting optimized timeouts
-        connectionTimeout: isProduction ? 60000 : 10000, // 60s for production
-        greetingTimeout: isProduction ? 30000 : 5000,    // 30s for production
-        socketTimeout: isProduction ? 60000 : 10000,     // 60s for production
-        // TLS configuration for cloud environments
-        tls: {
-          rejectUnauthorized: false, // Allow self-signed certificates in cloud
-          ciphers: 'SSLv3'
-        },
-        // Additional production settings
-        pool: false, // Disable connection pooling for cloud stability
-        maxConnections: 1,
-        maxMessages: 1,
-        // Retry settings for cloud environments
-        retryDelay: 3000,
-        maxRetries: 3
-      });
-
-      console.log(`📧 Email service initialized for ${isProduction ? 'PRODUCTION' : 'DEVELOPMENT'} environment`);
-      console.log(`📧 Using ${isProduction ? 'SSL (port 465)' : 'STARTTLS (port 587)'} connection`);
+      // Use Gmail API for production (works on Render.com), SMTP for development
+      if (isProduction && process.env.USE_GMAIL_API === 'true') {
+        // Gmail API for production - bypasses SMTP port restrictions
+        this.useGmailApi = true;
+        this.gmailApiService = require('./gmailApiService');
+        console.log('📧 Email service initialized with Gmail API for production (Render.com compatible)');
+        return; // Skip nodemailer setup
+      } else if (isProduction && process.env.USE_SENDGRID === 'true') {
+        // SendGrid for production (free 100 emails/day)
+        this.transporter = nodemailer.createTransport({
+          host: 'smtp.sendgrid.net',
+          port: 587,
+          secure: false,
+          auth: {
+            user: 'apikey',
+            pass: process.env.SENDGRID_API_KEY
+          }
+        });
+        console.log('📧 Email service initialized with SendGrid for production');
+      } else if (isProduction && process.env.USE_MAILTRAP === 'true') {
+        // Mailtrap for production testing
+        this.transporter = nodemailer.createTransport({
+          host: 'smtp.mailtrap.io',
+          port: 2525,
+          auth: {
+            user: process.env.MAILTRAP_USER,
+            pass: process.env.MAILTRAP_PASS
+          }
+        });
+        console.log('📧 Email service initialized with Mailtrap for production');
+      } else {
+        // Gmail SMTP for development or if no alternative is configured
+        this.transporter = nodemailer.createTransport({
+          service: 'gmail',
+          host: 'smtp.gmail.com',
+          port: 587,
+          secure: false,
+          auth: {
+            user: process.env.EMAIL_USER,
+            pass: process.env.EMAIL_PASSWORD
+          },
+          connectionTimeout: 10000,
+          greetingTimeout: 5000,
+          socketTimeout: 10000
+        });
+        console.log(`📧 Email service initialized with Gmail SMTP for ${isProduction ? 'production' : 'development'}`);
+        
+        if (isProduction) {
+          console.log('⚠️ Warning: Using Gmail SMTP in production may not work on Render.com due to port restrictions');
+        }
+      }
+      
+      this.useGmailApi = false;
     } catch (error) {
       console.error('❌ Email service initialization failed:', error);
       throw error;
@@ -63,66 +86,82 @@ class EmailService {
    */
   async sendOTP(email, otp, name, role = 'user') {
     const startTime = Date.now();
-    const maxRetries = process.env.NODE_ENV === 'production' ? 3 : 1;
     
-    for (let attempt = 1; attempt <= maxRetries; attempt++) {
-      try {
-        // Skip verification in production to avoid timeout issues
-        if (process.env.NODE_ENV !== 'production') {
-          await this.transporter.verify();
-          console.log('✅ SMTP connection verified');
-        }
-        
-        // Role-based email configuration
-        const roleConfig = this.getRoleConfig(role);
-        
-        const mailOptions = {
-          from: `"SafeTourAI" <${process.env.EMAIL_USER}>`,
-          to: email,
-          subject: `SafeTourAI - ${roleConfig.title} Email Verification OTP`,
-          html: this.generateOTPEmailHTML(name, otp, role, roleConfig)
-        };
-
-        const result = await this.transporter.sendMail(mailOptions);
-        const endTime = Date.now();
-        const duration = endTime - startTime;
-        
-        console.log(`📧 OTP email sent successfully to: ${email} (${duration}ms) [${role.toUpperCase()}] ${attempt > 1 ? `[Retry ${attempt}]` : ''}`);
-        console.log(`📨 Message ID: ${result.messageId}`);
-        
+    try {
+      // Use Gmail API if configured, otherwise use SMTP
+      if (this.useGmailApi && this.gmailApiService) {
+        console.log('📧 Using Gmail API for email delivery');
+        const result = await this.gmailApiService.sendOTP(email, otp, name, role);
         return result;
-
-      } catch (error) {
-        const endTime = Date.now();
-        const duration = endTime - startTime;
-        
-        console.error(`❌ Attempt ${attempt}/${maxRetries} failed to send OTP email to ${email} (${duration}ms):`, error);
-        
-        // Log specific error details for debugging
-        if (error.code) {
-          console.error(`📋 Error Code: ${error.code}`);
-        }
-        if (error.response) {
-          console.error(`📋 SMTP Response: ${error.response}`);
-        }
-        if (error.command) {
-          console.error(`📋 Failed Command: ${error.command}`);
-        }
-        
-        // If this is the last attempt, throw the error
-        if (attempt === maxRetries) {
-          throw new Error(`Failed to send verification email after ${maxRetries} attempts: ${error.message}`);
-        }
-        
-        // Wait before retry with exponential backoff
-        const waitTime = attempt * 2000; // 2s, 4s, 6s...
-        console.log(`⏳ Waiting ${waitTime}ms before retry...`);
-        await new Promise(resolve => setTimeout(resolve, waitTime));
-        
-        // Reinitialize transporter for next attempt
-        console.log('🔄 Reinitializing email transporter...');
-        this.initializeTransporter();
       }
+      
+      // SMTP fallback with retry mechanism
+      const maxRetries = process.env.NODE_ENV === 'production' ? 3 : 1;
+      
+      for (let attempt = 1; attempt <= maxRetries; attempt++) {
+        try {
+          // Skip verification in production to avoid timeout issues
+          if (process.env.NODE_ENV !== 'production') {
+            await this.transporter.verify();
+            console.log('✅ SMTP connection verified');
+          }
+          
+          // Role-based email configuration
+          const roleConfig = this.getRoleConfig(role);
+          
+          const mailOptions = {
+            from: `"SafeTourAI" <${process.env.EMAIL_USER}>`,
+            to: email,
+            subject: `SafeTourAI - ${roleConfig.title} Email Verification OTP`,
+            html: this.generateOTPEmailHTML(name, otp, role, roleConfig)
+          };
+
+          const result = await this.transporter.sendMail(mailOptions);
+          const endTime = Date.now();
+          const duration = endTime - startTime;
+          
+          console.log(`📧 OTP email sent successfully to: ${email} (${duration}ms) [${role.toUpperCase()}] ${attempt > 1 ? `[Retry ${attempt}]` : ''}`);
+          console.log(`📨 Message ID: ${result.messageId}`);
+          
+          return result;
+
+        } catch (error) {
+          const endTime = Date.now();
+          const duration = endTime - startTime;
+          
+          console.error(`❌ Attempt ${attempt}/${maxRetries} failed to send OTP email to ${email} (${duration}ms):`, error);
+          
+          // Log specific error details for debugging
+          if (error.code) {
+            console.error(`📋 Error Code: ${error.code}`);
+          }
+          if (error.response) {
+            console.error(`📋 SMTP Response: ${error.response}`);
+          }
+          if (error.command) {
+            console.error(`📋 Failed Command: ${error.command}`);
+          }
+          
+          // If this is the last attempt, throw the error
+          if (attempt === maxRetries) {
+            throw new Error(`Failed to send verification email after ${maxRetries} attempts: ${error.message}`);
+          }
+          
+          // Wait before retry with exponential backoff
+          const waitTime = attempt * 2000; // 2s, 4s, 6s...
+          console.log(`⏳ Waiting ${waitTime}ms before retry...`);
+          await new Promise(resolve => setTimeout(resolve, waitTime));
+          
+          // Reinitialize transporter for next attempt
+          console.log('🔄 Reinitializing email transporter...');
+          this.initializeTransporter();
+        }
+      }
+    } catch (error) {
+      const endTime = Date.now();
+      const duration = endTime - startTime;
+      console.error(`❌ Failed to send OTP email to ${email} (${duration}ms):`, error);
+      throw error;
     }
   }
 

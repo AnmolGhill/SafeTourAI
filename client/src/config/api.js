@@ -14,6 +14,27 @@ const getAuthHeaders = () => {
   };
 };
 
+// Helper function to create fetch with timeout
+const fetchWithTimeout = async (url, options = {}, timeout = 25000) => {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeout);
+  
+  try {
+    const response = await fetch(url, {
+      ...options,
+      signal: controller.signal
+    });
+    clearTimeout(timeoutId);
+    return response;
+  } catch (error) {
+    clearTimeout(timeoutId);
+    if (error.name === 'AbortError') {
+      throw new Error('Request timeout');
+    }
+    throw error;
+  }
+};
+
 // Helper function to get auth headers for file uploads
 const getFileUploadHeaders = () => {
   const token = localStorage.getItem('token');
@@ -191,6 +212,106 @@ export const emergencyAPI = {
       console.error('Get nearby emergencies error:', error);
       return { data: [] };
     }
+  },
+
+  // Voice Emergency APIs
+  async createVoiceAlert(alertData) {
+    try {
+      const response = await fetchWithTimeout(`${API_BASE_URL}/emergency/voice-alert`, {
+        method: 'POST',
+        headers: getAuthHeaders(),
+        body: JSON.stringify(alertData)
+      }, 30000);
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
+      }
+
+      const result = await response.json();
+      return { data: result };
+    } catch (error) {
+      console.error('Create voice alert error:', error);
+      throw error;
+    }
+  },
+
+  async getVoiceHistory() {
+    try {
+      const response = await fetch(`${API_BASE_URL}/emergency/voice-history`, {
+        headers: getAuthHeaders()
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const result = await response.json();
+      return { data: result.history || [] };
+    } catch (error) {
+      console.error('Get voice history error:', error);
+      return { data: [] };
+    }
+  },
+
+  async saveContacts(contacts) {
+    try {
+      const response = await fetch(`${API_BASE_URL}/emergency/contacts`, {
+        method: 'POST',
+        headers: getAuthHeaders(),
+        body: JSON.stringify({ contacts })
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
+      }
+
+      const result = await response.json();
+      return { data: result };
+    } catch (error) {
+      console.error('Save contacts error:', error);
+      throw error;
+    }
+  },
+
+  async getContacts() {
+    try {
+      const response = await fetch(`${API_BASE_URL}/emergency/contacts`, {
+        headers: getAuthHeaders()
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const result = await response.json();
+      return { data: result.contacts || [] };
+    } catch (error) {
+      console.error('Get contacts error:', error);
+      return { data: [] };
+    }
+  },
+
+  async testAlert(contactId) {
+    try {
+      const response = await fetch(`${API_BASE_URL}/emergency/test-alert`, {
+        method: 'POST',
+        headers: getAuthHeaders(),
+        body: JSON.stringify({ contactId })
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
+      }
+
+      const result = await response.json();
+      return { data: result };
+    } catch (error) {
+      console.error('Test alert error:', error);
+      throw error;
+    }
   }
 };
 
@@ -203,9 +324,9 @@ export const adminAPI = {
         throw new Error('Authentication token not found');
       }
 
-      const response = await fetch(`${API_BASE_URL}/kyc/admin/pending`, {
+      const response = await fetchWithTimeout(`${API_BASE_URL}/kyc/admin/pending`, {
         headers: getAuthHeaders()
-      });
+      }, 30000);
 
       if (!response.ok) {
         if (response.status === 401) {
@@ -253,9 +374,9 @@ export const adminAPI = {
         throw new Error('Authentication token not found');
       }
 
-      const response = await fetch(`${API_BASE_URL}/kyc/admin/stats`, {
+      const response = await fetchWithTimeout(`${API_BASE_URL}/kyc/admin/stats`, {
         headers: getAuthHeaders()
-      });
+      }, 15000);
 
       if (!response.ok) {
         if (response.status === 401) {
