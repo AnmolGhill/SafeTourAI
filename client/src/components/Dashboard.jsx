@@ -9,6 +9,7 @@ const Dashboard = () => {
       <nav className="landing-nav">
         <div className="nav-container">
           <div className="nav-logo">
+            <div className="logo-icon">🛡️</div>
             <h2>SafeTourAI</h2>
           </div>
           <div className="nav-buttons">
@@ -38,9 +39,77 @@ const Dashboard = () => {
           <div className="hero-visual">
             <div className="hero-image">
               <div className="floating-elements">
-                <div className="floating-card card-1">🔒 AI Safety</div>
-                <div className="floating-card card-2">🗺️ Smart Routes</div>
-                <div className="floating-card card-3">📡 Offline Mode</div>
+                {/* Original floating cards */}
+                <div className="floating-card card-1">
+                  <div className="card-icon">🔒</div>
+                  <div className="card-content">
+                    <div className="card-title">AI Safety</div>
+                    <div className="card-subtitle">Smart Protection</div>
+                  </div>
+                </div>
+                <div className="floating-card card-2">
+                  <div className="card-icon">⌚</div>
+                  <div className="card-content">
+                    <div className="card-title">Smart Band</div>
+                    <div className="card-subtitle">Wearable Safety</div>
+                  </div>
+                </div>
+                <div className="floating-card card-3">
+                  <div className="card-icon">📡</div>
+                  <div className="card-content">
+                    <div className="card-title">Offline Mode</div>
+                    <div className="card-subtitle">Always Connected</div>
+                  </div>
+                </div>
+                
+                {/* New feature cards based on mobile app */}
+                <div className="floating-card feature-card-1">
+                  <div className="card-icon">👤</div>
+                  <div className="card-content">
+                    <div className="card-title">Digital ID</div>
+                    <div className="card-subtitle">Blockchain Verified</div>
+                  </div>
+                </div>
+                
+                <div className="floating-card feature-card-2">
+                  <div className="card-icon">🤖</div>
+                  <div className="card-content">
+                    <div className="card-title">AI Chatbot</div>
+                    <div className="card-subtitle">Travel Assistant</div>
+                  </div>
+                </div>
+                
+                <div className="floating-card feature-card-3">
+                  <div className="card-icon">🚨</div>
+                  <div className="card-content">
+                    <div className="card-title">Emergency</div>
+                    <div className="card-subtitle">SOS Panel</div>
+                  </div>
+                </div>
+                
+                <div className="floating-card feature-card-4">
+                  <div className="card-icon">📊</div>
+                  <div className="card-content">
+                    <div className="card-title">Dashboard</div>
+                    <div className="card-subtitle">System Status</div>
+                  </div>
+                </div>
+                
+                <div className="floating-card feature-card-5">
+                  <div className="card-icon">🛡️</div>
+                  <div className="card-content">
+                    <div className="card-title">Travel Safety</div>
+                    <div className="card-subtitle">Real-time Alerts</div>
+                  </div>
+                </div>
+                
+                <div className="floating-card feature-card-6">
+                  <div className="card-icon">🌍</div>
+                  <div className="card-content">
+                    <div className="card-title">Cultural Guide</div>
+                    <div className="card-subtitle">Local Awareness</div>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -48,9 +117,10 @@ const Dashboard = () => {
       </section>
 
       {/* Key Features Section */}
-      <section className="features-section">
+      <section id="features" className="features-section">
         <div className="container">
           <h2 className="section-title">Key Features</h2>
+          
           <div className="features-grid">
             <div className="feature-card">
               <div className="feature-icon">🔒</div>
@@ -63,7 +133,7 @@ const Dashboard = () => {
               <p>Alerts about risky areas, with alternate routes</p>
             </div>
             <div className="feature-card">
-              <div className="feature-icon">🧾</div>
+              <div className="feature-icon">🧧</div>
               <h3>Blockchain-based Digital ID</h3>
               <p>Tamper-proof secure travel identity</p>
             </div>
@@ -150,7 +220,7 @@ const Dashboard = () => {
       </section>
 
       {/* How It Works Section */}
-      <section className="how-it-works-section">
+      <section id="how-it-works" className="how-it-works-section">
         <div className="container">
           <h2 className="section-title">How It Works</h2>
           <div className="steps-container">
@@ -194,10 +264,11 @@ const Dashboard = () => {
       </section>
 
       {/* Innovation Section */}
-      <section className="innovation-section">
+      <section id="innovation" className="innovation-section">
         <div className="container">
           <h2 className="section-title">Innovation & Uniqueness</h2>
           <p className="innovation-subtitle">✨ What makes SafeTourAI different?</p>
+          
           <div className="innovation-grid">
             <div className="innovation-card">
               <h3>First-of-its-kind Integration</h3>
@@ -310,7 +381,7 @@ const Dashboard = () => {
       </section>
 
       {/* Footer */}
-      <footer className="landing-footer">
+      <footer id="contact" className="landing-footer">
         <div className="container">
           <div className="footer-content">
             <div className="footer-logo">

@@ -226,11 +226,11 @@ const KYCVerification = () => {
         </div>
 
         {/* Loading indicator */}
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl p-8 flex flex-col items-center space-y-4">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl p-6 sm:p-8 flex flex-col items-center space-y-4 max-w-sm sm:max-w-md w-full mx-4">
             <FiLoader className="w-8 h-8 text-blue-600 animate-spin" />
-            <p className="text-gray-700 font-medium">Loading KYC verification...</p>
-            <p className="text-gray-500 text-sm">Checking your verification status</p>
+            <p className="text-gray-700 font-medium text-center text-sm sm:text-base">Loading KYC verification...</p>
+            <p className="text-gray-500 text-xs sm:text-sm text-center">Checking your verification status</p>
           </div>
         </div>
       </div>

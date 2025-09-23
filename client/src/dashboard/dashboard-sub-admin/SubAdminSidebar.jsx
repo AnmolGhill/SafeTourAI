@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import toast from 'react-hot-toast';
-import DashboardSelector from '../../components/DashboardSelector';
 import { 
   FiHome, 
   FiCamera, 
@@ -139,9 +138,6 @@ const SubAdminSidebar = ({ activeTab, setActiveTab }) => {
                 <p className="text-xs text-gray-500">Police Dashboard</p>
               </div>
             </div>
-            
-            {/* Dashboard Selector */}
-            <DashboardSelector currentDashboard="sub-admin" />
           </div>
 
           {/* Navigation Menu */}
@@ -173,32 +169,52 @@ const SubAdminSidebar = ({ activeTab, setActiveTab }) => {
           <div className="p-4 border-t border-gray-200">
             {userIsAuthenticated ? (
               <>
-                <div className="flex items-center space-x-3 mb-4">
-                  <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-full flex items-center justify-center">
+                {/* Desktop: Vertical layout with user info */}
+                <div className="hidden lg:block">
+                  <div className="flex items-center space-x-3 mb-4">
+                    <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-full flex items-center justify-center">
+                      <span className="text-white font-semibold text-sm">
+                        {user?.name ? user.name.charAt(0).toUpperCase() : 
+                         user?.fullName ? user.fullName.charAt(0).toUpperCase() : 
+                         user?.displayName ? user.displayName.charAt(0).toUpperCase() : 'P'}
+                      </span>
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-gray-800">
+                        {user?.name || user?.fullName || user?.displayName || 'Officer Smith'}
+                      </p>
+                      <p className="text-xs text-gray-500">
+                        Police Sub-Admin
+                      </p>
+                    </div>
+                  </div>
+                  
+                  <button
+                    onClick={handleLogout}
+                    className="w-full flex items-center space-x-3 px-4 py-3 rounded-lg
+                             text-red-600 hover:bg-red-50 transition-colors duration-200"
+                  >
+                    <FiLogOut className="w-5 h-5" />
+                    <span className="font-medium">Logout</span>
+                  </button>
+                </div>
+                
+                {/* Mobile: Horizontal layout - Avatar left, Logout right */}
+                <div className="lg:hidden flex items-center justify-between sidebar-mobile-layout w-full">
+                  <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-full flex items-center justify-center flex-shrink-0">
                     <span className="text-white font-semibold text-sm">
                       {user?.name ? user.name.charAt(0).toUpperCase() : 
                        user?.fullName ? user.fullName.charAt(0).toUpperCase() : 
                        user?.displayName ? user.displayName.charAt(0).toUpperCase() : 'P'}
                     </span>
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-gray-800">
-                      {user?.name || user?.fullName || user?.displayName || 'Officer Smith'}
-                    </p>
-                    <p className="text-xs text-gray-500">
-                      Police Sub-Admin
-                    </p>
-                  </div>
+                  </div><button
+                    onClick={handleLogout}
+                    className="flex items-center space-x-2 px-3 py-2 rounded-lg text-red-600 hover:bg-red-50 transition-colors duration-200 flex-shrink-0 ml-auto"
+                  >
+                    <FiLogOut className="w-4 h-4" />
+                    <span className="font-medium text-sm">Logout</span>
+                  </button>
                 </div>
-                
-                <button
-                  onClick={handleLogout}
-                  className="w-full flex items-center space-x-3 px-4 py-3 rounded-lg
-                           text-red-600 hover:bg-red-50 transition-colors duration-200"
-                >
-                  <FiLogOut className="w-5 h-5" />
-                  <span className="font-medium">Logout</span>
-                </button>
               </>
             ) : (
               <button

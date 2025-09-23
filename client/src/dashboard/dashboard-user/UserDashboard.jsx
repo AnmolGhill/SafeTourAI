@@ -14,6 +14,7 @@ import SafeTourChatbot from './SafeTourChatbot';
 import ChatbotPage from './ChatbotPage';
 import SmartWatch from './SmartWatch';
 import EmergencyPanel from '../../components/Emergency/EmergencyPanel';
+import EmergencyVoiceTrigger from '../../components/Emergency/EmergencyVoiceTrigger';
 import ResponderPanel from '../../components/Responder/ResponderPanel';
 import AnalyticsPanel from '../../components/Analytics/AnalyticsPanel';
 import SettingsPanel from '../../components/Settings/SettingsPanel';
@@ -58,6 +59,8 @@ const UserDashboard = () => {
         );
       case 'emergency':
         return <EmergencyPanel />;
+      case 'voice-emergency':
+        return <EmergencyVoiceTrigger />;
       case 'responder':
         return <ResponderPanel />;
       case 'kyc':

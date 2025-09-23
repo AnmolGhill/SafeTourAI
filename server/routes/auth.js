@@ -4,6 +4,7 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const { auth, db } = require('../config/firebase');
 const emailService = require('../services/emailService');
+const cloudEmailService = require('../services/cloudEmailService');
 const logger = require('../utils/logger');
 const { AppError, asyncHandler } = require('../middleware/errorHandler');
 const { handleValidationErrors } = require('../utils/validation');
@@ -105,18 +106,27 @@ router.post('/register', [
         verified: false
       });
 
-      // Send OTP email
+      // Send OTP email with cloud fallback
       try {
         await emailService.sendOTP(email, otp, name, role);
-        console.log('📧 OTP sent successfully', { email, role });
+        console.log('📧 OTP sent successfully via primary service', { email, role });
       } catch (emailError) {
-        console.error('❌ Email service error:', emailError);
-        console.log(`📋 Email failed, OTP for development/testing - ${email}: ${otp}`);
+        console.error('❌ Primary email service error:', emailError);
         
-        // In development, we can continue even if email fails
-        // In production, you might want to throw an error here
+        // Try cloud email service as fallback for production
         if (process.env.NODE_ENV === 'production') {
-          throw new AppError('Failed to send verification email. Please try again.', 500, 'EMAIL_SEND_FAILED');
+          try {
+            console.log('☁️ Attempting cloud email service fallback...');
+            await cloudEmailService.sendOTP(email, otp, name, role);
+            console.log('📧 OTP sent successfully via cloud fallback service', { email, role });
+          } catch (cloudError) {
+            console.error('❌ Cloud email service also failed:', cloudError);
+            console.log(`📋 All email services failed, OTP for debugging - ${email}: ${otp}`);
+            throw new AppError('Failed to send verification email. Please try again later.', 500, 'EMAIL_SEND_FAILED');
+          }
+        } else {
+          // In development, log the OTP and continue
+          console.log(`📋 Email failed, OTP for development/testing - ${email}: ${otp}`);
         }
       }
 
@@ -544,17 +554,27 @@ router.post('/resend-otp', [
       verified: false
     });
 
-    // Send OTP email with role information
+    // Send OTP email with role information and cloud fallback
     try {
       await emailService.sendOTP(email, otp, userData.name, userData.role);
-      console.log('🔄 OTP resent successfully', { email, role: userData.role });
+      console.log('🔄 OTP resent successfully via primary service', { email, role: userData.role });
     } catch (emailError) {
-      console.error('❌ Resend OTP email error:', emailError);
-      console.log(`📋 Email failed, OTP for development/testing - ${email}: ${otp}`);
+      console.error('❌ Resend OTP primary email error:', emailError);
       
-      // In production, you might want to throw an error here
+      // Try cloud email service as fallback for production
       if (process.env.NODE_ENV === 'production') {
-        throw new AppError('Failed to resend verification email. Please try again.', 500, 'EMAIL_SEND_FAILED');
+        try {
+          console.log('☁️ Attempting cloud email service fallback for resend...');
+          await cloudEmailService.sendOTP(email, otp, userData.name, userData.role);
+          console.log('🔄 OTP resent successfully via cloud fallback service', { email, role: userData.role });
+        } catch (cloudError) {
+          console.error('❌ Cloud email service also failed for resend:', cloudError);
+          console.log(`📋 All email services failed, OTP for debugging - ${email}: ${otp}`);
+          throw new AppError('Failed to resend verification email. Please try again later.', 500, 'EMAIL_SEND_FAILED');
+        }
+      } else {
+        // In development, log the OTP and continue
+        console.log(`📋 Email failed, OTP for development/testing - ${email}: ${otp}`);
       }
     }
 

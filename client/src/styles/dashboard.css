@@ -844,8 +844,8 @@ body {
     font-size: 1rem !important;
   }
   
-  /* Stack flex items on mobile */
-  .flex.items-center.justify-between {
+  /* Stack flex items on mobile - but exclude sidebar */
+  .flex.items-center.justify-between:not(.sidebar-mobile-layout) {
     flex-direction: column !important;
     align-items: flex-start !important;
     gap: 0.75rem;
@@ -1039,8 +1039,12 @@ body {
 }
 
 .mobile-profile-avatar {
-  width: 32px;
-  height: 32px;
+  width: 32px !important;
+  height: 32px !important;
+  max-width: 32px !important;
+  max-height: 32px !important;
+  min-width: 32px !important;
+  min-height: 32px !important;
   background: linear-gradient(135deg, #3b82f6, #8b5cf6, #06b6d4);
   border-radius: 8px;
   display: flex;
@@ -1054,7 +1058,10 @@ body {
 .mobile-profile-avatar span {
   color: white;
   font-weight: 600;
-  font-size: 0.75rem;
+  font-size: 0.75rem !important;
+  line-height: 1 !important;
+  text-align: center !important;
+  display: block !important;
 }
 
 .mobile-profile-status {
@@ -1848,12 +1855,216 @@ body {
 
 /* Mobile Zoom Prevention and Layout Fixes */
 @media (max-width: 1023px) {
+  /* Fix mobile profile avatar sizing */
+  .mobile-profile-avatar {
+    width: 32px !important;
+    height: 32px !important;
+    max-width: 32px !important;
+    max-height: 32px !important;
+    min-width: 32px !important;
+    min-height: 32px !important;
+    font-size: 0.75rem !important;
+  }
+  
+  .mobile-profile-avatar span {
+    font-size: 0.75rem !important;
+    line-height: 1 !important;
+    transform: none !important;
+    scale: 1 !important;
+  }
+  
   /* Prevent accidental zoom on mobile */
   input, select, textarea, button {
     font-size: 16px !important;
     -webkit-appearance: none;
     -moz-appearance: none;
     appearance: none;
+  }
+  
+  /* Fix sidebar avatar sizing on mobile */
+  .w-10.h-10 {
+    width: 2.5rem !important;
+    height: 2.5rem !important;
+    max-width: 2.5rem !important;
+    max-height: 2.5rem !important;
+    min-width: 2.5rem !important;
+    min-height: 2.5rem !important;
+  }
+  
+  /* Ensure sidebar mobile layout stays horizontal */
+  .sidebar-mobile-layout {
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    width: 100% !important;
+    gap: 1rem !important;
+  }
+  
+  .sidebar-mobile-layout > * {
+    flex-shrink: 0 !important;
+  }
+  
+  .sidebar-mobile-layout button {
+    margin-left: auto !important;
+  }
+  
+  /* Force mobile sidebar bottom section to be horizontal - Both User & Sub-Admin */
+  @media (max-width: 1023px) {
+    /* Universal targeting for all sidebar mobile layouts */
+    .sidebar-mobile-layout,
+    div.sidebar-mobile-layout,
+    .lg\\:hidden.flex.items-center.justify-between.sidebar-mobile-layout,
+    .sidebar-mobile-layout.lg\\:hidden.flex.items-center.justify-between,
+    .lg\\:hidden.sidebar-mobile-layout {
+      display: flex !important;
+      flex-direction: row !important;
+      align-items: center !important;
+      justify-content: space-between !important;
+      width: 100% !important;
+      min-height: auto !important;
+      gap: 0.5rem !important;
+      flex-wrap: nowrap !important;
+      position: relative !important;
+    }
+    
+    .sidebar-mobile-layout > div:first-child,
+    .sidebar-mobile-layout > div {
+      flex: 0 0 auto !important;
+      display: flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+    }
+    
+    .sidebar-mobile-layout > button {
+      flex: 0 0 auto !important;
+      margin-left: auto !important;
+      display: flex !important;
+      align-items: center !important;
+    }
+    
+    /* Ensure all sidebar containers support horizontal layout */
+    .p-4.border-t.border-gray-200.flex-shrink-0,
+    .p-4.border-t.border-gray-200 {
+      padding: 1rem !important;
+      width: 100% !important;
+      box-sizing: border-box !important;
+    }
+    
+    /* Fix sidebar menu items alignment - ensure left alignment for both user and sub-admin */
+    nav.flex-1 button,
+    .flex-1.p-4.space-y-2 button,
+    nav button,
+    .sidebar nav button {
+      text-align: left !important;
+      justify-content: flex-start !important;
+      align-items: center !important;
+      display: flex !important;
+      flex-direction: row !important;
+    }
+    
+    nav.flex-1 button span,
+    .flex-1.p-4.space-y-2 button span,
+    nav button span,
+    .sidebar nav button span {
+      text-align: left !important;
+      margin-left: 0.75rem !important;
+    }
+    
+    /* Ensure icons are on the left */
+    nav button svg,
+    .sidebar nav button svg {
+      margin-right: 0.75rem !important;
+      flex-shrink: 0 !important;
+    }
+    
+    /* Fix user profile section positioning - ensure it stays at bottom */
+    .p-4.border-t.border-gray-200.flex-shrink-0 {
+      position: relative !important;
+      margin-top: auto !important;
+      width: 100% !important;
+      display: block !important;
+    }
+    
+    /* Prevent user profile from floating to header */
+    .flex.flex-col.h-full > .p-4.border-t.border-gray-200 {
+      order: 999 !important;
+      flex-shrink: 0 !important;
+      margin-top: auto !important;
+      width: 100% !important;
+    }
+    
+    /* Ensure proper spacing for mobile layout */
+    .sidebar-mobile-layout {
+      margin-top: 0 !important;
+      width: 100% !important;
+      display: flex !important;
+      flex-direction: row !important;
+      align-items: center !important;
+      justify-content: space-between !important;
+      gap: 0.5rem !important;
+    }
+    
+    /* Force user profile section to be a separate block */
+    .flex.flex-col.h-full {
+      display: flex !important;
+      flex-direction: column !important;
+      height: 100% !important;
+    }
+    
+    .flex.flex-col.h-full > nav {
+      flex: 1 !important;
+    }
+    
+    .flex.flex-col.h-full > .p-4.border-t {
+      flex: none !important;
+      margin-top: auto !important;
+      border-top: 1px solid #e5e7eb !important;
+    }
+    
+    /* Force horizontal layout for mobile user section */
+    .lg\\:hidden.flex.items-center.justify-between.sidebar-mobile-layout.w-full {
+      display: flex !important;
+      flex-direction: row !important;
+      align-items: center !important;
+      justify-content: space-between !important;
+      width: 100% !important;
+      background-color: rgba(255, 0, 0, 0.1) !important; /* Debug background */
+    }
+  }
+  
+  /* Fix chatbot header icon sizing on mobile */
+  .w-12.h-12 {
+    width: 3rem !important;
+    height: 3rem !important;
+    max-width: 3rem !important;
+    max-height: 3rem !important;
+    min-width: 3rem !important;
+    min-height: 3rem !important;
+  }
+  
+  /* Fix any oversized gradient avatars */
+  .bg-gradient-to-br {
+    font-size: 0.875rem !important;
+  }
+  
+  .bg-gradient-to-br span {
+    font-size: 0.875rem !important;
+    line-height: 1 !important;
+    text-align: center !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+  }
+  
+  /* Ensure ResponderWidget avatars are properly sized */
+  .w-12.h-12.bg-gradient-to-br span {
+    font-size: 0.875rem !important;
+  }
+  
+  /* Ensure Sidebar avatars are properly sized */
+  .w-10.h-10.bg-gradient-to-br span {
+    font-size: 0.75rem !important;
   }
   
   /* Ensure all containers respect viewport width */
@@ -1907,3 +2118,622 @@ body {
 .status-offline { background-color: #6b7280; }
 .status-warning { background-color: #f59e0b; }
 .status-danger { background-color: #ef4444; }
+
+/* ===== SUB-ADMIN NAVBAR HORIZONTAL LAYOUT ===== */
+
+/* Sub-Admin Navbar - Specific styling to avoid conflicts */
+.sub-admin-navbar {
+  background: white !important;
+  border-bottom: 1px solid #e5e7eb !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1) !important;
+  padding: 1rem 1.5rem !important;
+  min-height: 64px !important;
+  position: relative !important;
+  width: 100% !important;
+  z-index: 30 !important;
+}
+
+.sub-admin-navbar-content {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  width: 100% !important;
+  height: 100% !important;
+  transition: all 0.3s ease !important;
+}
+
+.sub-admin-navbar-left {
+  display: flex !important;
+  align-items: center !important;
+  gap: 12px !important;
+  flex: 1 !important;
+  min-width: 0 !important;
+}
+
+.sub-admin-navbar-right {
+  display: flex !important;
+  align-items: center !important;
+  gap: 12px !important;
+  flex-shrink: 0 !important;
+}
+
+.sub-admin-menu-btn {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 40px !important;
+  height: 40px !important;
+  background: #3b82f6 !important;
+  color: white !important;
+  border: none !important;
+  border-radius: 8px !important;
+  cursor: pointer !important;
+  transition: background-color 0.2s ease !important;
+  flex-shrink: 0 !important;
+}
+
+/* Hide menu button on desktop */
+@media (min-width: 1024px) {
+  .sub-admin-menu-btn {
+    display: none !important;
+  }
+}
+
+.sub-admin-menu-btn:hover {
+  background: #2563eb !important;
+}
+
+.sub-admin-logo-section {
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  min-width: 0 !important;
+}
+
+.sub-admin-logo-icon {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 32px !important;
+  height: 32px !important;
+  background: #3b82f6 !important;
+  color: white !important;
+  border-radius: 8px !important;
+  flex-shrink: 0 !important;
+}
+
+.sub-admin-title {
+  font-size: 1.125rem !important;
+  font-weight: 700 !important;
+  color: #3b82f6 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  line-height: 1.2 !important;
+}
+
+.sub-admin-search-desktop {
+  position: relative !important;
+  display: flex !important;
+  align-items: center !important;
+}
+
+/* Hide sub-admin search on mobile and tablet */
+@media (max-width: 1023px) {
+  .sub-admin-search-desktop {
+    display: none !important;
+  }
+}
+
+.sub-admin-search-icon {
+  position: absolute !important;
+  left: 12px !important;
+  color: #9ca3af !important;
+  width: 16px !important;
+  height: 16px !important;
+  z-index: 1 !important;
+}
+
+.sub-admin-search-input {
+  padding: 8px 16px 8px 40px !important;
+  border: 1px solid #d1d5db !important;
+  border-radius: 8px !important;
+  font-size: 14px !important;
+  width: 280px !important;
+  outline: none !important;
+  transition: all 0.2s ease !important;
+}
+
+.sub-admin-search-input:focus {
+  border-color: #3b82f6 !important;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1) !important;
+}
+
+.sub-admin-search-mobile {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 40px !important;
+  height: 40px !important;
+  background: transparent !important;
+  color: #6b7280 !important;
+  border: none !important;
+  border-radius: 8px !important;
+  cursor: pointer !important;
+  transition: background-color 0.2s ease !important;
+}
+
+.sub-admin-search-mobile:hover {
+  background: #f3f4f6 !important;
+}
+
+.sub-admin-notification-btn {
+  position: relative !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 40px !important;
+  height: 40px !important;
+  background: transparent !important;
+  color: #6b7280 !important;
+  border: none !important;
+  border-radius: 8px !important;
+  cursor: pointer !important;
+  transition: background-color 0.2s ease !important;
+}
+
+.sub-admin-notification-btn:hover {
+  background: #f3f4f6 !important;
+}
+
+.sub-admin-notification-badge {
+  position: absolute !important;
+  top: -2px !important;
+  right: -2px !important;
+  width: 12px !important;
+  height: 12px !important;
+  background: #ef4444 !important;
+  border-radius: 50% !important;
+  border: 2px solid white !important;
+}
+
+.sub-admin-status {
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  padding: 6px 12px !important;
+  background: #10b981 !important;
+  border-radius: 8px !important;
+  flex-shrink: 0 !important;
+}
+
+.sub-admin-status-dot {
+  width: 8px !important;
+  height: 8px !important;
+  background: white !important;
+  border-radius: 50% !important;
+  animation: pulse 2s infinite !important;
+}
+
+.sub-admin-status-text {
+  font-size: 14px !important;
+  font-weight: 500 !important;
+  color: white !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  line-height: 1 !important;
+}
+
+/* Mobile adjustments */
+@media (max-width: 768px) {
+  .sub-admin-navbar {
+    padding: 12px 16px !important;
+    min-height: 56px !important;
+  }
+  
+  .sub-admin-title {
+    font-size: 1rem !important;
+  }
+  
+  .sub-admin-search-input {
+    width: 240px !important;
+  }
+}
+
+@media (max-width: 640px) {
+  .sub-admin-navbar {
+    padding: 10px 12px !important;
+  }
+  
+  .sub-admin-navbar-left {
+    gap: 8px !important;
+  }
+  
+  .sub-admin-navbar-right {
+    gap: 8px !important;
+  }
+  
+  .sub-admin-title {
+    font-size: 0.9rem !important;
+    max-width: 140px !important;
+  }
+  
+  .sub-admin-status-text {
+    display: none !important;
+  }
+  
+  .sub-admin-status {
+    padding: 6px !important;
+    width: 32px !important;
+    height: 32px !important;
+    justify-content: center !important;
+  }
+}
+
+/* Mobile search overlay improvements */
+.navbar .absolute.inset-0 {
+  background: rgba(255, 255, 255, 0.98) !important;
+  backdrop-filter: blur(10px) !important;
+  border-radius: 0 !important;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1) !important;
+}
+
+/* Mobile search input styling */
+.navbar .absolute.inset-0 input {
+  font-size: 16px !important; /* Prevent zoom on iOS */
+  border: 2px solid #e5e7eb !important;
+  border-radius: 12px !important;
+  padding: 12px 16px 12px 40px !important;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1) !important;
+}
+
+.navbar .absolute.inset-0 input:focus {
+  border-color: #3b82f6 !important;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1) !important;
+}
+
+/* ===== ADMIN NAVBAR HORIZONTAL LAYOUT ===== */
+
+/* Admin Navbar - Specific styling to avoid conflicts */
+.admin-navbar {
+  background: white !important;
+  border-bottom: 1px solid #e5e7eb !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1) !important;
+  padding: 1rem 1.5rem !important;
+  min-height: 64px !important;
+  position: relative !important;
+  width: 100% !important;
+  z-index: 30 !important;
+}
+
+.admin-navbar-content {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  width: 100% !important;
+  height: 100% !important;
+  transition: all 0.3s ease !important;
+}
+
+.admin-navbar-left {
+  display: flex !important;
+  align-items: center !important;
+  gap: 12px !important;
+  flex: 1 !important;
+  min-width: 0 !important;
+}
+
+.admin-navbar-right {
+  display: flex !important;
+  align-items: center !important;
+  gap: 12px !important;
+  flex-shrink: 0 !important;
+}
+
+.admin-menu-btn {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 40px !important;
+  height: 40px !important;
+  background: #8b5cf6 !important;
+  color: white !important;
+  border: none !important;
+  border-radius: 8px !important;
+  cursor: pointer !important;
+  transition: background-color 0.2s ease !important;
+  flex-shrink: 0 !important;
+}
+
+/* Hide admin menu button on desktop */
+@media (min-width: 1024px) {
+  .admin-menu-btn {
+    display: none !important;
+  }
+}
+
+.admin-menu-btn:hover {
+  background: #7c3aed !important;
+}
+
+.admin-logo-section {
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  min-width: 0 !important;
+}
+
+.admin-logo-icon {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 32px !important;
+  height: 32px !important;
+  background: #8b5cf6 !important;
+  color: white !important;
+  border-radius: 8px !important;
+  flex-shrink: 0 !important;
+}
+
+.admin-title {
+  font-size: 1.125rem !important;
+  font-weight: 700 !important;
+  color: #8b5cf6 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  line-height: 1.2 !important;
+}
+
+.admin-search-desktop {
+  position: relative !important;
+  display: flex !important;
+  align-items: center !important;
+}
+
+/* Hide admin search on mobile and tablet */
+@media (max-width: 1023px) {
+  .admin-search-desktop {
+    display: none !important;
+  }
+}
+
+.admin-search-icon {
+  position: absolute !important;
+  left: 12px !important;
+  color: #9ca3af !important;
+  width: 16px !important;
+  height: 16px !important;
+  z-index: 1 !important;
+}
+
+.admin-search-input {
+  padding: 8px 16px 8px 40px !important;
+  border: 1px solid #d1d5db !important;
+  border-radius: 8px !important;
+  font-size: 14px !important;
+  width: 280px !important;
+  outline: none !important;
+  transition: all 0.2s ease !important;
+}
+
+.admin-search-input:focus {
+  border-color: #8b5cf6 !important;
+  box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.1) !important;
+}
+
+.admin-search-mobile {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 40px !important;
+  height: 40px !important;
+  background: transparent !important;
+  color: #6b7280 !important;
+  border: none !important;
+  border-radius: 8px !important;
+  cursor: pointer !important;
+  transition: background-color 0.2s ease !important;
+}
+
+.admin-search-mobile:hover {
+  background: #f3f4f6 !important;
+}
+
+.admin-status {
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  padding: 6px 12px !important;
+  background: #10b981 !important;
+  border-radius: 8px !important;
+  flex-shrink: 0 !important;
+}
+
+.admin-status-dot {
+  width: 8px !important;
+  height: 8px !important;
+  background: white !important;
+  border-radius: 50% !important;
+  animation: pulse 2s infinite !important;
+}
+
+.admin-status-text {
+  font-size: 14px !important;
+  font-weight: 500 !important;
+  color: white !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  line-height: 1 !important;
+}
+
+.admin-notification-btn {
+  position: relative !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 40px !important;
+  height: 40px !important;
+  background: transparent !important;
+  color: #6b7280 !important;
+  border: none !important;
+  border-radius: 8px !important;
+  cursor: pointer !important;
+  transition: background-color 0.2s ease !important;
+}
+
+.admin-notification-btn:hover {
+  background: #f3f4f6 !important;
+}
+
+.admin-notification-badge {
+  position: absolute !important;
+  top: -2px !important;
+  right: -2px !important;
+  width: 12px !important;
+  height: 12px !important;
+  background: #8b5cf6 !important;
+  border-radius: 50% !important;
+  border: 2px solid white !important;
+}
+
+.admin-profile-dropdown {
+  position: relative !important;
+}
+
+.admin-profile-btn {
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  padding: 6px 8px !important;
+  background: transparent !important;
+  border: none !important;
+  border-radius: 8px !important;
+  cursor: pointer !important;
+  transition: background-color 0.2s ease !important;
+}
+
+.admin-profile-btn:hover {
+  background: #f3f4f6 !important;
+}
+
+.admin-profile-avatar {
+  width: 32px !important;
+  height: 32px !important;
+  background: linear-gradient(135deg, #8b5cf6, #3b82f6) !important;
+  border-radius: 50% !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  color: white !important;
+  flex-shrink: 0 !important;
+}
+
+.admin-profile-info {
+  text-align: left !important;
+}
+
+.admin-profile-name {
+  font-size: 14px !important;
+  font-weight: 500 !important;
+  color: #374151 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  line-height: 1.2 !important;
+}
+
+.admin-profile-role {
+  font-size: 12px !important;
+  color: #6b7280 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  line-height: 1.2 !important;
+}
+
+.admin-profile-menu {
+  position: absolute !important;
+  right: 0 !important;
+  top: calc(100% + 8px) !important;
+  width: 192px !important;
+  background: white !important;
+  border-radius: 8px !important;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05) !important;
+  border: 1px solid #e5e7eb !important;
+  padding: 4px 0 !important;
+  z-index: 50 !important;
+}
+
+.admin-profile-menu-item {
+  width: 100% !important;
+  padding: 8px 16px !important;
+  text-align: left !important;
+  font-size: 14px !important;
+  color: #374151 !important;
+  background: transparent !important;
+  border: none !important;
+  cursor: pointer !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  transition: background-color 0.2s ease !important;
+}
+
+.admin-profile-menu-item:hover {
+  background: #f9fafb !important;
+}
+
+.admin-profile-menu-role {
+  padding: 8px 16px !important;
+  font-size: 12px !important;
+  color: #6b7280 !important;
+}
+
+/* Mobile adjustments */
+@media (max-width: 768px) {
+  .admin-navbar {
+    padding: 12px 16px !important;
+    min-height: 56px !important;
+  }
+  
+  .admin-title {
+    font-size: 1rem !important;
+  }
+  
+  .admin-search-input {
+    width: 240px !important;
+  }
+}
+
+@media (max-width: 640px) {
+  .admin-navbar {
+    padding: 10px 12px !important;
+  }
+  
+  .admin-navbar-left {
+    gap: 8px !important;
+  }
+  
+  .admin-navbar-right {
+    gap: 8px !important;
+  }
+  
+  .admin-title {
+    font-size: 0.9rem !important;
+    max-width: 140px !important;
+  }
+  
+  .admin-status-text {
+    display: none !important;
+  }
+  
+  .admin-status {
+    padding: 6px !important;
+    width: 32px !important;
+    height: 32px !important;
+    justify-content: center !important;
+  }
+}

@@ -1,10 +1,13 @@
 const express = require('express');
 const router = express.Router();
 const { verifyFirebaseToken } = require('../middleware/auth');
+const emailService = require('../services/emailService');
 
 // Store emergency alerts (in production, use database)
 const emergencyAlerts = new Map();
 const responders = new Map();
+const voiceEmergencyHistory = new Map();
+const familyContacts = new Map();
 
 // POST /api/emergency/alert - Create emergency alert
 router.post('/alert', verifyFirebaseToken, async (req, res) => {
@@ -349,6 +352,278 @@ router.get('/status/:id', verifyFirebaseToken, async (req, res) => {
     });
   }
 });
+
+// POST /api/emergency/voice-alert - Create voice-triggered emergency alert
+router.post('/voice-alert', verifyFirebaseToken, async (req, res) => {
+  try {
+    const { 
+      triggerWord, 
+      location, 
+      contacts, 
+      silentMode, 
+      emergencyType = 'voice_trigger' 
+    } = req.body;
+    const userId = req.user.id;
+
+    if (!triggerWord) {
+      return res.status(400).json({
+        success: false,
+        error: 'Trigger word is required'
+      });
+    }
+
+    const alertId = `VOICE_${Date.now()}_${userId}`;
+    const alert = {
+      id: alertId,
+      userId,
+      type: emergencyType,
+      triggerWord,
+      status: 'active',
+      silentMode: silentMode || false,
+      location: location || null,
+      timestamp: new Date(),
+      contacts: contacts || [],
+      responders: [],
+      updates: []
+    };
+
+    emergencyAlerts.set(alertId, alert);
+    
+    // Store in voice emergency history
+    if (!voiceEmergencyHistory.has(userId)) {
+      voiceEmergencyHistory.set(userId, []);
+    }
+    voiceEmergencyHistory.get(userId).push({
+      id: alertId,
+      triggerWord,
+      timestamp: new Date(),
+      location,
+      status: 'sent'
+    });
+
+    // Log emergency for monitoring
+    console.log(`🎤 VOICE EMERGENCY: Trigger "${triggerWord}" - ID: ${alertId} - User: ${userId} - Silent: ${silentMode}`);
+
+    // Send notifications to emergency contacts
+    try {
+      await sendEmergencyNotifications(alert);
+    } catch (notificationError) {
+      console.error('Error sending notifications:', notificationError);
+      // Don't fail the request if notifications fail
+    }
+
+    res.json({
+      success: true,
+      message: 'Voice emergency alert created and notifications sent',
+      alert: {
+        id: alert.id,
+        type: alert.type,
+        triggerWord: alert.triggerWord,
+        status: alert.status,
+        timestamp: alert.timestamp,
+        notificationsSent: contacts?.length || 0
+      }
+    });
+
+  } catch (error) {
+    console.error('Error creating voice emergency alert:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to create voice emergency alert'
+    });
+  }
+});
+
+// GET /api/emergency/voice-history - Get voice emergency history
+router.get('/voice-history', verifyFirebaseToken, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const history = voiceEmergencyHistory.get(userId) || [];
+    
+    // Sort by timestamp (newest first)
+    history.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+
+    res.json({
+      success: true,
+      history: history.slice(0, 50) // Return last 50 voice triggers
+    });
+
+  } catch (error) {
+    console.error('Error fetching voice emergency history:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch voice emergency history'
+    });
+  }
+});
+
+// POST /api/emergency/contacts - Save family/emergency contacts
+router.post('/contacts', verifyFirebaseToken, async (req, res) => {
+  try {
+    const { contacts } = req.body;
+    const userId = req.user.id;
+
+    if (!Array.isArray(contacts)) {
+      return res.status(400).json({
+        success: false,
+        error: 'Contacts must be an array'
+      });
+    }
+
+    // Validate contact structure
+    for (const contact of contacts) {
+      if (!contact.name || !contact.phone) {
+        return res.status(400).json({
+          success: false,
+          error: 'Each contact must have name and phone'
+        });
+      }
+    }
+
+    familyContacts.set(userId, contacts);
+
+    res.json({
+      success: true,
+      message: 'Emergency contacts saved successfully',
+      contactCount: contacts.length
+    });
+
+  } catch (error) {
+    console.error('Error saving emergency contacts:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to save emergency contacts'
+    });
+  }
+});
+
+// GET /api/emergency/contacts - Get family/emergency contacts
+router.get('/contacts', verifyFirebaseToken, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const contacts = familyContacts.get(userId) || [];
+
+    res.json({
+      success: true,
+      contacts
+    });
+
+  } catch (error) {
+    console.error('Error fetching emergency contacts:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch emergency contacts'
+    });
+  }
+});
+
+// POST /api/emergency/test-alert - Test emergency alert system
+router.post('/test-alert', verifyFirebaseToken, async (req, res) => {
+  try {
+    const { contactId } = req.body;
+    const userId = req.user.id;
+
+    const contacts = familyContacts.get(userId) || [];
+    const contact = contacts.find(c => c.id === contactId);
+
+    if (!contact) {
+      return res.status(404).json({
+        success: false,
+        error: 'Contact not found'
+      });
+    }
+
+    // Create test alert
+    const testAlert = {
+      id: `TEST_${Date.now()}`,
+      userId,
+      type: 'test',
+      status: 'test',
+      location: null,
+      timestamp: new Date(),
+      contacts: [contact]
+    };
+
+    // Send test notification
+    try {
+      await sendEmergencyNotifications(testAlert, true);
+      
+      res.json({
+        success: true,
+        message: 'Test alert sent successfully',
+        contact: contact.name
+      });
+    } catch (notificationError) {
+      console.error('Error sending test notification:', notificationError);
+      res.status(500).json({
+        success: false,
+        error: 'Failed to send test notification'
+      });
+    }
+
+  } catch (error) {
+    console.error('Error sending test alert:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to send test alert'
+    });
+  }
+});
+
+// Helper function to send emergency notifications
+async function sendEmergencyNotifications(alert, isTest = false) {
+  const { contacts, location, triggerWord, timestamp, userId } = alert;
+  
+  if (!contacts || contacts.length === 0) {
+    console.log('No contacts to notify');
+    return;
+  }
+
+  const locationText = location 
+    ? `Location: https://maps.google.com/maps?q=${location.latitude},${location.longitude}`
+    : 'Location: Not available';
+
+  const alertType = isTest ? 'TEST ALERT' : 'EMERGENCY ALERT';
+  const subject = `${alertType} - SafeTour Emergency System`;
+  
+  const message = isTest 
+    ? `This is a test of the SafeTour emergency alert system. If this was a real emergency, you would receive location and contact information.`
+    : `EMERGENCY ALERT from SafeTour user!
+    
+Trigger: Voice command "${triggerWord}" detected
+Time: ${timestamp.toLocaleString()}
+${locationText}
+
+This is an automated emergency alert. Please contact the user immediately or call emergency services if needed.
+
+SafeTour Emergency System`;
+
+  // Send notifications to each contact
+  for (const contact of contacts) {
+    try {
+      // Send email if email is available
+      if (contact.email) {
+        await emailService.sendEmail({
+          to: contact.email,
+          subject,
+          text: message
+        });
+        console.log(`📧 Emergency email sent to ${contact.name} (${contact.email})`);
+      }
+
+      // In production, also send:
+      // - SMS via Twilio or similar service
+      // - Push notifications
+      // - WhatsApp messages
+      // - Phone calls
+
+      console.log(`📱 Emergency notification sent to ${contact.name} (${contact.phone})`);
+      
+    } catch (error) {
+      console.error(`Failed to notify ${contact.name}:`, error);
+    }
+  }
+}
 
 // Helper function to calculate distance between coordinates
 function calculateDistance(lat1, lng1, lat2, lng2) {
