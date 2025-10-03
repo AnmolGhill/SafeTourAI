@@ -203,7 +203,7 @@ const Register = () => {
         {/* Header */}
         <div className="text-center mb-6">
           <div className="auth-logo bg-gradient-to-r from-blue-500 to-indigo-600 flex items-center justify-center mx-auto mb-4">
-            <span className="text-white text-xl sm:text-2xl font-bold">ST</span>
+            <span className="text-white text-xl sm:text-2xl font-bold">SafeTourAI</span>
           </div>
           <h2 className="text-2xl sm:text-3xl font-bold text-gray-900">Create Account</h2>
           <p className="text-gray-600 mt-2 text-sm sm:text-base">Join SafeTourAI for secure travel</p>
