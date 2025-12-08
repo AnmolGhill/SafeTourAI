@@ -7,6 +7,7 @@ import SafetyScoreCard from './SafetyScoreCard';
 import QuickActions from './QuickActions';
 import ActivityFeed from './ActivityFeed';
 import BlockchainPanel from './BlockchainPanel';
+import BlockchainReward from './BlockchainReward';
 import DangerZoneHeatmap from './DangerZoneHeatmap';
 import ServicesWidget from './ServicesWidget';
 import UserProfiles from './UserProfiles';
@@ -83,6 +84,8 @@ const UserDashboardContent = () => {
         return <SmartWatch />;
       case 'virtual-watch':
         return <RealSmartWatchUI />;
+      case 'blockchain-reward':
+        return <BlockchainReward />;
       case 'blockchain':
         return <BlockchainPanel />;
       case 'analytics':
