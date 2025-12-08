@@ -22,7 +22,8 @@ import {
   FiDollarSign as FiWallet,
   FiMessageCircle,
   FiWatch,
-  FiMic
+  FiMic,
+  FiGift
 } from 'react-icons/fi';
 
 const Sidebar = ({ activeTab, setActiveTab }) => {
@@ -65,6 +66,7 @@ const Sidebar = ({ activeTab, setActiveTab }) => {
     { id: 'chatbot', label: t('nav.safeTourChatbot', 'SafeTour Chatbot'), icon: FiMessageCircle, route: '/chatbot', useTab: true },
     { id: 'smartwatch', label: t('nav.smartwatchConnect', 'SmartWatch Connect'), icon: FiWatch, route: '/smartwatch', useTab: true },
     { id: 'virtual-watch', label: t('nav.virtualWatch', 'Virtual Watch'), icon: FiWatch, route: '/virtual-watch', useTab: true },
+    { id: 'blockchain-reward', label: t('nav.blockchainReward', 'Blockchain Reward'), icon: FiGift, route: '/blockchain-reward', useTab: true },
     { id: 'wallet', label: t('nav.cryptoWallet', 'Crypto Wallet'), icon: FiWallet, route: '/wallet', useTab: false },
     { id: 'digital-id', label: t('nav.digitalId', 'Digital ID'), icon: FiCreditCard, route: '/digital-id', useTab: false },
     { id: 'kyc', label: t('nav.kycVerification', 'KYC Verification'), icon: FiFileText, route: '/kyc', useTab: false },
