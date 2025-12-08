@@ -13,16 +13,21 @@ import UserProfiles from './UserProfiles';
 import SafeTourChatbot from './SafeTourChatbot';
 import ChatbotPage from './ChatbotPage';
 import SmartWatch from './SmartWatch';
+import VirtualSmartWatchSimulator from './VirtualSmartWatchSimulator';
+import VirtualSmartWatchSimulatorEnhanced from './VirtualSmartWatchSimulatorEnhanced';
+import RealSmartWatchUI from './RealSmartWatchUI';
 import EmergencyPanel from '../../components/Emergency/EmergencyPanel';
 import EmergencyVoiceTrigger from '../../components/Emergency/EmergencyVoiceTrigger';
 import ResponderPanel from '../../components/Responder/ResponderPanel';
 import AnalyticsPanel from '../../components/Analytics/AnalyticsPanel';
 import SettingsPanel from '../../components/Settings/SettingsPanel';
 import LocationDebugger from '../../components/LocationDebugger';
+import { LanguageProvider, useLanguage } from './contexts/LanguageContext';
 
-const UserDashboard = () => {
+const UserDashboardContent = () => {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const { t } = useLanguage();
 
   // Get current user from localStorage
   const getCurrentUser = () => {
@@ -66,8 +71,8 @@ const UserDashboard = () => {
       case 'kyc':
         return (
           <div className="card text-center animate-fadeIn">
-            <h2 className="text-2xl font-bold text-gray-800 mb-4">KYC Verification</h2>
-            <p className="text-gray-600">Know Your Customer verification interface will be implemented here.</p>
+            <h2 className="text-2xl font-bold text-gray-800 mb-4">{t('nav.kycVerification', 'KYC Verification')}</h2>
+            <p className="text-gray-600">{t('emergency.description', 'Know Your Customer verification interface will be implemented here.')}</p>
           </div>
         );
       case 'profile':
@@ -76,6 +81,8 @@ const UserDashboard = () => {
         return <ChatbotPage />;
       case 'smartwatch':
         return <SmartWatch />;
+      case 'virtual-watch':
+        return <RealSmartWatchUI />;
       case 'blockchain':
         return <BlockchainPanel />;
       case 'analytics':
@@ -87,8 +94,8 @@ const UserDashboard = () => {
       default:
         return (
           <div className="card text-center animate-fadeIn">
-            <h2 className="text-2xl font-bold text-gray-800 mb-4">Page Not Found</h2>
-            <p className="text-gray-600">The requested page could not be found.</p>
+            <h2 className="text-2xl font-bold text-gray-800 mb-4">{t('common.error', 'Page Not Found')}</h2>
+            <p className="text-gray-600">{t('common.error', 'The requested page could not be found.')}</p>
           </div>
         );
     }
@@ -107,6 +114,14 @@ const UserDashboard = () => {
       {/* Floating Chatbot - Only for dashboard-user */}
       <SafeTourChatbot activeTab={activeTab} setActiveTab={setActiveTab} />
     </div>
+  );
+};
+
+const UserDashboard = () => {
+  return (
+    <LanguageProvider>
+      <UserDashboardContent />
+    </LanguageProvider>
   );
 };
 
