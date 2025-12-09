@@ -134,20 +134,63 @@ const BlockchainReward = () => {
     setError(null);
 
     try {
-      // Simulate blockchain submission
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      
-      // Mock reward data
-      const mockRewardData = {
-        transaction_hash: `0x${hashData.sha256}`,
-        reward_amount: 0.001,
-        clarity_bonus: hashData.clarity_score >= 80 ? 0.0005 : 0,
-        wallet_address: '0x' + Math.random().toString(16).slice(2),
-        status: 'completed'
-      };
-      
-      setRewardData(mockRewardData);
-      toast.success('✅ Image submitted to blockchain!');
+      const token = localStorage.getItem('token');
+      const BASE_URL = import.meta.env.VITE_BASE_URL;
+
+      // First, ensure user has a wallet set up
+      console.log('🔐 Checking wallet status...');
+      const walletCheckResponse = await fetch(`${BASE_URL}/api/wallet/info`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (!walletCheckResponse.ok) {
+        // Wallet not found, try to create one
+        console.log('💼 Creating wallet...');
+        const walletCreateResponse = await fetch(`${BASE_URL}/api/wallet/create`, {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        });
+
+        if (!walletCreateResponse.ok) {
+          throw new Error('Failed to set up wallet. Please ensure your wallet is configured.');
+        }
+        toast.success('✅ Wallet created successfully!');
+      }
+
+      // Submit reward with SHA-256 hash
+      console.log('📤 Submitting reward to blockchain...');
+      const response = await fetch(`${BASE_URL}/api/blockchain/submit-image-reward`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          sha256: hashData.sha256,
+          phash: hashData.phash,
+          clarity_score: hashData.clarity_score,
+          file_name: hashData.file_name,
+          file_size: hashData.file_size,
+          file_type: hashData.file_type,
+          timestamp: hashData.timestamp
+        })
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || errorData.message || `Server error: ${response.statusText}`);
+      }
+
+      const data = await response.json();
+      setRewardData(data.data);
+      toast.success('✅ Image submitted to blockchain and reward transferred!');
     } catch (err) {
       const errorMsg = err.message || 'Failed to submit to blockchain';
       setError(errorMsg);

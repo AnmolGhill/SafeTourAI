@@ -12,13 +12,22 @@ router.get('/create', verifyFirebaseToken, async (req, res) => {
     const userDoc = await db.collection('users').doc(req.user.uid).get();
     
     if (!userDoc.exists) {
+      console.log('❌ User not found:', req.user.uid);
       return res.status(404).json({ error: 'User not found' });
     }
 
     const userData = userDoc.data();
+    console.log('📧 Creating wallet for:', userData.email);
+    
+    if (!userData.email) {
+      console.log('❌ User email not found');
+      return res.status(400).json({ error: 'User email not configured' });
+    }
     
     // Generate/recover deterministic wallet
     const walletData = await walletService.recoverWallet(userData.email, req.user.uid);
+    
+    console.log('💼 Wallet generated:', walletData.address);
     
     // Store wallet address as real blockchain ID in user document
     await db.collection('users').doc(req.user.uid).update({
@@ -27,6 +36,8 @@ router.get('/create', verifyFirebaseToken, async (req, res) => {
       walletCreated: true,
       walletCreatedAt: walletData.createdAt
     });
+
+    console.log('✅ Wallet stored in Firebase');
 
     // Return wallet data (without private key for security)
     res.json({
@@ -41,8 +52,9 @@ router.get('/create', verifyFirebaseToken, async (req, res) => {
     });
 
   } catch (error) {
+    console.error('❌ Wallet creation error:', error.message);
     logger.errorWithContext(error, req, { operation: 'createWallet' });
-    res.status(500).json({ error: 'Failed to create wallet' });
+    res.status(500).json({ error: 'Failed to create wallet', message: error.message });
   }
 });
 
@@ -52,27 +64,37 @@ router.get('/info', verifyFirebaseToken, async (req, res) => {
     const userDoc = await db.collection('users').doc(req.user.uid).get();
     
     if (!userDoc.exists) {
+      console.log('❌ User not found in database:', req.user.uid);
       return res.status(404).json({ error: 'User not found' });
     }
 
     const userData = userDoc.data();
+    console.log('📧 User email:', userData.email);
+    
+    if (!userData.email) {
+      console.log('❌ User email not found in user document');
+      return res.status(400).json({ error: 'User email not configured' });
+    }
     
     // Get wallet from cache or recover
     let walletData = walletService.getWallet(req.user.uid);
     
     if (!walletData) {
+      console.log('🔄 Wallet not in cache, recovering...');
       walletData = await walletService.recoverWallet(userData.email, req.user.uid);
     } else {
+      console.log('💾 Wallet found in cache');
       // Update balance
       await walletService.updateWalletBalance(walletData);
     }
 
+    console.log('✅ Wallet info retrieved:', walletData.address);
     res.json({
       success: true,
       wallet: {
         address: walletData.address,
         balance: walletData.balance,
-        balanceWei: walletData.balanceWei,
+        balanceWei: walletData.balanceWei ? walletData.balanceWei.toString() : '0',
         network: walletData.network,
         createdAt: walletData.createdAt,
         lastUpdated: walletData.lastUpdated
@@ -80,8 +102,9 @@ router.get('/info', verifyFirebaseToken, async (req, res) => {
     });
 
   } catch (error) {
+    console.error('❌ Wallet info error:', error.message);
     logger.errorWithContext(error, req, { operation: 'getWalletInfo' });
-    res.status(500).json({ error: 'Failed to get wallet info' });
+    res.status(500).json({ error: 'Failed to get wallet info', message: error.message });
   }
 });
 
