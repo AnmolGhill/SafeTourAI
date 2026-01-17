@@ -16,8 +16,7 @@ import {
   FiFileText,
   FiMapPin,
   FiBarChart2,
-  FiEye,
-  FiMic
+  FiEye
 } from 'react-icons/fi';
 
 const SubAdminSidebar = ({ activeTab, setActiveTab }) => {
@@ -52,7 +51,6 @@ const SubAdminSidebar = ({ activeTab, setActiveTab }) => {
     { id: 'profiles', label: 'Tourist Profiles', icon: FiUsers, useTab: true },
     { id: 'incidents', label: 'Incident Reports', icon: FiFileText, useTab: true },
     { id: 'emergency', label: 'Emergency Alerts', icon: FiAlertTriangle, useTab: true },
-    { id: 'voice-emergency', label: 'Voice Emergency', icon: FiMic, useTab: true },
     { id: 'patrol', label: 'Patrol Routes', icon: FiMapPin, useTab: true },
     { id: 'reports', label: 'Reports', icon: FiBarChart2, useTab: true },
     { id: 'settings', label: 'Settings', icon: FiSettings, useTab: true },

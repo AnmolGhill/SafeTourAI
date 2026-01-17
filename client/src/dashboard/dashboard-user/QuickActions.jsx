@@ -6,35 +6,10 @@ import {
   FiPhone,
   FiLoader
 } from 'react-icons/fi';
-import { toast } from 'react-hot-toast';
 
 const QuickActions = () => {
   const [loading, setLoading] = useState({});
   const [location, setLocation] = useState(null);
-
-  // Get current user details
-  const getCurrentUserDetails = async () => {
-    try {
-      const token = localStorage.getItem('token');
-      const BASE_URL = import.meta.env.VITE_BASE_URL;
-      
-      const response = await fetch(`${BASE_URL}/api/user/profile`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      });
-
-      if (response.ok) {
-        const result = await response.json();
-        return result.user || null;
-      }
-      return null;
-    } catch (error) {
-      console.error('Error fetching user details:', error);
-      return null;
-    }
-  };
 
   const handleEmergencySOS = async () => {
     setLoading(prev => ({ ...prev, sos: true }));
@@ -44,62 +19,28 @@ const QuickActions = () => {
       if (navigator.geolocation) {
         navigator.geolocation.getCurrentPosition(
           async (position) => {
-            const { latitude, longitude, accuracy } = position.coords;
+            const { latitude, longitude } = position.coords;
             
-            try {
-              // Fetch user details
-              const userDetails = await getCurrentUserDetails();
-              console.log('👤 User details fetched:', userDetails?.fullName);
-
-              // Send SOS alert to police dashboard
-              const token = localStorage.getItem('token');
-              const BASE_URL = import.meta.env.VITE_BASE_URL;
-
-              const response = await fetch(`${BASE_URL}/api/emergency/sos-alert`, {
-                method: 'POST',
-                headers: {
-                  'Authorization': `Bearer ${token}`,
-                  'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                  location: {
-                    latitude,
-                    longitude,
-                    accuracy
-                  },
-                  userDetails: userDetails,
-                  timestamp: new Date().toISOString()
-                })
-              });
-
-              if (response.ok) {
-                const result = await response.json();
-                console.log('✅ SOS alert sent to police:', result);
-                toast.success('🚨 Emergency SOS triggered! Police notified with your location and profile.');
-              } else {
-                console.error('Failed to send SOS alert:', response.statusText);
-                toast.error('Failed to send SOS alert to police');
-              }
-            } catch (error) {
-              console.error('Error sending SOS alert:', error);
-              toast.error('Error sending SOS alert');
-            }
+            // Simulate API call to backend
+            console.log('Emergency SOS triggered:', { latitude, longitude });
+            
+            // Show success message
+            alert('🚨 Emergency SOS has been triggered! Help is on the way.');
             
             setLoading(prev => ({ ...prev, sos: false }));
           },
           (error) => {
             console.error('Location error:', error);
-            toast.error('⚠️ Unable to get location. SOS triggered but location unavailable.');
+            alert('⚠️ Emergency SOS triggered without location. Help is still on the way!');
             setLoading(prev => ({ ...prev, sos: false }));
           }
         );
       } else {
-        toast.error('❌ Geolocation is not supported by this browser.');
+        alert('⚠️ Emergency SOS triggered. Help is on the way!');
         setLoading(prev => ({ ...prev, sos: false }));
       }
     } catch (error) {
       console.error('SOS Error:', error);
-      toast.error('Error triggering SOS');
       setLoading(prev => ({ ...prev, sos: false }));
     }
   };

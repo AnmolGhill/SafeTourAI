@@ -9,7 +9,6 @@ import PatrolActivityFeed from './PatrolActivityFeed';
 import EmergencyAlerts from './EmergencyAlerts';
 import QuickVerification from './QuickVerification';
 import IncidentReporting from './IncidentReporting';
-import VoiceEmergencyAlerts from './VoiceEmergencyAlerts';
 
 const SubAdminDashboard = () => {
   const [activeTab, setActiveTab] = useState('dashboard');
@@ -42,8 +41,6 @@ const SubAdminDashboard = () => {
         return <IncidentReporting />;
       case 'emergency':
         return <EmergencyAlerts />;
-      case 'voice-emergency':
-        return <VoiceEmergencyAlerts />;
       case 'patrol':
         return (
           <div className="card text-center animate-fadeIn">

@@ -17,8 +17,7 @@ import {
   FiLock,
   FiHardDrive,
   FiActivity,
-  FiStar,
-  FiMapPin
+  FiStar
 } from 'react-icons/fi';
 
 const AdminSidebar = ({ activeTab, setActiveTab }) => {
@@ -54,7 +53,6 @@ const AdminSidebar = ({ activeTab, setActiveTab }) => {
     { id: 'users', label: 'User Management', icon: FiUsers, useTab: true },
     { id: 'analytics', label: 'System Analytics', icon: FiBarChart2, useTab: true },
     { id: 'security', label: 'Security Panel', icon: FiLock, useTab: true },
-    { id: 'restricted-areas', label: 'Restricted Areas', icon: FiMapPin, useTab: true },
     { id: 'database', label: 'Database Management', icon: FiDatabase, useTab: true },
     { id: 'audit', label: 'Audit Logs', icon: FiActivity, useTab: true },
     { id: 'reports', label: 'System Reports', icon: FiFileText, useTab: true },
