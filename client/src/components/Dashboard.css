@@ -1154,6 +1154,25 @@
   transform: scale(1);
 }
 
+/* Keyframes for Mobile Animation */
+@keyframes float-mobile {
+  0%, 100% { 
+    transform: translateY(0px); 
+  }
+  50% { 
+    transform: translateY(-8px); 
+  }
+}
+
+@keyframes floatAlternate-mobile {
+  0%, 100% { 
+    transform: translateY(0px); 
+  }
+  50% { 
+    transform: translateY(-5px); 
+  }
+}
+
 /* Responsive Design */
 @media (max-width: 992px) { /* Adjusted breakpoint for better transition */
 
@@ -1205,11 +1224,24 @@
     left: auto !important;
     right: auto !important;
     bottom: auto !important;
-    transform: none !important;
-    animation: none !important;
     width: 100%;
     height: 110px; /* Consistent height for all cards */
     display: flex !important; /* Ensure they are visible and flex works */
+    animation: float-mobile 4s ease-in-out infinite; /* Apply base mobile animation */
+  }
+
+  .floating-card.card-2 {
+    animation: float-mobile 4s ease-in-out infinite, bandGlow 4s ease-in-out infinite;
+  }
+
+  .floating-card.feature-card-2,
+  .floating-card.feature-card-4,
+  .floating-card.feature-card-6 {
+    animation: floatAlternate-mobile 5s ease-in-out infinite;
+  }
+
+  .floating-card.feature-card-3 {
+    animation: float-mobile 4s ease-in-out infinite, pulse 2s ease-in-out infinite;
   }
 
   /* General responsive adjustments for other sections */

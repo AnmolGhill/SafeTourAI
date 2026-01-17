@@ -1,6 +1,7 @@
-// Firebase client configuration for sign-in tracking
+// Firebase client configuration for sign-in tracking and Firestore
 import { initializeApp } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
+import { getFirestore } from 'firebase/firestore';
 
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY || "AIzaSyDummy",
@@ -17,6 +18,9 @@ const app = initializeApp(firebaseConfig);
 // Initialize Firebase Authentication and get a reference to the service
 export const auth = getAuth(app);
 
-console.log('🔥 Firebase client initialized for authentication tracking');
+// Initialize Firestore
+export const db = getFirestore(app);
+
+console.log('🔥 Firebase client initialized for authentication tracking and Firestore');
 
 export default app;

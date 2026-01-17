@@ -13,6 +13,7 @@ import DatabaseManagement from './DatabaseManagement';
 import AuditLogs from './AuditLogs';
 import AdminKYC from '../../components/AdminKYC';
 import UserProfiles from '../dashboard-user/UserProfiles';
+import AdminRestrictedAreas from './AdminRestrictedAreas';
 
 const AdminDashboard = () => {
   const [activeTab, setActiveTab] = useState('dashboard');
@@ -69,6 +70,8 @@ const AdminDashboard = () => {
         );
       case 'profile':
         return <UserProfiles />;
+      case 'restricted-areas':
+        return <AdminRestrictedAreas />;
       default:
         return (
           <div className="card text-center animate-fadeIn">

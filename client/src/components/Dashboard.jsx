@@ -152,14 +152,15 @@ const Dashboard = () => {
           <h2 className="section-title">
             Experience SafeTourAI in Action
           </h2>
-          <div className="video-container">
-            <div className="video-placeholder">
-              <div className="video-content">
-                <div className="play-button">▶</div>
-                <p>Tourist Exploration Demo Video</p>
-                <small>Click to play your custom video</small>
-              </div>
-            </div>
+          <div className="video-container" style={{ aspectRatio: '16 / 9' }}>
+            <iframe
+              style={{ width: '100%', height: '100%', borderRadius: '12px' }}
+              src="https://www.youtube.com/embed/BVBWm6skTwA"
+              title="SafeTourAI Demo Video"
+              frameBorder="0"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              allowFullScreen
+            ></iframe>
           </div>
         </div>
       </section>

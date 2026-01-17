@@ -58,7 +58,7 @@ const CountryCodeSelector = ({ selectedCode, onCodeChange, disabled = false }) =
         type="button"
         onClick={() => !disabled && setIsOpen(!isOpen)}
         disabled={disabled}
-        className={`flex items-center space-x-2 px-3 py-3 border border-gray-300 rounded-l-lg bg-white hover:bg-gray-50 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200 ${
+        className={`h-12 flex items-center space-x-2 px-3 border border-r-0 border-gray-300 rounded-l-lg bg-white hover:bg-gray-50 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200 ${
           disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'
         }`}
       >
