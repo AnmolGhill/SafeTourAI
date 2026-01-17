@@ -1155,232 +1155,104 @@
 }
 
 /* Responsive Design */
-@media (max-width: 768px) {
+@media (max-width: 992px) { /* Adjusted breakpoint for better transition */
+
+  /* Let the hero section grow with its content */
   .hero-section {
-    padding-top: 100px;
-    height: 60vh;
-    overflow: hidden;
+    padding: 120px 0 4rem 0; /* Added more bottom padding */
+    min-height: auto;
+    height: auto;
+    overflow: visible; /* CRITICAL: Prevents content from being cut off */
   }
-  
-  .floating-elements {
-    background: rgba(255, 255, 255, 0.15);
-    border-radius: 25px;
-    backdrop-filter: blur(15px);
-    border: 1px solid rgba(255, 255, 255, 0.25);
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
-    top: 5%;
-    left: 5%;
-    right: 5%;
-    bottom: 5%;
-    width: 90%;
-    height: 90%;
-  }
-  
+
+  /* Switch to a single-column layout */
   .hero-container {
     grid-template-columns: 1fr;
     text-align: center;
-    gap: 1rem;
-    padding: 2rem 0;
-    height: 100%;
-    display: flex;
-    flex-direction: column;
-    justify-content: space-between;
+    gap: 3rem; /* Increased gap for better spacing */
   }
-  
+
   .hero-title {
-    font-size: 2.2rem;
-    line-height: 1.3;
+    font-size: 2.5rem; /* Adjusted for better readability */
   }
-  
-  /* Bigger cards for mobile */
+
+  /* Ensure visual containers can expand */
+  .hero-visual,
+  .hero-image {
+    height: auto;
+  }
+
+  /* This is the container for the cards, now a grid */
+  .hero-image {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 15px; /* Increased gap */
+    padding: 15px; /* Increased padding */
+    width: 100%;
+    max-width: 500px; /* Constrain max width on tablets */
+    margin: 0 auto; /* Center the grid */
+  }
+
+  /* This wrapper's children become the grid items */
+  .floating-elements {
+    display: contents;
+  }
+
+  /* Force all cards into the grid and reset their desktop-specific styles */
   .floating-card {
-    width: 100px;
-    height: 80px;
-    padding: 0.6rem 0.8rem;
+    position: static !important; /* CRITICAL: Overrides absolute positioning */
+    top: auto !important;
+    left: auto !important;
+    right: auto !important;
+    bottom: auto !important;
+    transform: none !important;
+    animation: none !important;
+    width: 100%;
+    height: 110px; /* Consistent height for all cards */
+    display: flex !important; /* Ensure they are visible and flex works */
   }
-  
-  .floating-card .card-icon {
-    font-size: 1.6rem;
-    margin-bottom: 0.2rem;
-  }
-  
-  .floating-card .card-title {
-    font-size: 0.75rem;
-  }
-  
-  .floating-card .card-subtitle {
-    font-size: 0.6rem;
-  }
-  
+
+  /* General responsive adjustments for other sections */
   .section-title {
     font-size: 2rem;
   }
-  
   .comparison {
     grid-template-columns: 1fr;
   }
-  
-  .footer-content {
+  .footer-content, .final-cta-buttons, .tech-stack {
     flex-direction: column;
-    gap: 2rem;
+    gap: 1.5rem;
+    align-items: center;
     text-align: center;
   }
-  
   .footer-links {
     justify-content: center;
   }
-  
-  .final-cta-buttons {
-    flex-direction: column;
-    align-items: center;
-  }
-  
-  .tech-stack {
-    flex-direction: column;
-    align-items: center;
-  }
-  
-  
-  
-  /* Mobile 3x3 Grid Layout - Contained within hero-image */
-  /* Top Row */
-  .feature-card-2 {
-    top: 15%;
-    left: 5%;
-  }
-  
-  .card-1 {
-    top: 15%;
-    left: 50%;
-    transform: translateX(-50%);
-  }
-  
-  .feature-card-1 {
-    top: 15%;
-    right: 5%;
-  }
-  
-  /* Middle Row */
-  .feature-card-6 {
-    top: 45%;
-    left: 5%;
-  }
-  
-  .card-2 {
-    top: 45%;
-    left: 50%;
-    transform: translateX(-50%);
-  }
-  
-  .feature-card-5 {
-    top: 45%;
-    right: 5%;
-  }
-  
-  /* Bottom Row */
-  .feature-card-4 {
-    bottom: 15%;
-    left: 5%;
-  }
-  
-  .card-3 {
-    bottom: 15%;
-    left: 50%;
-    transform: translateX(-50%);
-  }
-  
-  .feature-card-3 {
-    bottom: 15%;
-    right: 5%;
-  }
-  
 }
 
 @media (max-width: 480px) {
-  .hero-section {
-    padding-top: 80px;
-    height: 55vh;
-    overflow: hidden;
-  }
-  
-  .floating-elements {
-    background: rgba(255, 255, 255, 0.15);
-    border-radius: 20px;
-    backdrop-filter: blur(15px);
-    border: 1px solid rgba(255, 255, 255, 0.25);
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
-    top: 3%;
-    left: 3%;
-    right: 3%;
-    bottom: 3%;
-    width: 94%;
-    height: 94%;
-  }
-  
-  .hero-container {
-    padding: 1.5rem 0;
-    gap: 1rem;
-    height: 100%;
-    display: flex;
-    flex-direction: column;
-    justify-content: space-between;
-  }
-  
   .hero-title {
-    font-size: 1.6rem;
-    line-height: 1.1;
-    margin-bottom: 0.4rem;
+    font-size: 2rem; /* Further adjust title for small screens */
   }
-  
-  .hero-subtitle {
-    font-size: 0.85rem;
-    line-height: 1.3;
-    margin-bottom: 0.5rem;
+
+  .hero-image {
+    gap: 10px;
+    padding: 10px;
   }
-  
-  .cta-buttons {
-    gap: 0.5rem;
-  }
-  
-  /* Even bigger cards for small mobile */
+
   .floating-card {
-    width: 95px;
-    height: 75px;
-    padding: 0.5rem 0.7rem;
+    height: 100px; /* Slightly smaller cards for very small screens */
   }
-  
+
   .floating-card .card-icon {
     font-size: 1.4rem;
-    margin-bottom: 0.15rem;
   }
-  
+
   .floating-card .card-title {
-    font-size: 0.7rem;
+    font-size: 0.65rem;
   }
-  
+
   .floating-card .card-subtitle {
     font-size: 0.55rem;
   }
-  
-  .cta-btn {
-    padding: 0.8rem 1.5rem;
-    font-size: 1rem;
-  }
-  
-  .section-title {
-    font-size: 1.8rem;
-  }
-  
-  .container {
-    padding: 0 15px;
-  }
-  
-  /* Extra small screens - hide some floating cards to avoid clutter */
-  .feature-card-4,
-  .feature-card-6 {
-    display: none;
-  }
-  
-  
-  
 }
