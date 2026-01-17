@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { EyeIcon, EyeSlashIcon } from '@heroicons/react/24/outline';
+import { EyeIcon, EyeSlashIcon, ShieldCheckIcon } from '@heroicons/react/24/outline';
 import CountryCodeSelector from './CountryCodeSelector';
 import toast from 'react-hot-toast';
 import LoadingSpinner from '../LoadingSpinner';
@@ -202,8 +202,8 @@ const Register = () => {
       <div className="max-w-md w-full bg-white rounded-2xl shadow-xl p-8">
         {/* Header */}
         <div className="text-center mb-6">
-          <div className="auth-logo bg-gradient-to-r from-blue-500 to-indigo-600 flex items-center justify-center mx-auto mb-4">
-            <span className="text-white text-xl sm:text-2xl font-bold">ST</span>
+          <div className="auth-logo w-16 h-16 bg-gradient-to-r from-blue-500 to-indigo-600 flex items-center justify-center mx-auto mb-4 rounded-full flex-shrink-0">
+            <ShieldCheckIcon className="h-8 w-8 text-white" />
           </div>
           <h2 className="text-2xl sm:text-3xl font-bold text-gray-900">Create Account</h2>
           <p className="text-gray-600 mt-2 text-sm sm:text-base">Join SafeTourAI for secure travel</p>
@@ -280,7 +280,7 @@ const Register = () => {
             <label htmlFor="phone" className="block text-sm font-medium text-gray-700 mb-2">
               Phone Number (Optional - Can be shared across accounts)
             </label>
-            <div className="flex">
+            <div className="flex items-center">
               <CountryCodeSelector
                 selectedCode={formData.countryCode}
                 onCodeChange={(code) => setFormData(prev => ({ ...prev, countryCode: code }))}
@@ -292,7 +292,7 @@ const Register = () => {
                 name="phone"
                 value={formData.phone}
                 onChange={handleInputChange}
-                className={`flex-1 px-4 py-3 border border-l-0 rounded-r-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200 ${
+                className={`h-12 flex-1 px-4 border border-l-0 rounded-r-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200 ${
                   errors.phone ? 'border-red-500 bg-red-50' : 'border-gray-300'
                 }`}
                 placeholder="Enter phone number"

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { FiMail, FiLock } from 'react-icons/fi';
-import { EyeIcon, EyeSlashIcon } from '@heroicons/react/24/outline';
+import { EyeIcon, EyeSlashIcon, ShieldCheckIcon } from '@heroicons/react/24/outline';
 import toast from 'react-hot-toast';
 import { auth } from '../../config/firebase';
 import { signInWithCustomToken } from 'firebase/auth';
@@ -147,8 +147,8 @@ const Login = () => {
       <div className="max-w-md w-full bg-white rounded-2xl shadow-xl p-8">
         {/* Header */}
         <div className="text-center mb-8">
-          <div className="auth-logo bg-gradient-to-r from-blue-500 to-indigo-600 flex items-center justify-center mx-auto mb-4">
-            <span className="text-white text-xl sm:text-2xl font-bold">ST</span>
+          <div className="auth-logo w-16 h-16 bg-gradient-to-r from-blue-500 to-indigo-600 flex items-center justify-center mx-auto mb-4 rounded-full flex-shrink-0">
+            <ShieldCheckIcon className="h-8 w-8 text-white" />
           </div>
           <h2 className="text-2xl sm:text-3xl font-bold text-gray-900">Welcome Back</h2>
           <p className="text-gray-600 mt-2 text-sm sm:text-base">Sign in to your SafeTourAI account</p>

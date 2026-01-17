@@ -8,6 +8,7 @@ const emergencyAlerts = new Map();
 const responders = new Map();
 const voiceEmergencyHistory = new Map();
 const familyContacts = new Map();
+const sosAlerts = new Map(); // Store SOS alerts from quick actions button
 
 // POST /api/emergency/alert - Create emergency alert
 router.post('/alert', verifyFirebaseToken, async (req, res) => {
@@ -361,7 +362,8 @@ router.post('/voice-alert', verifyFirebaseToken, async (req, res) => {
       location, 
       contacts, 
       silentMode, 
-      emergencyType = 'voice_trigger' 
+      emergencyType = 'voice_trigger',
+      userDetails
     } = req.body;
     const userId = req.user.id;
 
@@ -381,6 +383,7 @@ router.post('/voice-alert', verifyFirebaseToken, async (req, res) => {
       status: 'active',
       silentMode: silentMode || false,
       location: location || null,
+      userDetails: userDetails || null,
       timestamp: new Date(),
       contacts: contacts || [],
       responders: [],
@@ -398,11 +401,14 @@ router.post('/voice-alert', verifyFirebaseToken, async (req, res) => {
       triggerWord,
       timestamp: new Date(),
       location,
+      userDetails: userDetails || null,
       status: 'sent'
     });
 
     // Log emergency for monitoring
     console.log(`🎤 VOICE EMERGENCY: Trigger "${triggerWord}" - ID: ${alertId} - User: ${userId} - Silent: ${silentMode}`);
+    console.log(`📍 Location: ${location?.latitude}, ${location?.longitude}`);
+    console.log(`👤 User: ${userDetails?.fullName || 'Unknown'}`);
 
     // Send notifications to emergency contacts
     try {
@@ -421,6 +427,8 @@ router.post('/voice-alert', verifyFirebaseToken, async (req, res) => {
         triggerWord: alert.triggerWord,
         status: alert.status,
         timestamp: alert.timestamp,
+        location: alert.location,
+        userDetails: alert.userDetails,
         notificationsSent: contacts?.length || 0
       }
     });
@@ -624,6 +632,423 @@ SafeTour Emergency System`;
     }
   }
 }
+
+// GET /api/emergency/voice-alerts - Get all voice emergency alerts (for police dashboard)
+router.get('/voice-alerts', verifyFirebaseToken, async (req, res) => {
+  try {
+    const allAlerts = [];
+
+    // Collect all voice emergency alerts from all users
+    for (const [userId, history] of voiceEmergencyHistory.entries()) {
+      for (const alert of history) {
+        // Get the full alert details from emergencyAlerts map
+        const fullAlert = emergencyAlerts.get(alert.id);
+        if (fullAlert) {
+          allAlerts.push({
+            id: alert.id,
+            userId: userId,
+            triggerWord: alert.triggerWord,
+            status: alert.status,
+            timestamp: alert.timestamp,
+            location: alert.location,
+            userDetails: alert.userDetails || null
+          });
+        }
+      }
+    }
+
+    // Sort by timestamp (newest first)
+    allAlerts.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+
+    res.json({
+      success: true,
+      alerts: allAlerts.slice(0, 100) // Return last 100 voice alerts
+    });
+
+  } catch (error) {
+    console.error('Error fetching voice emergency alerts:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch voice emergency alerts'
+    });
+  }
+});
+
+// GET /api/emergency/voice-alerts/:id/details - Get full details of a voice alert with user profile
+router.get('/voice-alerts/:id/details', verifyFirebaseToken, async (req, res) => {
+  try {
+    const alertId = req.params.id;
+    const fullAlert = emergencyAlerts.get(alertId);
+
+    if (!fullAlert) {
+      return res.status(404).json({
+        success: false,
+        error: 'Alert not found'
+      });
+    }
+
+    // Fetch full user profile from Firebase
+    let userProfile = null;
+    try {
+      const userDoc = await db.collection('users').doc(fullAlert.userId).get();
+      const profileDoc = await db.collection('userProfiles').doc(fullAlert.userId).get();
+      
+      if (userDoc.exists) {
+        const userData = userDoc.data();
+        const profileData = profileDoc.exists ? profileDoc.data() : {};
+        
+        userProfile = {
+          uid: userData.uid,
+          email: userData.email,
+          name: userData.name,
+          phone: userData.phone,
+          role: userData.role,
+          kycStatus: userData.kycStatus,
+          profileComplete: userData.profileComplete,
+          blockchainId: userData.blockchainId,
+          ...profileData
+        };
+      }
+    } catch (dbError) {
+      console.error('Error fetching user profile from database:', dbError);
+      // Continue with alert data even if profile fetch fails
+    }
+
+    res.json({
+      success: true,
+      alert: {
+        ...fullAlert,
+        userProfile: userProfile || fullAlert.userDetails
+      }
+    });
+
+  } catch (error) {
+    console.error('Error fetching alert details:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch alert details'
+    });
+  }
+});
+
+// PUT /api/emergency/voice-alerts/:id/resolve - Mark voice alert as resolved
+router.put('/voice-alerts/:id/resolve', verifyFirebaseToken, async (req, res) => {
+  try {
+    const alertId = req.params.id;
+    const { status } = req.body;
+
+    // Update in emergencyAlerts map
+    const alert = emergencyAlerts.get(alertId);
+    if (alert) {
+      alert.status = status || 'resolved';
+      emergencyAlerts.set(alertId, alert);
+    }
+
+    // Find and update the alert in voiceEmergencyHistory
+    let found = false;
+    for (const [userId, history] of voiceEmergencyHistory.entries()) {
+      const alertIndex = history.findIndex(a => a.id === alertId);
+      if (alertIndex !== -1) {
+        history[alertIndex].status = status || 'resolved';
+        found = true;
+        break;
+      }
+    }
+
+    if (!found) {
+      return res.status(404).json({
+        success: false,
+        error: 'Voice alert not found'
+      });
+    }
+
+    res.json({
+      success: true,
+      message: 'Voice alert status updated',
+      alertId: alertId,
+      newStatus: status || 'resolved'
+    });
+
+  } catch (error) {
+    console.error('Error updating voice alert:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to update voice alert'
+    });
+  }
+});
+
+// PUT /api/emergency/voice-alerts/:id/terminate - Terminate voice alert (police confirmation)
+router.put('/voice-alerts/:id/terminate', verifyFirebaseToken, async (req, res) => {
+  try {
+    const alertId = req.params.id;
+    const { policeNotes } = req.body;
+
+    // Update in emergencyAlerts map
+    const alert = emergencyAlerts.get(alertId);
+    if (alert) {
+      alert.status = 'terminated';
+      alert.terminatedAt = new Date();
+      alert.policeNotes = policeNotes || '';
+      alert.terminatedBy = req.user.id;
+      emergencyAlerts.set(alertId, alert);
+    }
+
+    // Find and update the alert in voiceEmergencyHistory
+    let found = false;
+    for (const [userId, history] of voiceEmergencyHistory.entries()) {
+      const alertIndex = history.findIndex(a => a.id === alertId);
+      if (alertIndex !== -1) {
+        history[alertIndex].status = 'terminated';
+        history[alertIndex].terminatedAt = new Date();
+        history[alertIndex].policeNotes = policeNotes || '';
+        found = true;
+        break;
+      }
+    }
+
+    if (!found) {
+      return res.status(404).json({
+        success: false,
+        error: 'Voice alert not found'
+      });
+    }
+
+    console.log(`✅ Voice alert ${alertId} terminated by police`);
+
+    res.json({
+      success: true,
+      message: 'Voice alert terminated successfully',
+      alertId: alertId,
+      status: 'terminated'
+    });
+
+  } catch (error) {
+    console.error('Error terminating voice alert:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to terminate voice alert'
+    });
+  }
+});
+
+// POST /api/emergency/sos-alert - Create SOS alert from quick actions button
+router.post('/sos-alert', verifyFirebaseToken, async (req, res) => {
+  try {
+    const { location, userDetails, timestamp } = req.body;
+    const userId = req.user.id;
+
+    if (!location) {
+      return res.status(400).json({
+        success: false,
+        error: 'Location is required for SOS alert'
+      });
+    }
+
+    const alertId = `SOS_${Date.now()}_${userId}`;
+    const alert = {
+      id: alertId,
+      userId,
+      type: 'sos_trigger',
+      status: 'active',
+      location: location,
+      userDetails: userDetails || null,
+      timestamp: timestamp || new Date().toISOString(),
+      responders: [],
+      updates: []
+    };
+
+    sosAlerts.set(alertId, alert);
+
+    // Log SOS for monitoring
+    console.log(`🚨 SOS ALERT: ID: ${alertId} - User: ${userId}`);
+    console.log(`📍 Location: ${location.latitude}, ${location.longitude}`);
+    console.log(`👤 User: ${userDetails?.fullName || 'Unknown'}`);
+
+    res.json({
+      success: true,
+      message: 'SOS alert created and police notified',
+      alert: {
+        id: alert.id,
+        type: alert.type,
+        status: alert.status,
+        timestamp: alert.timestamp,
+        location: alert.location,
+        userDetails: alert.userDetails
+      }
+    });
+
+  } catch (error) {
+    console.error('Error creating SOS alert:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to create SOS alert'
+    });
+  }
+});
+
+// GET /api/emergency/sos-alerts - Get all SOS alerts for police dashboard
+router.get('/sos-alerts', verifyFirebaseToken, async (req, res) => {
+  try {
+    const allAlerts = [];
+
+    // Collect all SOS alerts
+    for (const [alertId, alert] of sosAlerts.entries()) {
+      allAlerts.push({
+        id: alert.id,
+        userId: alert.userId,
+        type: alert.type,
+        status: alert.status,
+        timestamp: alert.timestamp,
+        location: alert.location,
+        userDetails: alert.userDetails || null
+      });
+    }
+
+    // Sort by timestamp (newest first)
+    allAlerts.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+
+    res.json({
+      success: true,
+      alerts: allAlerts.slice(0, 100) // Return last 100 SOS alerts
+    });
+
+  } catch (error) {
+    console.error('Error fetching SOS alerts:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch SOS alerts'
+    });
+  }
+});
+
+// GET /api/emergency/sos-alerts/:id/details - Get full details of an SOS alert with user profile
+router.get('/sos-alerts/:id/details', verifyFirebaseToken, async (req, res) => {
+  try {
+    const alertId = req.params.id;
+    const fullAlert = sosAlerts.get(alertId);
+
+    if (!fullAlert) {
+      return res.status(404).json({
+        success: false,
+        error: 'SOS alert not found'
+      });
+    }
+
+    // Fetch full user profile from Firebase
+    let userProfile = null;
+    try {
+      const userDoc = await db.collection('users').doc(fullAlert.userId).get();
+      const profileDoc = await db.collection('userProfiles').doc(fullAlert.userId).get();
+      
+      if (userDoc.exists) {
+        const userData = userDoc.data();
+        const profileData = profileDoc.exists ? profileDoc.data() : {};
+        
+        userProfile = {
+          uid: userData.uid,
+          email: userData.email,
+          name: userData.name,
+          phone: userData.phone,
+          role: userData.role,
+          kycStatus: userData.kycStatus,
+          profileComplete: userData.profileComplete,
+          blockchainId: userData.blockchainId,
+          ...profileData
+        };
+      }
+    } catch (dbError) {
+      console.error('Error fetching user profile from database:', dbError);
+      // Continue with alert data even if profile fetch fails
+    }
+
+    res.json({
+      success: true,
+      alert: {
+        ...fullAlert,
+        userProfile: userProfile || fullAlert.userDetails
+      }
+    });
+
+  } catch (error) {
+    console.error('Error fetching SOS alert details:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch SOS alert details'
+    });
+  }
+});
+
+// PUT /api/emergency/sos-alerts/:id/resolve - Mark SOS alert as resolved
+router.put('/sos-alerts/:id/resolve', verifyFirebaseToken, async (req, res) => {
+  try {
+    const alertId = req.params.id;
+    const { status } = req.body;
+
+    const alert = sosAlerts.get(alertId);
+    if (!alert) {
+      return res.status(404).json({
+        success: false,
+        error: 'SOS alert not found'
+      });
+    }
+
+    alert.status = status || 'resolved';
+    sosAlerts.set(alertId, alert);
+
+    res.json({
+      success: true,
+      message: 'SOS alert status updated',
+      alertId: alertId,
+      newStatus: status || 'resolved'
+    });
+
+  } catch (error) {
+    console.error('Error updating SOS alert:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to update SOS alert'
+    });
+  }
+});
+
+// PUT /api/emergency/sos-alerts/:id/terminate - Terminate SOS alert (police confirmation)
+router.put('/sos-alerts/:id/terminate', verifyFirebaseToken, async (req, res) => {
+  try {
+    const alertId = req.params.id;
+    const { policeNotes } = req.body;
+
+    const alert = sosAlerts.get(alertId);
+    if (!alert) {
+      return res.status(404).json({
+        success: false,
+        error: 'SOS alert not found'
+      });
+    }
+
+    alert.status = 'terminated';
+    alert.terminatedAt = new Date();
+    alert.policeNotes = policeNotes || '';
+    alert.terminatedBy = req.user.id;
+    sosAlerts.set(alertId, alert);
+
+    console.log(`✅ SOS alert ${alertId} terminated by police`);
+
+    res.json({
+      success: true,
+      message: 'SOS alert terminated successfully',
+      alertId: alertId,
+      status: 'terminated'
+    });
+
+  } catch (error) {
+    console.error('Error terminating SOS alert:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to terminate SOS alert'
+    });
+  }
+});
 
 // Helper function to calculate distance between coordinates
 function calculateDistance(lat1, lng1, lat2, lng2) {

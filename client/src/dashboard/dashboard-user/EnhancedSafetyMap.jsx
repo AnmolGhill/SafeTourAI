@@ -18,6 +18,8 @@ import {
 } from 'react-icons/fi';
 import { mapsService } from '../../services/mapsService';
 import googleMapsLoader from '../../utils/googleMapsLoader';
+import { restrictedAreasService } from '../../services/restrictedAreasService';
+import { initGeofencing, cleanupGeofencing, updateRestrictedAreas } from '../../utils/geofencingIntegration';
 
 const EnhancedSafetyMap = () => {
   const [map, setMap] = useState(null);
@@ -32,9 +34,13 @@ const EnhancedSafetyMap = () => {
   const [showServices, setShowServices] = useState(true);
   const [mapStyle, setMapStyle] = useState('roadmap');
   const [filterLevel, setFilterLevel] = useState('all'); // all, high, medium, low
+  const [restrictedAreas, setRestrictedAreas] = useState([]);
+  const [showRestrictedAreas, setShowRestrictedAreas] = useState(true);
   const mapRef = useRef(null);
   const markersRef = useRef([]);
   const zonesRef = useRef([]);
+  const geofencingCleanupRef = useRef(null);
+  const unsubscribeRestrictedAreasRef = useRef(null);
   const mapInstanceId = useRef(`enhanced-safety-map-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`);
 
   // Mock danger zones data with real coordinates
@@ -163,9 +169,12 @@ const EnhancedSafetyMap = () => {
         }
 
         console.log(`[${mapInstanceId.current}] Creating map instance...`);
+        // Guwahati coordinates
+        const guwahatiCenter = new window.google.maps.LatLng(26.1445, 91.7362);
+        
         const mapOptions = {
-          zoom: 12,
-          center: new window.google.maps.LatLng(40.7128, -74.0060), // NYC default
+          zoom: 13,
+          center: guwahatiCenter, // Guwahati, Assam
           mapTypeId: window.google.maps.MapTypeId.ROADMAP,
           styles: [
             {
@@ -234,6 +243,70 @@ const EnhancedSafetyMap = () => {
     }
   }, [map, mapStyle]);
 
+  // Initialize geofencing with restricted areas
+  useEffect(() => {
+    if (!map || !window.google) return;
+
+    // Load restricted areas from Firestore
+    const loadRestrictedAreas = async () => {
+      try {
+        const result = await restrictedAreasService.getActiveRestrictedAreas();
+        if (result.success) {
+          setRestrictedAreas(result.data);
+        }
+      } catch (error) {
+        console.error('Error loading restricted areas:', error);
+      }
+    };
+
+    loadRestrictedAreas();
+
+    // Listen to real-time updates
+    unsubscribeRestrictedAreasRef.current = restrictedAreasService.listenToActiveRestrictedAreas((areas) => {
+      setRestrictedAreas(areas);
+      if (showRestrictedAreas) {
+        updateRestrictedAreas(areas);
+      }
+    });
+
+    return () => {
+      if (unsubscribeRestrictedAreasRef.current) {
+        unsubscribeRestrictedAreasRef.current();
+      }
+    };
+  }, [map, showRestrictedAreas]);
+
+  // Setup geofencing when restricted areas change
+  useEffect(() => {
+    if (!map || !showRestrictedAreas || restrictedAreas.length === 0) {
+      if (geofencingCleanupRef.current) {
+        geofencingCleanupRef.current();
+        geofencingCleanupRef.current = null;
+      }
+      return;
+    }
+
+    // Initialize geofencing
+    geofencingCleanupRef.current = initGeofencing(map, restrictedAreas, {
+      onEnterArea: (area) => {
+        console.log('⚠️ User entered restricted area:', area.name);
+      },
+      onExitArea: (area) => {
+        console.log('✓ User exited restricted area:', area.name);
+      },
+      onLocationUpdate: (location) => {
+        // Location update callback
+      }
+    });
+
+    return () => {
+      if (geofencingCleanupRef.current) {
+        geofencingCleanupRef.current();
+        geofencingCleanupRef.current = null;
+      }
+    };
+  }, [map, restrictedAreas, showRestrictedAreas]);
+
   const getCurrentLocation = async (mapInstance) => {
     try {
       const location = await mapsService.getCurrentLocation();
@@ -246,8 +319,8 @@ const EnhancedSafetyMap = () => {
       }
     } catch (error) {
       console.error('Error getting location:', error);
-      // Use default NYC location
-      const defaultLocation = { lat: 40.7128, lng: -74.0060 };
+      // Use default Guwahati location
+      const defaultLocation = { lat: 26.1445, lng: 91.7362 };
       setUserLocation(defaultLocation);
     } finally {
       setLoading(false);
@@ -771,7 +844,7 @@ const EnhancedSafetyMap = () => {
       </div>
 
       {/* Controls */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 mb-4">
+      <div className="grid grid-cols-2 lg:grid-cols-5 gap-2 mb-4">
         <button
           onClick={toggleDangerZones}
           className={`flex items-center justify-center space-x-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors duration-200 ${
@@ -794,6 +867,19 @@ const EnhancedSafetyMap = () => {
         >
           <FiShield className="w-4 h-4" />
           <span>Services</span>
+        </button>
+
+        <button
+          onClick={() => setShowRestrictedAreas(!showRestrictedAreas)}
+          className={`flex items-center justify-center space-x-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors duration-200 ${
+            showRestrictedAreas 
+              ? 'bg-orange-600 text-white' 
+              : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+          }`}
+          title="Toggle restricted areas visibility"
+        >
+          <FiMapPin className="w-4 h-4" />
+          <span>Restricted</span>
         </button>
 
         <button

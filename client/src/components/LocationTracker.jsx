@@ -5,8 +5,10 @@ import {
   FiCheckCircle, 
   FiX,
   FiSettings,
-  FiShield
+  FiShield,
+  FiMap
 } from 'react-icons/fi';
+import GeoFencing from './GeoFencing';
 
 const LocationTracker = ({ onLocationUpdate, emergencyMode = false }) => {
   const [location, setLocation] = useState(null);
@@ -15,6 +17,7 @@ const LocationTracker = ({ onLocationUpdate, emergencyMode = false }) => {
   const [error, setError] = useState(null);
   const [watchId, setWatchId] = useState(null);
   const [accuracy, setAccuracy] = useState(null);
+  const [showGeoFencing, setShowGeoFencing] = useState(false);
 
   // Check geolocation permission status
   useEffect(() => {
@@ -308,12 +311,12 @@ const LocationTracker = ({ onLocationUpdate, emergencyMode = false }) => {
       )}
 
       {/* Controls */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between gap-3 flex-wrap">
         {!tracking ? (
           <button
             onClick={requestPermission}
             disabled={permission === 'denied'}
-            className={`flex items-center justify-center space-x-2 px-6 py-3 rounded-lg font-medium text-sm transition-colors w-full sm:w-auto min-h-[48px] ${
+            className={`flex items-center justify-center space-x-2 px-6 py-3 rounded-lg font-medium text-sm transition-colors flex-1 min-h-[48px] ${
               emergencyMode
                 ? 'bg-red-600 hover:bg-red-700 text-white disabled:bg-red-300'
                 : 'bg-blue-600 hover:bg-blue-700 text-white disabled:bg-blue-300'
@@ -325,12 +328,26 @@ const LocationTracker = ({ onLocationUpdate, emergencyMode = false }) => {
         ) : (
           <button
             onClick={stopTracking}
-            className="flex items-center justify-center space-x-2 px-6 py-3 bg-gray-600 hover:bg-gray-700 text-white rounded-lg font-medium text-sm transition-colors w-full sm:w-auto min-h-[48px]"
+            className="flex items-center justify-center space-x-2 px-6 py-3 bg-gray-600 hover:bg-gray-700 text-white rounded-lg font-medium text-sm transition-colors flex-1 min-h-[48px]"
           >
             <FiX className="w-5 h-5 flex-shrink-0" />
             <span className="font-semibold">Stop Tracking</span>
           </button>
         )}
+
+        {/* Geo-Fencing Button */}
+        <button
+          onClick={() => setShowGeoFencing(!showGeoFencing)}
+          disabled={permission === 'denied'}
+          className={`flex items-center justify-center space-x-2 px-6 py-3 rounded-lg font-medium text-sm transition-colors flex-1 min-h-[48px] ${
+            showGeoFencing
+              ? 'bg-purple-700 hover:bg-purple-800 text-white'
+              : 'bg-purple-600 hover:bg-purple-700 text-white disabled:bg-purple-300'
+          }`}
+        >
+          <FiMap className="w-5 h-5 flex-shrink-0" />
+          <span className="font-semibold">Geo-Fencing</span>
+        </button>
 
         {tracking && (
           <div className="flex items-center space-x-2 text-sm text-gray-600">
@@ -352,6 +369,13 @@ const LocationTracker = ({ onLocationUpdate, emergencyMode = false }) => {
               </p>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* Geo-Fencing Component */}
+      {showGeoFencing && (
+        <div className="mt-4">
+          <GeoFencing onLocationUpdate={onLocationUpdate} />
         </div>
       )}
     </div>

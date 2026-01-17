@@ -161,19 +161,22 @@ body {
   background: var(--danger-red);
 }
 
+
 /* Auth logo styling */
 .auth-logo {
-  width: 60px;
-  height: 60px;
+  width: 64px;
+  height: 64px;
   border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin: 0 auto;
 }
 
 /* Responsive utilities */
 @media (max-width: 768px) {
+  .auth-logo {
+    width: 128px; /* Make the logo wider on mobile */
+    height: 56px; /* Adjust height for a pleasing pill shape */
+    border-radius: 9999px; /* This creates the pill shape */
+  }
+
   .mobile-hidden {
     display: none;
   }

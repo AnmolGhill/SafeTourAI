@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { FiCheckCircle, FiAlertTriangle, FiClock } from 'react-icons/fi';
+import { useLanguage } from './contexts/LanguageContext';
 
 const WelcomeBanner = ({ userName = "User" }) => {
+  const { t } = useLanguage();
   const [currentTime, setCurrentTime] = useState(new Date());
   const [systemStatus, setSystemStatus] = useState('active'); // 'active' or 'emergency'
 
@@ -36,7 +38,7 @@ const WelcomeBanner = ({ userName = "User" }) => {
         {/* Welcome Message */}
         <div className="mb-4 lg:mb-0">
           <h1 className="text-2xl lg:text-3xl font-bold mb-2">
-            Welcome back, {userName}. Stay Safe with SafeTourAI 🚨
+            {t('welcome.greeting', 'Welcome back, {userName}. Stay Safe with SafeTourAI 🚨').replace('{userName}', userName)}
           </h1>
           <div className="flex flex-col sm:flex-row sm:items-center sm:space-x-6 text-blue-100">
             <div className="flex items-center space-x-2 mb-2 sm:mb-0">
@@ -52,17 +54,17 @@ const WelcomeBanner = ({ userName = "User" }) => {
         {/* System Status */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:space-x-4">
           <div className="mb-3 sm:mb-0">
-            <p className="text-blue-100 text-sm mb-1">System Status</p>
+            <p className="text-blue-100 text-sm mb-1">{t('welcome.systemStatus', 'System Status')}</p>
             <div className="flex items-center space-x-2">
               {systemStatus === 'active' ? (
                 <>
                   <FiCheckCircle className="w-5 h-5" />
-                  <span className="font-semibold text-green-300">All Systems Active</span>
+                  <span className="font-semibold text-green-300">{t('welcome.allSystemsActive', 'All Systems Active')}</span>
                 </>
               ) : (
                 <>
                   <FiAlertTriangle className="w-5 h-5" />
-                  <span className="font-semibold text-yellow-300">Emergency Alerts Active</span>
+                  <span className="font-semibold text-yellow-300">{t('welcome.emergencyAlertsActive', 'Emergency Alerts Active')}</span>
                 </>
               )}
             </div>
@@ -75,7 +77,7 @@ const WelcomeBanner = ({ userName = "User" }) => {
                      transition-all duration-200 text-sm font-medium backdrop-blur-sm
                      border border-red-400 text-white"
           >
-            Toggle Status
+            {t('welcome.toggleStatus', 'Toggle Status')}
           </button>
         </div>
       </div>
@@ -85,15 +87,15 @@ const WelcomeBanner = ({ userName = "User" }) => {
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-sm">
           <div className="flex items-center space-x-2">
             <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
-            <span className="text-blue-100">Location Services: Active</span>
+            <span className="text-blue-100">{t('welcome.locationServices', 'Location Services: Active')}</span>
           </div>
           <div className="flex items-center space-x-2">
             <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
-            <span className="text-blue-100">Emergency Network: Online</span>
+            <span className="text-blue-100">{t('welcome.emergencyNetwork', 'Emergency Network: Online')}</span>
           </div>
           <div className="flex items-center space-x-2">
             <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
-            <span className="text-blue-100">Blockchain: Synchronized</span>
+            <span className="text-blue-100">{t('welcome.blockchain', 'Blockchain: Synchronized')}</span>
           </div>
         </div>
       </div>
