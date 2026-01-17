@@ -54,58 +54,37 @@ class GoogleMapsLoader {
       return this.loadPromise;
     }
 
-    // Load Google Maps script with all required libraries
+    // Load Google Maps script
     this.isLoading = true;
     this.loadPromise = new Promise((resolve, reject) => {
       try {
         const script = document.createElement('script');
-        // Load with callback to ensure proper initialization
-        script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places,geometry,drawing&callback=initGoogleMaps`;
+        script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places,geometry`;
         script.async = true;
-        script.defer = false;
+        script.defer = true;
         
-        // Set up global callback
-        window.initGoogleMaps = () => {
-          console.log('✅ Google Maps API initialized with all libraries');
+        script.onload = () => {
+          console.log('Google Maps API loaded successfully');
           this.isLoaded = true;
           this.isLoading = false;
           
-          // Verify all libraries are available
-          if (window.google && window.google.maps) {
-            console.log('✅ Maps library available');
-            if (window.google.maps.drawing) {
-              console.log('✅ Drawing library available');
+          // Wait a bit for Google Maps to fully initialize
+          setTimeout(() => {
+            if (window.google && window.google.maps) {
+              resolve(window.google.maps);
+            } else {
+              reject(new Error('Google Maps failed to initialize'));
             }
-            if (window.google.maps.geometry) {
-              console.log('✅ Geometry library available');
-            }
-            resolve(window.google.maps);
-          } else {
-            reject(new Error('Google Maps failed to initialize'));
-          }
+          }, 100);
         };
-        
+
         script.onerror = (error) => {
-          console.error('❌ Error loading Google Maps:', error);
+          console.error('Error loading Google Maps:', error);
           this.isLoading = false;
-          delete window.initGoogleMaps;
           reject(new Error('Failed to load Google Maps script'));
         };
 
         document.head.appendChild(script);
-        
-        // Fallback timeout
-        setTimeout(() => {
-          if (!this.isLoaded) {
-            console.warn('Google Maps loading timeout, checking if available...');
-            if (window.google && window.google.maps) {
-              console.log('✅ Google Maps available after timeout');
-              this.isLoaded = true;
-              this.isLoading = false;
-              resolve(window.google.maps);
-            }
-          }
-        }, 5000);
       } catch (error) {
         this.isLoading = false;
         reject(error);

@@ -28,7 +28,6 @@ const EmergencyVoiceTrigger = () => {
   const [voiceLevel, setVoiceLevel] = useState(0);
   const [triggerWord, setTriggerWord] = useState('help');
   const [customTriggerWords, setCustomTriggerWords] = useState(['help', 'sos', 'emergency']);
-  const [triggerDetected, setTriggerDetected] = useState(false);
   
   // Emergency states
   const [showConfirmation, setShowConfirmation] = useState(false);
@@ -47,7 +46,6 @@ const EmergencyVoiceTrigger = () => {
   // Loading states
   const [dataLoading, setDataLoading] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
-  const [isAlertSending, setIsAlertSending] = useState(false);
   
   // Refs
   const recognitionRef = useRef(null);
@@ -55,7 +53,6 @@ const EmergencyVoiceTrigger = () => {
   const analyserRef = useRef(null);
   const microphoneRef = useRef(null);
   const countdownRef = useRef(null);
-  const triggerDetectedRef = useRef(false);  // Track trigger immediately (not async state)
 
   // Initialize component
   useEffect(() => {
@@ -95,30 +92,6 @@ const EmergencyVoiceTrigger = () => {
     }
   };
 
-  // Get current user details
-  const getCurrentUserDetails = async () => {
-    try {
-      const token = localStorage.getItem('token');
-      const BASE_URL = import.meta.env.VITE_BASE_URL;
-      
-      const response = await fetch(`${BASE_URL}/api/user/profile`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      });
-
-      if (response.ok) {
-        const result = await response.json();
-        return result.user || null;
-      }
-      return null;
-    } catch (error) {
-      console.error('Error fetching user details:', error);
-      return null;
-    }
-  };
-
   // Initialize voice recognition
   const initializeVoiceRecognition = () => {
     if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
@@ -135,7 +108,6 @@ const EmergencyVoiceTrigger = () => {
           .map(result => result.transcript)
           .join('');
         
-        console.log('🎤 Transcript received:', transcript);
         checkForTriggerWords(transcript.toLowerCase());
       };
       
@@ -143,15 +115,18 @@ const EmergencyVoiceTrigger = () => {
         console.error('Speech recognition error:', event.error);
         setIsListening(false);
         setIsProcessing(false);
-        // Don't show error toast for normal stops
-        if (event.error !== 'no-speech' && event.error !== 'network') {
-          console.log('Speech recognition stopped');
-        }
+        toast.error('Voice recognition error. Please try again.');
       };
       
       recognitionRef.current.onend = () => {
-        // Don't restart automatically - let user control it
-        console.log('Speech recognition ended');
+        if (isListening) {
+          // Restart recognition if it was supposed to be listening
+          setTimeout(() => {
+            if (isListening) {
+              recognitionRef.current.start();
+            }
+          }, 100);
+        }
       };
     } else {
       toast.error('Voice recognition not supported in this browser');
@@ -209,44 +184,17 @@ const EmergencyVoiceTrigger = () => {
 
   // Check for trigger words
   const checkForTriggerWords = (transcript) => {
-    console.log('🎤 Checking transcript:', transcript);
-    
-    // Prevent multiple triggers using ref (immediate, not async state)
-    if (triggerDetectedRef.current) {
-      console.log('⚠️ Trigger already detected, ignoring');
-      return;
-    }
-
     const foundTrigger = customTriggerWords.find(word => 
       transcript.includes(word.toLowerCase())
     );
     
     if (foundTrigger) {
-      console.log('✅ Trigger word detected:', foundTrigger);
-      triggerDetectedRef.current = true;  // ✅ Set ref IMMEDIATELY to prevent multiple triggers
-      setTriggerDetected(true);  // Also update state for UI
       setIsProcessing(true);
-      
-      // Stop listening immediately
-      console.log('🛑 Stopping voice recognition');
-      if (recognitionRef.current) {
-        try {
-          recognitionRef.current.stop();
-        } catch (error) {
-          console.error('Error stopping recognition:', error);
-        }
-      }
-      setIsListening(false);
-      
-      // Small delay before triggering alert
       setTimeout(() => {
-        console.log('🚀 Triggering emergency alert');
         setIsProcessing(false);
+        setIsListening(false);
         triggerEmergencyAlert();
-      }, 500);
-      
-      // Keep flag set for longer to prevent any re-triggering
-      // User must manually restart listening
+      }, 1000);
     }
   };
 
@@ -257,30 +205,17 @@ const EmergencyVoiceTrigger = () => {
       setIsListening(false);
       setVoiceLevel(0);
       if (recognitionRef.current) {
-        try {
-          recognitionRef.current.stop();
-        } catch (error) {
-          console.error('Error stopping recognition:', error);
-        }
+        recognitionRef.current.stop();
       }
       if (audioContextRef.current) {
-        try {
-          audioContextRef.current.close();
-        } catch (error) {
-          console.error('Error closing audio context:', error);
-        }
+        audioContextRef.current.close();
         audioContextRef.current = null;
       }
     } else {
       // Start listening
       setIsListening(true);
       if (recognitionRef.current) {
-        try {
-          recognitionRef.current.start();
-        } catch (error) {
-          console.error('Error starting recognition:', error);
-          setIsListening(false);
-        }
+        recognitionRef.current.start();
       }
       await initializeAudioVisualization();
     }
@@ -310,131 +245,48 @@ const EmergencyVoiceTrigger = () => {
 
   // Send emergency alert
   const sendEmergencyAlert = async () => {
-    console.log('🚀 sendEmergencyAlert called');
-    
-    // Prevent multiple sends
-    if (isAlertSending) {
-      console.warn('⚠️ Alert already sending, preventing duplicate');
-      return;
-    }
-    
-    setIsAlertSending(true);
     setIsLoading(true);
     
-    // Dismiss all previous toasts to prevent stacking
-    toast.remove();
-    
     try {
-      console.log('� Preparing emergency alert...');
+      const primaryContacts = familyContacts.filter(contact => contact.primary);
       
-      // Fetch current user details
-      console.log('👤 Fetching user details...');
-      const userDetails = await getCurrentUserDetails();
-      console.log('✅ User details fetched:', userDetails?.fullName);
+      if (primaryContacts.length === 0) {
+        toast.error('No primary emergency contacts configured');
+        setIsLoading(false);
+        return;
+      }
 
-      console.log('📍 Current location:', location);
-      
-      // Get all family contacts (not just primary)
-      const allContacts = familyContacts.length > 0 ? familyContacts : [];
-      console.log(`✅ Found ${allContacts.length} total contacts`);
-      
       const alertData = {
         triggerWord: triggerWord,
         location: location,
-        contacts: allContacts,
+        contacts: primaryContacts,
         silentMode: silentMode,
-        emergencyType: 'voice_trigger',
-        userDetails: userDetails
+        emergencyType: 'voice_trigger'
       };
 
-      console.log('📤 Showing loading notification...');
-      // Show loading notification
-      const loadingToast = toast.loading('📍 Sending your data to police...', {
-        position: 'top-center'
-      });
-      console.log('✅ Loading toast shown:', loadingToast);
-
-      console.log('🔄 Sending alert to backend...');
       const result = await emergencyAPI.createVoiceAlert(alertData);
-      console.log('✅ Backend response:', result);
       
-      // Dismiss loading toast
-      console.log('🗑️ Dismissing loading toast...');
-      toast.dismiss(loadingToast);
-      
-      // Show detailed success notification
       setAlertSent(true);
-      
-      // Build success message with details (simpler format for toast)
-      const successMessage = `✅ DATA SENT SUCCESSFULLY! | Profile: ${userDetails?.fullName || 'User'} | Location: (${location?.latitude?.toFixed(4)}, ${location?.longitude?.toFixed(4)}) | Alert sent to police`;
-      
-      console.log('📢 Showing success notification...');
-      console.log('📝 Success message:', successMessage);
-      
-      toast.success(successMessage, {
-        duration: 6000,
-        position: 'top-center',
-        style: {
-          background: '#10B981',
-          color: '#fff',
-          fontSize: '14px',
-          padding: '16px',
-          borderRadius: '8px',
-          boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
-          maxWidth: '500px'
-        }
-      });
-      console.log('✅ Success notification shown');
+      toast.success(`Emergency alert sent to ${primaryContacts.length} contacts!`);
       
       // Refresh voice history
-      console.log('🔄 Refreshing voice history...');
       const historyResult = await emergencyAPI.getVoiceHistory();
       setVoiceHistory(historyResult.data || []);
-      console.log('✅ Voice history refreshed');
       
       // Vibrate if supported
       if (navigator.vibrate) {
-        console.log('📳 Vibrating device...');
         navigator.vibrate([200, 100, 200]);
       }
       
       setTimeout(() => {
         setAlertSent(false);
-      }, 6000);
-      
-      console.log('🎉 Emergency alert sent successfully!');
+      }, 5000);
       
     } catch (error) {
-      console.error('❌ Error sending alert:', error);
-      console.error('📋 Error details:', {
-        message: error.message,
-        stack: error.stack,
-        response: error.response
-      });
-      
-      // Show detailed error notification
-      const errorMessage = error.response?.data?.error || error.message || 'Unknown error occurred';
-      console.log('📢 Showing error notification...');
-      console.log('📝 Error message:', errorMessage);
-      
-      toast.error(`❌ FAILED TO SEND | ${errorMessage}`, {
-        duration: 5000,
-        position: 'top-center',
-        style: {
-          background: '#EF4444',
-          color: '#fff',
-          fontSize: '14px',
-          padding: '16px',
-          borderRadius: '8px',
-          boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)'
-        }
-      });
-      console.log('✅ Error notification shown');
+      console.error('Error sending alert:', error);
+      toast.error('Failed to send emergency alert: ' + error.message);
     } finally {
-      console.log('🔚 Cleaning up...');
       setIsLoading(false);
-      setIsAlertSending(false);
-      console.log('✅ Cleanup complete');
     }
   };
 
@@ -446,16 +298,6 @@ const EmergencyVoiceTrigger = () => {
     setShowConfirmation(false);
     setCountdown(5);
     toast.success('Emergency alert cancelled');
-  };
-
-  // Reset trigger detection (allow user to trigger again)
-  const resetTrigger = () => {
-    console.log('🔄 Resetting trigger detection');
-    triggerDetectedRef.current = false;  // Reset ref immediately
-    setTriggerDetected(false);
-    setIsProcessing(false);
-    setIsListening(false);
-    console.log('✅ Trigger reset complete');
   };
 
   // Contact management functions

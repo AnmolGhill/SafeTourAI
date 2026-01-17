@@ -1,10 +1,7 @@
 import React from 'react';
 import { FiBell, FiUser, FiChevronDown } from 'react-icons/fi';
-import LanguageSelector from './components/LanguageSelector';
-import { useLanguage } from './contexts/LanguageContext';
 
 const Navbar = () => {
-  const { t } = useLanguage();
   const currentTime = new Date().toLocaleString();
   
   // Get current user from localStorage
@@ -58,11 +55,6 @@ const Navbar = () => {
           {/* Current Time - Desktop Only */}
           <div className="navbar-time hidden lg:flex items-center px-3 py-2 bg-gray-50 rounded-lg">
             <span className="text-sm font-medium text-gray-700">{currentTime}</span>
-          </div>
-
-          {/* Language Selector */}
-          <div className="flex items-center">
-            <LanguageSelector />
           </div>
 
           {/* Notification */}
