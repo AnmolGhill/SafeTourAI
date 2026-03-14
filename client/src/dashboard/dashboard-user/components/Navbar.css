@@ -1,0 +1,182 @@
+/* ===============================
+        SafeTourAI Navbar
+================================= */
+
+.dashboard-navbar {
+    background: #ffffff;
+    position: sticky;
+    top: 0;
+    z-index: 1000;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.06);
+}
+
+.navbar-container {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.8rem 2rem;
+}
+
+/* LEFT */
+.navbar-left {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.menu-btn {
+    background: linear-gradient(135deg, #3b82f6, #6366f1);
+    border: none;
+    color: white;
+    padding: 0.6rem;
+    border-radius: 10px;
+    cursor: pointer;
+    display: flex;
+}
+
+.logo-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 0.8rem;
+}
+
+.logo-icon {
+    background: linear-gradient(135deg, #2563eb, #7c3aed);
+    color: white;
+    width: 42px;
+    height: 42px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+}
+
+.logo-text {
+    font-weight: 600;
+    font-size: 1.2rem;
+    color: #2563eb;
+}
+
+.logo-subtitle {
+    font-size: 0.75rem;
+    color: #6b7280;
+}
+
+/* RIGHT */
+.navbar-right {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.navbar-time {
+    background: #f3f4f6;
+    padding: 0.5rem 0.8rem;
+    border-radius: 8px;
+    font-size: 0.85rem;
+    color: #374151;
+}
+
+/* Notification */
+.notification-btn {
+    position: relative;
+    background: #eef2ff;
+    border: none;
+    padding: 0.6rem;
+    border-radius: 10px;
+    cursor: pointer;
+}
+
+.notification-dot {
+    position: absolute;
+    top: 6px;
+    right: 6px;
+    width: 8px;
+    height: 8px;
+    background: red;
+    border-radius: 50%;
+}
+
+/* Profile */
+.profile-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    cursor: pointer;
+}
+
+.profile-avatar {
+    position: relative;
+    width: 42px;
+    height: 42px;
+    border-radius: 12px;
+    background: linear-gradient(135deg, #6366f1, #8b5cf6);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+}
+
+.status-dot {
+    position: absolute;
+    bottom: 3px;
+    right: 3px;
+    width: 8px;
+    height: 8px;
+    background: #22c55e;
+    border-radius: 50%;
+    border: 2px solid white;
+}
+
+.profile-info {
+    display: flex;
+    flex-direction: column;
+}
+
+.profile-name {
+    font-size: 0.9rem;
+    font-weight: 600;
+}
+
+.profile-role {
+    font-size: 0.75rem;
+    color: #6b7280;
+}
+
+.profile-chevron {
+    color: #9ca3af;
+}
+
+/* ===============================
+        MOBILE FIX
+================================= */
+
+@media (max-width: 768px) {
+
+    .navbar-container {
+        padding: 0.6rem 1rem;
+    }
+
+    .logo-subtitle {
+        display: none;
+    }
+
+    .profile-info {
+        display: none;
+    }
+
+    .navbar-time {
+        display: none;
+    }
+
+    .navbar-right {
+        gap: 0.6rem;
+    }
+
+    .logo-text {
+        font-size: 1rem;
+    }
+
+}
