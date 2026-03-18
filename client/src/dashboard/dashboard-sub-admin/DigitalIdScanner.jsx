@@ -6,7 +6,7 @@ import jsQR from 'jsqr';
 import QRScanner from '../../components/QRScanner';
 
 // Get API base URL from environment
-const API_BASE_URL = `${import.meta.env.VITE_BASE_URL}/api`;
+const API_BASE_URL = `${import.meta.env.VITE_BASE_URL.replace(/\/$/, '')}/api`;
 
 const DigitalIdScanner = () => {
   const [scanResult, setScanResult] = useState(null);

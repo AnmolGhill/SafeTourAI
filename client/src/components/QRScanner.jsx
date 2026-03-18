@@ -9,7 +9,7 @@ import {
 import QrScanner from 'qr-scanner';
 
 // Get API base URL from environment
-const API_BASE_URL = `${import.meta.env.VITE_BASE_URL}/api`;
+const API_BASE_URL = `${import.meta.env.VITE_BASE_URL.replace(/\/$/, '')}/api`;
 
 const QRScanner = ({ onScan, onClose, isOpen }) => {
   const [scanning, setScanning] = useState(false);

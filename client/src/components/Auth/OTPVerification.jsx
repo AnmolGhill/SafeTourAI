@@ -77,8 +77,8 @@ const OTPVerification = () => {
       });
       
       // Direct API call to backend
-      const BASE_URL = import.meta.env.VITE_BASE_URL ;
-      const response = await fetch(`${BASE_URL}/api/auth/verify-otp`, {
+      const BASE_URL = import.meta.env.VITE_BASE_URL;
+      const response = await fetch(`${BASE_URL.replace(/\/$/, '')}/api/auth/verify-otp`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -152,8 +152,8 @@ const OTPVerification = () => {
       });
       
       // Direct API call to backend
-      const BASE_URL = import.meta.env.VITE_BASE_URL ;
-      const response = await fetch(`${BASE_URL}/api/auth/resend-otp`, {
+      const BASE_URL = import.meta.env.VITE_BASE_URL;
+      const response = await fetch(`${BASE_URL.replace(/\/$/, '')}/api/auth/resend-otp`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

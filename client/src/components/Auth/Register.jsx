@@ -129,7 +129,7 @@ const Register = () => {
       
       // Direct API call to backend
       const BASE_URL = import.meta.env.VITE_BASE_URL;
-      const response = await fetch(`${BASE_URL}/api/auth/register`, {
+      const response = await fetch(`${BASE_URL.replace(/\/$/, '')}/api/auth/register`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

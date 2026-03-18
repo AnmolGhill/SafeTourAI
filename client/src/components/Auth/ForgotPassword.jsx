@@ -28,8 +28,8 @@ const ForgotPassword = () => {
     setLoading(true);
 
     try {
-      const BASE_URL = import.meta.env.VITE_BASE_URL ;
-      const response = await fetch(`${BASE_URL}/api/auth/forgot-password`, {
+      const BASE_URL = import.meta.env.VITE_BASE_URL;
+      const response = await fetch(`${BASE_URL.replace(/\/$/, '')}/api/auth/forgot-password`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -68,8 +68,8 @@ const ForgotPassword = () => {
     setLoading(true);
 
     try {
-      const BASE_URL = import.meta.env.VITE_BASE_URL ;
-      const response = await fetch(`${BASE_URL}/api/auth/reset-password`, {
+      const BASE_URL = import.meta.env.VITE_BASE_URL;
+      const response = await fetch(`${BASE_URL.replace(/\/$/, '')}/api/auth/reset-password`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

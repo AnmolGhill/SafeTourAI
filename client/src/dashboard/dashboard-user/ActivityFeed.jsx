@@ -55,7 +55,7 @@ const ActivityFeed = () => {
         return;
       }
 
-      const response = await fetch(`${import.meta.env.VITE_BASE_URL || 'http://localhost:5000'}/api/location/activities`, {
+      const response = await fetch(`${(import.meta.env.VITE_BASE_URL || 'http://localhost:5000').replace(/\/$/, '')}/api/location/activities`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'

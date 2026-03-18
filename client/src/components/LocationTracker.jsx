@@ -117,7 +117,7 @@ const LocationTracker = ({ onLocationUpdate, emergencyMode = false }) => {
         payload.emergencyType = 'general';
       }
 
-      const response = await fetch(`${import.meta.env.VITE_BASE_URL || 'http://localhost:5000'}${endpoint}`, {
+      const response = await fetch(`${(import.meta.env.VITE_BASE_URL || 'http://localhost:5000').replace(/\/$/, '')}${endpoint}`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
